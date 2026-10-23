@@ -36,10 +36,9 @@ enum PluggyError: LocalizedError {
 /// - Endereço fixo: o cliente só fala com https://api.pluggy.ai.
 /// - Sessão "efêmera": nada de cache, cookies ou respostas gravadas em disco.
 /// - Token de acesso só na memória, com validade curta, renovado quando vence.
-/// - Leitura de dados (GET) e um único pedido de escrita: o PATCH que pede ao
-///   Pluggy para buscar no banco de novo. Ele não envia nada ao banco nem
-///   movimenta dinheiro; só antecipa a busca diária. Não existe aqui nenhuma
-///   chamada de pagamento ou transferência.
+/// - Apenas leitura (GET). Não existe aqui nenhuma chamada de escrita,
+///   pagamento ou transferência. (A atualização manual, PATCH, foi testada e
+///   o Pluggy recusa para conexões do Meu Pluggy; por isso saiu do código.)
 actor PluggyClient {
     private static let host = "api.pluggy.ai"
     private static let baseURL = URL(string: "https://api.pluggy.ai")!
@@ -97,28 +96,6 @@ actor PluggyClient {
             cursor = nextCursor
         }
         return all
-    }
-
-    /// Pede ao Pluggy uma busca extra no banco (PATCH /items/{id}, corpo vazio).
-    /// O Pluggy limita a 1 pedido por hora por conexão.
-    func requestUpdate(itemId: String) async throws {
-        for attempt in 0..<2 {
-            let key = try await validApiKey()
-            var request = URLRequest(url: Self.baseURL.appendingPathComponent("items/\(itemId)"))
-            request.httpMethod = "PATCH"
-            request.setValue(key, forHTTPHeaderField: "X-API-KEY")
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.setValue("application/json", forHTTPHeaderField: "Accept")
-            request.httpBody = Data("{}".utf8)
-            do {
-                _ = try await send(request, isAuthRequest: false)
-                return
-            } catch PluggyError.unauthorized {
-                // 403 de novo com token novo: o Pluggy não permite atualizar esta conexão.
-                guard attempt == 0 else { throw PluggyError.rejected(403, nil) }
-                reset()
-            }
-        }
     }
 
     /// Descarta o token da memória (chamado ao bloquear o app ou trocar credenciais).

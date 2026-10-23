@@ -20,7 +20,6 @@ enum SettingsKey {
     static let notifyShowValues = "notify.showValues"
     static let profileName = "profile.name"
     static let hasLaunchedBefore = "app.hasLaunchedBefore"
-    static let lastBankUpdateRequest = "pluggy.lastBankUpdateRequest"
 }
 
 /// Tempo que o app pode ficar em segundo plano antes de bloquear.

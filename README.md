@@ -47,10 +47,8 @@ pelo GitHub Actions.
 9. **Cliente de rede restrito.** Endereço fixo (`api.pluggy.ai`), sessão efêmera sem
    cache nem cookies, TLS 1.2+, token de vida curta só na memória, cursor de
    paginação extraído (o link enviado pelo servidor nunca é seguido) e limite de páginas.
-   A única chamada que não é leitura é o `PATCH /items/{id}` de "Buscar no banco
-   agora": pede ao Pluggy uma busca extra no banco (no máximo 1 por hora, com trava
-   no próprio app). Não envia nada ao banco nem movimenta dinheiro. De um erro do
-   Pluggy, o app aproveita só o código técnico; o texto livre nunca é exibido.
+   Só leitura: a atualização manual (`PATCH /items/{id}`) foi testada, o Pluggy
+   recusa para conexões do Meu Pluggy (erro 400), e por isso não existe no código.
 10. **Sessão com prazo.** Saldos, contas, token e textos digitados vivem na sessão.
    Voltar ao app em menos de 5 minutos só exige Face ID e retoma de onde parou;
    depois disso, a sessão é descartada e tudo é recriado do zero. Nenhuma tela

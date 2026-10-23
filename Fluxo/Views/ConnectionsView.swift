@@ -3,7 +3,6 @@ import SwiftUI
 /// Conexões do Open Finance: situação de cada banco e sincronização.
 struct ConnectionsView: View {
     @EnvironmentObject private var store: FinanceStore
-    @State private var bankUpdateMessage: String?
 
     var body: some View {
         ScrollView {
@@ -20,7 +19,7 @@ struct ConnectionsView: View {
                             storedCount: store.storedTransactionCount(forItem: connection.id)
                         )
                     }
-                    bankUpdateButton
+                    nextBankUpdate
                     syncButton
                 }
 
@@ -34,7 +33,7 @@ struct ConnectionsView: View {
                     .frame(maxWidth: .infinity, minHeight: 44)
                 }
 
-                Text("O Meu Pluggy busca os dados no banco sozinho, 1 vez por dia. “Buscar no banco agora” pede uma busca extra (até 1 por hora); “Sincronizar” só traz o que o Pluggy já buscou. Para revogar um acesso, remova o banco no Meu Pluggy.")
+                Text("O Meu Pluggy busca os dados no banco sozinho, 1 vez por dia, e não aceita busca manual. “Sincronizar” traz o que ele já buscou. Para revogar um acesso, remova o banco no Meu Pluggy.")
                     .font(.footnote)
                     .foregroundStyle(Theme.inkSecondary)
                     .padding(.horizontal, 4)
@@ -108,34 +107,19 @@ struct ConnectionsView: View {
         }
     }
 
-    /// Pede ao Pluggy que vá ao banco de novo.
-    private var bankUpdateButton: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Button {
-                bankUpdateMessage = nil
-                Task { bankUpdateMessage = await store.requestBankUpdate() }
-            } label: {
-                HStack(spacing: 8) {
-                    if store.isRequestingBankUpdate {
-                        ProgressView()
-                        Text("Pedindo ao banco… até 2 min")
-                    } else {
-                        Image(systemName: "building.columns")
-                        Text("Buscar no banco agora")
-                    }
-                }
-                .frame(maxWidth: .infinity, minHeight: 48)
-            }
-            .buttonStyle(LimeButtonStyle())
-            .disabled(store.isRequestingBankUpdate || store.state == .loading)
-
-            if let message = bankUpdateMessage, !message.isEmpty {
-                Text(message)
+    /// Quando o banco manda dados novos: a próxima busca automática do Pluggy.
+    @ViewBuilder
+    private var nextBankUpdate: some View {
+        if let next = store.connections.compactMap({ $0.item?.nextAutoSyncAt }).filter({ $0 > .now }).min() {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "clock.arrow.circlepath")
+                    .foregroundStyle(Theme.inkSecondary)
+                Text("Dados novos do banco: \(FinanceStore.bankTimeLabel(next)), na busca automática do Meu Pluggy.")
                     .font(.footnote)
                     .foregroundStyle(Theme.inkSecondary)
-                    .padding(.horizontal, 4)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .padding(.horizontal, 4)
         }
     }
 
