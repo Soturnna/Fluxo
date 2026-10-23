@@ -129,7 +129,9 @@ final class AgentEngine: ObservableObject {
             "systemInstruction": ["parts": [["text": Self.systemPrompt()]]],
             "contents": history,
             "tools": [["functionDeclarations": AgentTools.declarations]],
-            "toolConfig": ["functionCallingConfig": ["mode": "AUTO"]]
+            "toolConfig": ["functionCallingConfig": ["mode": "AUTO"]],
+            // Raciocínio "baixo": respostas mais rápidas, suficiente para consultas e propostas.
+            "generationConfig": ["thinkingConfig": ["thinkingLevel": "LOW"]]
         ]
         let data = try JSONSerialization.data(withJSONObject: body)
         let reply = try await client.generate(body: data)

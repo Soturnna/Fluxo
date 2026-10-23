@@ -36,6 +36,8 @@ struct CredentialsView: View {
     @State private var apiKey = ""
     @State private var configured = false
     @State private var feedback: Feedback?
+    @State private var testResult: String?
+    @State private var testing = false
 
     private struct Feedback {
         let text: String
@@ -55,6 +57,32 @@ struct CredentialsView: View {
             }
 
             fields
+
+            if kind == .gemini && configured {
+                Section {
+                    Button {
+                        Task {
+                            testing = true
+                            testResult = await GeminiClient().ping()
+                            testing = false
+                        }
+                    } label: {
+                        HStack {
+                            Text("Testar chave")
+                            Spacer()
+                            if testing { ProgressView() }
+                        }
+                    }
+                    .disabled(testing)
+                    if let testResult {
+                        Text(testResult)
+                            .font(.footnote)
+                            .foregroundStyle(Theme.inkSecondary)
+                    }
+                } footer: {
+                    Text("O teste envia só a frase “Responda apenas: ok”. Nenhum dado seu sai do iPhone.")
+                }
+            }
 
             Section {
                 Button {

@@ -7,7 +7,7 @@ enum GeminiError: LocalizedError {
     case badRequest
     case modelUnavailable
     case server(Int)
-    case network
+    case network(String, retryable: Bool)
     case invalidResponse
 
     var errorDescription: String? {
@@ -18,7 +18,7 @@ enum GeminiError: LocalizedError {
         case .badRequest: return "O Gemini não entendeu o pedido. Tente reformular."
         case .modelUnavailable: return "O modelo do Gemini usado pelo app não está disponível. Ele precisa ser atualizado."
         case .server(let code): return "O Gemini respondeu com erro (\(code))."
-        case .network: return "Sem conexão com a internet ou o Gemini não respondeu."
+        case .network(let detail, _): return detail
         case .invalidResponse: return "Resposta inesperada do Gemini."
         }
     }
@@ -44,13 +44,61 @@ struct GeminiClient {
         config.httpCookieStorage = nil
         config.httpShouldSetCookies = false
         config.tlsMinimumSupportedProtocolVersion = .TLSv12
-        config.timeoutIntervalForRequest = 60
+        // O modelo pode "pensar" antes de responder: margem generosa de espera.
+        config.timeoutIntervalForRequest = 120
+        config.timeoutIntervalForResource = 180
         return URLSession(configuration: config)
     }()
 
+    /// Traduz o código do erro de rede numa mensagem que diz o que aconteceu.
+    /// Só o código é usado; nenhum conteúdo da conversa entra na mensagem.
+    static func describe(_ error: URLError) -> String {
+        switch error.code {
+        case .notConnectedToInternet:
+            return "Sem conexão com a internet."
+        case .timedOut:
+            return "O Gemini demorou demais para responder. Tente de novo."
+        case .networkConnectionLost:
+            return "A conexão caiu no meio da resposta. Tente de novo."
+        case .cannotFindHost, .dnsLookupFailed:
+            return "Não foi possível encontrar o servidor do Gemini (DNS). Uma VPN ou um bloqueador pode estar interferindo."
+        case .cannotConnectToHost:
+            return "O servidor do Gemini recusou a conexão."
+        case .secureConnectionFailed, .serverCertificateUntrusted, .serverCertificateHasBadDate,
+             .serverCertificateNotYetValid, .serverCertificateHasUnknownRoot, .clientCertificateRejected:
+            return "Falha na conexão segura com o Gemini (código \(error.code.rawValue)). Uma VPN ou um filtro de rede pode estar interceptando."
+        case .appTransportSecurityRequiresSecureConnection:
+            return "O iOS bloqueou a conexão por segurança (ATS)."
+        default:
+            return "Erro de rede ao falar com o Gemini (código \(error.code.rawValue))."
+        }
+    }
+
     static var hasKey: Bool { KeychainStore.exists(.geminiApiKey) }
 
+    /// Envia o pedido. Falhas passageiras (tempo esgotado, conexão caída)
+    /// ganham uma segunda tentativa automática.
     func generate(body: Data) async throws -> Data {
+        do {
+            return try await attempt(body: body)
+        } catch GeminiError.network(_, let retryable) where retryable {
+            try await Task.sleep(nanoseconds: 800_000_000)
+            return try await attempt(body: body)
+        }
+    }
+
+    /// Teste de conexão sem nenhum dado seu: só pede ao modelo para responder "ok".
+    func ping() async -> String {
+        let body = #"{"contents":[{"role":"user","parts":[{"text":"Responda apenas: ok"}]}]}"#
+        do {
+            _ = try await attempt(body: Data(body.utf8))
+            return "Conexão funcionando. A chave e o modelo \(Self.model) estão ok."
+        } catch {
+            return (error as? LocalizedError)?.errorDescription ?? "Falha desconhecida."
+        }
+    }
+
+    private func attempt(body: Data) async throws -> Data {
         guard let key = KeychainStore.read(.geminiApiKey) else { throw GeminiError.missingKey }
         guard let url = URL(string: "https://\(Self.host)/v1beta/models/\(Self.model):generateContent") else {
             throw GeminiError.invalidResponse
@@ -69,7 +117,11 @@ struct GeminiClient {
             if error is CancellationError || (error as? URLError)?.code == .cancelled {
                 throw CancellationError()
             }
-            throw GeminiError.network
+            if let urlError = error as? URLError {
+                let retryable = urlError.code == .timedOut || urlError.code == .networkConnectionLost
+                throw GeminiError.network(Self.describe(urlError), retryable: retryable)
+            }
+            throw GeminiError.network("Erro de rede ao falar com o Gemini.", retryable: false)
         }
         let (data, response) = result
 
