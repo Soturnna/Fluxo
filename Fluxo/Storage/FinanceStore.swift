@@ -104,7 +104,8 @@ final class FinanceStore: ObservableObject {
             return
         }
         let task = Task { [weak self] in
-            await self?.performSync()
+            guard let self else { return }
+            await self.performSync()
         }
         syncTask = task
         await task.value
