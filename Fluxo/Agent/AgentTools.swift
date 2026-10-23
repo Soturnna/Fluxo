@@ -64,7 +64,7 @@ enum AgentTools {
         return [
             [
                 "name": "resumo_mes",
-                "description": "Resumo financeiro de um mês: saldo em conta, gasto total, entradas, gasto por categoria com orçamentos, gastos previstos pendentes e maiores gastos.",
+                "description": "Resumo financeiro de um mês: saldo em conta, gasto total, entradas, gasto por categoria (com participação e orçamentos), maiores gastos, ritmo e projeção do mês, comparação com o mês anterior (inteiro e até o mesmo dia) e histórico de 6 meses.",
                 "parameters": object(["mes": string("Mês no formato AAAA-MM. Use o mês atual se o usuário não disser.")], required: ["mes"])
             ],
             [
@@ -172,7 +172,8 @@ enum AgentTools {
             .map { entry in
                 var row: [String: Any] = [
                     "categoria": store.category(withId: entry.key)?.name ?? "Outros",
-                    "gasto": money(entry.value)
+                    "gasto": money(entry.value),
+                    "participacao_percentual": percent(entry.value, of: totals.spent)
                 ]
                 if let limit = budgets[entry.key] {
                     row["orcamento"] = money(limit)
@@ -197,6 +198,40 @@ enum AgentTools {
         ]
         if let balance = store.bankBalance { response["saldo_em_conta"] = money(balance) }
         if let limit = store.userData.effectiveMonthlyLimit { response["limite_do_mes"] = money(limit) }
+
+        // Ritmo do mês: média por dia e, no mês atual, projeção linear até o fim.
+        let calendar = Calendar.current
+        let elapsed = max(store.elapsedDays(inMonthOf: month), 1)
+        let isCurrent = FinanceStore.isCurrentMonth(month)
+        let dailyAverage = totals.spent / Decimal(elapsed)
+        response["quantidade_de_gastos"] = store.transactions(inMonthOf: month).filter { store.isExpense($0) }.count
+        response["media_por_dia"] = money(dailyAverage)
+        if isCurrent {
+            response["dias_decorridos"] = elapsed
+            response["dias_restantes"] = store.daysLeft(inMonthOf: month)
+            response["projecao_linear_fim_do_mes"] = money(dailyAverage * Decimal(FinanceStore.daysInMonth(month)))
+        }
+
+        // Comparação com o mês anterior: inteiro e até o mesmo dia (justa no mês em andamento).
+        if let previous = calendar.date(byAdding: .month, value: -1, to: month) {
+            let previousTotals = store.totals(inMonthOf: previous)
+            var comparison: [String: Any] = [
+                "mes": monthString(previous),
+                "gasto_total": money(previousTotals.spent),
+                "entradas": money(previousTotals.income)
+            ]
+            if isCurrent {
+                comparison["gasto_ate_o_mesmo_dia"] = money(store.spent(inMonthOf: previous, upToDay: elapsed))
+            }
+            response["mes_anterior"] = comparison
+        }
+
+        // Histórico curto, só com totais (nenhuma transação individual).
+        response["historico_6_meses"] = (0..<6).reversed().compactMap { offset -> [String: Any]? in
+            guard let target = calendar.date(byAdding: .month, value: -offset, to: month) else { return nil }
+            let monthTotals = store.totals(inMonthOf: target)
+            return ["mes": monthString(target), "gastos": money(monthTotals.spent), "entradas": money(monthTotals.income)]
+        }
 
         let label = month.formatted(.dateTime.month(.wide).year().locale(.ptBR))
         return ToolOutcome(response: response, activity: "Consultou o resumo de \(label)")

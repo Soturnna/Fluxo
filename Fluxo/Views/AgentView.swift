@@ -11,7 +11,7 @@ struct AgentView: View {
     @FocusState private var inputFocused: Bool
 
     private let suggestions = [
-        "Quanto gastei este mês?",
+        "Analise meu mês",
         "Quais foram meus maiores gastos?",
         "Dia 26 vou comprar um tênis de R$ 300",
         "Como estão meus orçamentos?"
@@ -43,9 +43,11 @@ struct AgentView: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .onChange(of: agent.entries.count) { _, _ in
-                    if let last = agent.entries.last?.id {
-                        withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(last, anchor: .bottom) }
-                    }
+                    guard let last = agent.entries.last else { return }
+                    // Resposta longa (com gráficos): rola até o começo dela, para ler de cima.
+                    var anchor = UnitPoint.bottom
+                    if case .answer = last { anchor = .top }
+                    withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(last.id, anchor: anchor) }
                 }
             }
             .background(Theme.ground.ignoresSafeArea())
@@ -131,20 +133,9 @@ struct AgentView: View {
                     .padding(.vertical, 10)
                     .background(Theme.forest, in: UnevenRoundedRectangle(topLeadingRadius: 20, bottomLeadingRadius: 20, bottomTrailingRadius: 6, topTrailingRadius: 20, style: .continuous))
             }
-        case .assistant(_, let text):
-            HStack {
-                Text(Self.markdown(text))
-                    .font(.body)
-                    .foregroundStyle(Theme.ink)
-                    .textSelection(.enabled)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(Theme.surface, in: UnevenRoundedRectangle(topLeadingRadius: 6, bottomLeadingRadius: 20, bottomTrailingRadius: 20, topTrailingRadius: 20, style: .continuous))
-                    .overlay(
-                        UnevenRoundedRectangle(topLeadingRadius: 6, bottomLeadingRadius: 20, bottomTrailingRadius: 20, topTrailingRadius: 20, style: .continuous)
-                            .strokeBorder(Theme.line, lineWidth: Theme.hairline)
-                    )
-                Spacer(minLength: 32)
+        case .answer(_, let answer):
+            AgentAnswerView(answer: answer, suggestionsEnabled: !agent.isThinking && agent.hasKey) { suggestion in
+                submit(suggestion.prompt, display: suggestion.display)
             }
         case .activity(_, let text):
             Label(text, systemImage: "magnifyingglass")
@@ -206,15 +197,11 @@ struct AgentView: View {
         .background(Theme.ground)
     }
 
-    private func submit(_ text: String) {
+    private func submit(_ text: String, display: String? = nil) {
         let message = text
         input = ""
-        Task { await agent.send(message, store: store, audit: audit) }
-    }
-
-    static func markdown(_ text: String) -> AttributedString {
-        let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        return (try? AttributedString(markdown: text, options: options)) ?? AttributedString(text)
+        inputFocused = false
+        Task { await agent.send(message, display: display, store: store, audit: audit) }
     }
 }
 

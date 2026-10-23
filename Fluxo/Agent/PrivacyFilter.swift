@@ -50,12 +50,12 @@ final class PrivacyFilter {
         if anonymizeNames && Self.looksLikePersonTransfer(transaction) {
             return alias(for: transaction.title)
         }
-        return Self.maskNumbers(transaction.title)
+        return Self.neutralizeMarkers(Self.maskNumbers(transaction.title))
     }
 
     /// Qualquer texto livre (nota, descrição) antes de sair do iPhone.
     func safeText(_ text: String) -> String {
-        Self.maskNumbers(text)
+        Self.neutralizeMarkers(Self.maskNumbers(text))
     }
 
     /// Troca os pseudônimos pelos nomes reais, só para exibir na tela.
@@ -96,6 +96,14 @@ final class PrivacyFilter {
             || text.contains("transf")
             || text.contains("ted ")
             || text.contains("doc ")
+    }
+
+    /// "[[" e "]]" são as marcações de gráfico e de sugestão nas respostas.
+    /// Um texto vindo do banco (descrição de Pix, nome de loja) não pode
+    /// carregá-las até a IA, para não "plantar" botões ou gráficos na resposta.
+    static func neutralizeMarkers(_ text: String) -> String {
+        text.replacingOccurrences(of: "[[", with: "[")
+            .replacingOccurrences(of: "]]", with: "]")
     }
 
     /// Sequências de 5 ou mais dígitos (com ou sem . - / espaço) viram "•••".

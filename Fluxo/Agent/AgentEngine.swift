@@ -11,14 +11,14 @@ import Foundation
 final class AgentEngine: ObservableObject {
     enum Entry: Identifiable {
         case user(id: UUID, text: String)
-        case assistant(id: UUID, text: String)
+        case answer(id: UUID, answer: AgentAnswer)
         case activity(id: UUID, text: String)
         case action(PendingAction)
         case error(id: UUID, text: String)
 
         var id: UUID {
             switch self {
-            case .user(let id, _), .assistant(let id, _), .activity(let id, _), .error(let id, _): return id
+            case .user(let id, _), .answer(let id, _), .activity(let id, _), .error(let id, _): return id
             case .action(let action): return action.id
             }
         }
@@ -51,20 +51,33 @@ final class AgentEngine: ObservableObject {
 
     // MARK: Perguntar
 
-    func send(_ rawText: String, store: FinanceStore, audit: AuditLog) async {
+    /// - Parameter display: texto mostrado no balão, quando difere do enviado
+    ///   (sugestões tocadas: a tela mostra nomes reais; a IA recebe os pseudônimos).
+    func send(_ rawText: String, display: String? = nil, store: FinanceStore, audit: AuditLog) async {
         let text = String(rawText.trimmingCharacters(in: .whitespacesAndNewlines).prefix(Self.maxQuestionLength))
         guard !text.isEmpty, !isThinking else { return }
 
-        entries.append(.user(id: UUID(), text: text))
+        entries.append(.user(id: UUID(), text: display ?? text))
         history.append(["role": "user", "parts": [["text": text]]])
         audit.record(kind: .question, content: text)
 
         isThinking = true
         defer { isThinking = false }
 
+        // O texto pode chegar em mais de uma rodada; a resposta é montada uma
+        // vez só, no fim, para gráficos e sugestões ficarem no lugar certo.
+        var answerText: [String] = []
+        var proposed = false
+
         do {
             for _ in 0..<Self.maxToolRounds {
-                let content = try await askGemini()
+                guard let content = try await askGemini() else {
+                    // Resposta vazia (comum logo depois de uma ferramenta): fecha
+                    // o turno no histórico e mostra o que já veio.
+                    history.append(["role": "model", "parts": [["text": "Pronto."]]])
+                    finish(answerText, store: store, fallbackIfEmpty: !proposed)
+                    return
+                }
                 history.append(content)
 
                 let parts = content["parts"] as? [[String: Any]] ?? []
@@ -75,10 +88,11 @@ final class AgentEngine: ObservableObject {
                     .joined()
                     .trimmingCharacters(in: .whitespacesAndNewlines)
 
-                if !visibleText.isEmpty {
-                    entries.append(.assistant(id: UUID(), text: privacy.reveal(visibleText)))
+                if !visibleText.isEmpty { answerText.append(visibleText) }
+                if calls.isEmpty {
+                    finish(answerText, store: store, fallbackIfEmpty: !proposed)
+                    return
                 }
-                if calls.isEmpty { return }
 
                 var responses: [[String: Any]] = []
                 for call in calls {
@@ -87,7 +101,10 @@ final class AgentEngine: ObservableObject {
                     let outcome = AgentTools.execute(name: name, args: args, store: store, privacy: privacy)
 
                     if let activity = outcome.activity { entries.append(.activity(id: UUID(), text: activity)) }
-                    if let action = outcome.action { entries.append(.action(action)) }
+                    if let action = outcome.action {
+                        entries.append(.action(action))
+                        proposed = true
+                    }
 
                     var functionResponse: [String: Any] = ["name": name, "response": outcome.response]
                     if let id = call["id"] as? String { functionResponse["id"] = id }
@@ -97,12 +114,21 @@ final class AgentEngine: ObservableObject {
                 }
                 history.append(["role": "user", "parts": responses])
             }
+            finish(answerText, store: store, fallbackIfEmpty: false)
             entries.append(.error(id: UUID(), text: "O agente precisou de passos demais para responder. Tente uma pergunta mais direta."))
         } catch is CancellationError {
             return
         } catch {
+            finish(answerText, store: store, fallbackIfEmpty: false)
             entries.append(.error(id: UUID(), text: (error as? LocalizedError)?.errorDescription ?? "Algo deu errado."))
         }
+    }
+
+    /// Transforma o texto acumulado em blocos visuais (texto, gráficos, sugestões).
+    private func finish(_ texts: [String], store: FinanceStore, fallbackIfEmpty: Bool) {
+        let raw = texts.joined(separator: "\n\n")
+        guard !raw.isEmpty || fallbackIfEmpty else { return }
+        entries.append(.answer(id: UUID(), answer: AnswerParser.parse(raw, store: store, privacy: privacy)))
     }
 
     // MARK: Confirmar ou recusar uma proposta
@@ -128,7 +154,8 @@ final class AgentEngine: ObservableObject {
 
     // MARK: Pedido ao Gemini
 
-    private func askGemini() async throws -> [String: Any] {
+    /// Devolve o conteúdo da resposta do modelo, ou nil quando ela veio vazia.
+    private func askGemini() async throws -> [String: Any]? {
         let reply: Data
         if let model, historyHasModelTurns {
             // Conversa em andamento: o histórico tem assinaturas internas que
@@ -162,9 +189,10 @@ final class AgentEngine: ObservableObject {
         guard let candidate = (json["candidates"] as? [[String: Any]])?.first else {
             throw GeminiError.invalidResponse
         }
-        guard var content = candidate["content"] as? [String: Any] else {
-            // Sem conteúdo (ex.: resposta bloqueada): devolve uma mensagem neutra.
-            return ["role": "model", "parts": [["text": "Não consegui responder a isso. Pode reformular?"]]]
+        guard var content = candidate["content"] as? [String: Any],
+              (content["parts"] as? [[String: Any]])?.isEmpty == false
+        else {
+            return nil   // sem conteúdo (resposta vazia ou bloqueada)
         }
         if content["role"] == nil { content["role"] = "model" }
         return content
@@ -207,9 +235,27 @@ final class AgentEngine: ObservableObject {
         4. Nomes de pessoas aparecem como "Pessoa N" por privacidade. Use esses rótulos como estão.
         5. Para datas relativas ("dia 26", "sexta que vem"), calcule a partir de hoje. Se o dia citado \
         já passou neste mês, use o mesmo dia do mês seguinte.
-        6. Nos dados, valores negativos são saídas e positivos são entradas.
-        7. Responda em português do Brasil, curto e direto. Escreva valores como R$ 1.234,56 e use \
-        **negrito** só para os números principais.
+        6. Nos dados, valores negativos são saídas e positivos são entradas. Aplicações em investimento \
+        e transferências entre contas próprias não são consumo: se aparecerem como gasto, você pode sugerir \
+        trocá-las para uma categoria que não conta.
+        7. Formato (o app transforma em visual). Português do Brasil, valores como R$ 1.234,56:
+        - Comece com UMA frase-resumo, com o número principal em **negrito**.
+        - Depois, de 2 a 4 tópicos curtos com "- " que tragam análise, não só números: participação no \
+        total (%), comparação com o mês anterior no mesmo período, ritmo/projeção do mês, algo fora do padrão.
+        - Se houver uma dica prática, escreva-a numa linha começando com "> ".
+        - Sem tabelas e sem títulos. Não repita valores que um gráfico já mostra; comente o que ele revela.
+        8. Gráficos: escreva o marcador sozinho numa linha, onde ele deve aparecer. O app desenha com os \
+        dados reais do iPhone; você não informa valores. No máximo 2 por resposta, só quando ajudarem:
+        [[grafico:indicadores:AAAA-MM]] gastos, entradas, resultado e variação contra o mês anterior
+        [[grafico:categorias:AAAA-MM]] divisão do gasto por categoria
+        [[grafico:maiores:AAAA-MM]] os 5 maiores gastos do mês
+        [[grafico:evolucao:AAAA-MM]] gasto acumulado dia a dia contra o mês anterior
+        [[grafico:meses]] entradas e gastos dos últimos 6 meses
+        [[grafico:orcamentos:AAAA-MM]] uso de cada orçamento
+        9. Termine sempre com 2 ou 3 sugestões de próximo passo, uma por linha, no formato \
+        [[acao:pedido curto]] (até 60 caracteres). São pedidos que o usuário toca para enviar a você, ligados \
+        ao que foi analisado. Prefira o que você sabe fazer: definir orçamento, trocar categoria, prever gasto, \
+        detalhar uma categoria. Exemplo: [[acao:Criar orçamento de R$ 500 para Delivery]]
         """
     }
 
