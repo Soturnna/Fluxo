@@ -8,6 +8,7 @@ enum SettingsKey {
     static let hideValuesOnOpen = "security.hideValuesOnOpen"
     static let shieldInSwitcher = "security.shieldInSwitcher"
     static let anonymizeNames = "agent.anonymizeNames"
+    static let agentModel = "agent.model"
     static let profileName = "profile.name"
     static let hasLaunchedBefore = "app.hasLaunchedBefore"
 }
@@ -38,6 +39,7 @@ enum SettingsDefaults {
             SettingsKey.hideValuesOnOpen: false,
             SettingsKey.shieldInSwitcher: true,
             SettingsKey.anonymizeNames: true,
+            SettingsKey.agentModel: AgentModelChoice.automatic.rawValue,
             SettingsKey.profileName: "Marcos"
         ])
     }

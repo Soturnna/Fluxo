@@ -36,7 +36,7 @@ struct CredentialsView: View {
     @State private var apiKey = ""
     @State private var configured = false
     @State private var feedback: Feedback?
-    @State private var testResult: String?
+    @State private var checks: [ModelCheck] = []
     @State private var testing = false
 
     private struct Feedback {
@@ -61,26 +61,30 @@ struct CredentialsView: View {
             if kind == .gemini && configured {
                 Section {
                     Button {
-                        Task {
-                            testing = true
-                            testResult = await GeminiClient().ping()
-                            testing = false
-                        }
+                        Task { await runChecks() }
                     } label: {
                         HStack {
-                            Text("Testar chave")
+                            Text("Testar modelos")
                             Spacer()
                             if testing { ProgressView() }
                         }
                     }
                     .disabled(testing)
-                    if let testResult {
-                        Text(testResult)
-                            .font(.footnote)
-                            .foregroundStyle(Theme.inkSecondary)
+                    ForEach(checks) { check in
+                        HStack(spacing: 10) {
+                            Image(systemName: check.ok ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                .foregroundStyle(check.ok ? Theme.positive : Theme.danger)
+                            Text(GeminiClient.displayName(check.model))
+                                .font(.subheadline.weight(.medium))
+                            Spacer(minLength: 8)
+                            Text(check.detail)
+                                .font(.footnote)
+                                .foregroundStyle(Theme.inkSecondary)
+                                .multilineTextAlignment(.trailing)
+                        }
                     }
                 } footer: {
-                    Text("O teste envia só a frase “Responda apenas: ok”. Nenhum dado seu sai do iPhone.")
+                    Text("Testa cada modelo, um por vez, com a frase “Responda apenas: ok”. Nenhum dado seu sai do iPhone. Escolha o modelo em Ajustes › Modelo de IA.")
                 }
             }
 
@@ -203,6 +207,18 @@ struct CredentialsView: View {
         } catch {
             feedback = Feedback(text: "Não foi possível salvar: \(error.localizedDescription)", isError: true)
         }
+    }
+
+    /// Um modelo por vez: cada linha aparece assim que o teste dela termina.
+    @MainActor
+    private func runChecks() async {
+        testing = true
+        checks = []
+        let client = GeminiClient()
+        for model in GeminiClient.allModels {
+            checks.append(await client.check(model))
+        }
+        testing = false
     }
 
     @MainActor

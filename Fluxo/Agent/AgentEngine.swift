@@ -29,9 +29,9 @@ final class AgentEngine: ObservableObject {
 
     private let client = GeminiClient()
     private var privacy = PrivacyFilter()
-    /// Modelo desta conversa. Começa no principal; se ele estiver sobrecarregado
-    /// logo na primeira pergunta, a conversa passa para um modelo reserva.
-    private var model = GeminiClient.primaryModel
+    /// Modelo desta conversa. Fica vazio até a primeira resposta; a partir
+    /// dela, a conversa fica presa ao modelo que respondeu.
+    private var model: String?
     /// Histórico no formato do Gemini. As respostas do modelo são guardadas
     /// exatamente como chegaram (inclui assinaturas internas que o Gemini exige de volta).
     private var history: [[String: Any]] = []
@@ -46,7 +46,7 @@ final class AgentEngine: ObservableObject {
         entries = []
         history = []
         privacy = PrivacyFilter()
-        model = GeminiClient.primaryModel
+        model = nil
     }
 
     // MARK: Perguntar
@@ -130,20 +130,23 @@ final class AgentEngine: ObservableObject {
 
     private func askGemini() async throws -> [String: Any] {
         let reply: Data
-        do {
+        if let model, historyHasModelTurns {
+            // Conversa em andamento: o histórico tem assinaturas internas que
+            // pertencem ao modelo que as gerou, então não dá para trocar.
             reply = try await client.generate(model: model, body: try requestBody(for: model))
-        } catch let error as GeminiError where error.isOverloaded && !historyHasModelTurns {
-            // Troca de modelo só antes da primeira resposta: depois disso, o histórico
-            // tem assinaturas internas que pertencem ao modelo que as gerou.
-            var lastError: Error = error
+        } else {
+            // Primeira resposta: percorre os modelos permitidos em Ajustes e
+            // fica com o primeiro que atender. Sobrecarga, cota esgotada ou
+            // modelo fora do plano gratuito passam para o próximo da lista.
+            var lastError: Error = GeminiError.invalidResponse
             var answered: Data?
-            for fallback in GeminiClient.fallbackModels where fallback != model {
+            for candidate in AgentModelChoice.current.candidates {
                 do {
-                    answered = try await client.generate(model: fallback, body: try requestBody(for: fallback))
-                    model = fallback
+                    answered = try await client.generate(model: candidate, body: try requestBody(for: candidate))
+                    model = candidate
                     break
-                } catch let next as GeminiError where next.isOverloaded {
-                    lastError = next
+                } catch let error as GeminiError where error.allowsAnotherModel {
+                    lastError = error
                 }
             }
             guard let answered else { throw lastError }

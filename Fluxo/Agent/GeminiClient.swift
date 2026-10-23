@@ -1,9 +1,38 @@
 import Foundation
 
+/// Modelo escolhido em Ajustes. Fica no UserDefaults (não é segredo) e só
+/// aceita valores desta lista fixa: nada digitado vira parte da URL.
+enum AgentModelChoice: String, CaseIterable, Identifiable {
+    case automatic = "auto"
+    case flash38 = "gemini-3.8-flash"
+    case flash36 = "gemini-3.6-flash"
+    case flashLite35 = "gemini-3.5-flash-lite"
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .automatic: return "Automático"
+        default: return GeminiClient.displayName(rawValue)
+        }
+    }
+
+    static var current: AgentModelChoice {
+        AgentModelChoice(rawValue: UserDefaults.standard.string(forKey: SettingsKey.agentModel) ?? "") ?? .automatic
+    }
+
+    /// Modelos que podem atender uma conversa nova, em ordem de tentativa.
+    /// Automático: do mais capaz ao mais leve. Fixo: só o escolhido.
+    var candidates: [String] {
+        self == .automatic ? GeminiClient.allModels : [rawValue]
+    }
+}
+
 enum GeminiError: LocalizedError {
     case missingKey
     case invalidKey
     case quotaExceeded
+    case notInFreeTier
     case badRequest
     case modelUnavailable
     case server(Int)
@@ -14,14 +43,44 @@ enum GeminiError: LocalizedError {
         switch self {
         case .missingKey: return "Cadastre a chave do Gemini em Ajustes › Conexões e chaves."
         case .invalidKey: return "O Google recusou a chave do Gemini. Confira em Ajustes."
-        case .quotaExceeded: return "O limite gratuito do Gemini foi atingido. Tente de novo em alguns instantes."
+        case .quotaExceeded:
+            return "O limite gratuito deste modelo foi atingido. Aguarde um minuto ou troque o modelo em Ajustes › Modelo de IA."
+        case .notInFreeTier:
+            return "Este modelo não está liberado no plano gratuito da sua chave. Troque em Ajustes › Modelo de IA."
         case .badRequest: return "O Gemini não entendeu o pedido. Tente reformular."
-        case .modelUnavailable: return "O modelo do Gemini usado pelo app não está disponível. Ele precisa ser atualizado."
+        case .modelUnavailable: return "Este modelo não está disponível para a sua chave. Troque em Ajustes › Modelo de IA."
         case .server(let code) where code == 503:
-            return "O Gemini está sobrecarregado agora (503). Já tentei de novo e com modelos reserva; aguarde um pouco."
+            return "O Gemini está sobrecarregado agora (503). Aguarde um pouco ou troque o modelo em Ajustes."
         case .server(let code): return "O Gemini respondeu com erro (\(code))."
         case .network(let detail, _): return detail
         case .invalidResponse: return "Resposta inesperada do Gemini."
+        }
+    }
+
+    /// Versão curta, usada no teste de modelos.
+    var shortLabel: String {
+        switch self {
+        case .missingKey: return "Sem chave cadastrada"
+        case .invalidKey: return "Chave recusada"
+        case .quotaExceeded: return "Limite atingido (minuto ou dia)"
+        case .notInFreeTier: return "Fora do plano gratuito"
+        case .modelUnavailable: return "Indisponível para esta chave"
+        case .server(let code) where [500, 503, 504].contains(code): return "Sobrecarregado agora (\(code))"
+        case .server(let code): return "Erro \(code)"
+        case .badRequest: return "Pedido recusado"
+        case .network(let detail, _): return detail
+        case .invalidResponse: return "Resposta inesperada"
+        }
+    }
+
+    /// Falhas em que vale tentar OUTRO modelo: sobrecarga, cota do modelo
+    /// esgotada, modelo fora do plano gratuito ou inexistente para a chave.
+    /// (Chave inválida ou falta de internet afetam todos os modelos igualmente.)
+    var allowsAnotherModel: Bool {
+        switch self {
+        case .quotaExceeded, .notInFreeTier, .modelUnavailable: return true
+        case .server(let code): return [500, 503, 504].contains(code)
+        default: return false
         }
     }
 
@@ -34,11 +93,14 @@ enum GeminiError: LocalizedError {
         }
     }
 
-    /// Servidor indisponível ou sobrecarregado: vale trocar para um modelo reserva.
-    var isOverloaded: Bool {
-        if case .server(let code) = self { return [500, 503, 504].contains(code) }
-        return false
-    }
+}
+
+/// Resultado do teste de um modelo.
+struct ModelCheck: Identifiable {
+    let model: String
+    let ok: Bool
+    let detail: String
+    var id: String { model }
 }
 
 /// Transporte até a API do Gemini.
@@ -51,12 +113,19 @@ enum GeminiError: LocalizedError {
 ///
 /// Recebe e devolve `Data` já pronto: quem monta o pedido é o AgentEngine.
 struct GeminiClient {
-    /// Modelo principal e reservas (todos com plano gratuito), em ordem de preferência.
-    static let primaryModel = "gemini-3.8-flash"
-    static let fallbackModels = ["gemini-3.6-flash", "gemini-3.5-flash-lite"]
-    static var model: String { primaryModel }
-    static var allModels: [String] { [primaryModel] + fallbackModels }
+    /// Modelos aceitos pelo app, do mais capaz ao mais leve. Qualquer outro
+    /// nome é recusado antes de montar a URL.
+    static let allModels = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"]
     private static let host = "generativelanguage.googleapis.com"
+
+    static func displayName(_ model: String) -> String {
+        switch model {
+        case "gemini-3.8-flash": return "3.8 Flash"
+        case "gemini-3.6-flash": return "3.6 Flash"
+        case "gemini-3.5-flash-lite": return "3.5 Flash-Lite"
+        default: return model
+        }
+    }
 
     private let session: URLSession = {
         let config = URLSessionConfiguration.ephemeral
@@ -114,24 +183,18 @@ struct GeminiClient {
         throw GeminiError.invalidResponse // inalcançável: o laço sempre retorna ou lança
     }
 
-    /// Teste de conexão sem nenhum dado seu: só pede ao modelo para responder "ok".
-    func ping() async -> String {
+    /// Testa um modelo sem nenhum dado seu: só pede para ele responder "ok".
+    /// Uma única tentativa, para o resultado refletir o estado real do modelo.
+    func check(_ model: String) async -> ModelCheck {
         let body = Data(#"{"contents":[{"role":"user","parts":[{"text":"Responda apenas: ok"}]}]}"#.utf8)
-        var lastError: Error?
-        for model in Self.allModels {
-            do {
-                _ = try await attempt(model: model, body: body)
-                return model == Self.primaryModel
-                    ? "Conexão funcionando com o modelo \(model)."
-                    : "O modelo principal está indisponível agora, mas a chave funciona com o reserva \(model)."
-            } catch let error as GeminiError where error.isOverloaded {
-                lastError = error
-                continue
-            } catch {
-                return (error as? LocalizedError)?.errorDescription ?? "Falha desconhecida."
-            }
+        do {
+            _ = try await attempt(model: model, body: body)
+            return ModelCheck(model: model, ok: true, detail: "Funcionando")
+        } catch let error as GeminiError {
+            return ModelCheck(model: model, ok: false, detail: error.shortLabel)
+        } catch {
+            return ModelCheck(model: model, ok: false, detail: "Teste interrompido")
         }
-        return (lastError as? LocalizedError)?.errorDescription ?? "Falha desconhecida."
     }
 
     private func attempt(model: String, body: Data) async throws -> Data {
@@ -174,7 +237,11 @@ struct GeminiClient {
             throw text.contains("API_KEY_INVALID") ? GeminiError.invalidKey : GeminiError.badRequest
         case 401, 403: throw GeminiError.invalidKey
         case 404: throw GeminiError.modelUnavailable
-        case 429: throw GeminiError.quotaExceeded
+        case 429:
+            // "limit: 0" no corpo = o modelo não tem cota gratuita para esta chave
+            // (diferente de ter gastado a cota do minuto ou do dia).
+            let text = String(decoding: data.prefix(4000), as: UTF8.self)
+            throw text.contains("limit: 0") ? GeminiError.notInFreeTier : GeminiError.quotaExceeded
         default: throw GeminiError.server(http.statusCode)
         }
     }

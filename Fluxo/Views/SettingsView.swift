@@ -13,6 +13,7 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.hideValuesOnOpen) private var hideValuesOnOpen = false
     @AppStorage(SettingsKey.shieldInSwitcher) private var shieldInSwitcher = true
     @AppStorage(SettingsKey.anonymizeNames) private var anonymizeNames = true
+    @AppStorage(SettingsKey.agentModel) private var agentModel = AgentModelChoice.automatic.rawValue
 
     @State private var pluggyConfigured = false
     @State private var geminiConfigured = false
@@ -112,17 +113,17 @@ struct SettingsView: View {
             } label: {
                 SettingLabel(title: "Registro do que foi enviado", icon: "doc.text.magnifyingglass", style: .agent)
             }
-            HStack {
+            Picker(selection: $agentModel) {
+                ForEach(AgentModelChoice.allCases) { option in
+                    Text(option.label).tag(option.rawValue)
+                }
+            } label: {
                 SettingLabel(title: "Modelo de IA", icon: "sparkles", style: .agent)
-                Spacer(minLength: 8)
-                Text(GeminiClient.model)
-                    .font(.footnote)
-                    .foregroundStyle(Theme.inkSecondary)
             }
         } header: {
             Text("Privacidade do agente")
         } footer: {
-            Text("O agente não paga, não transfere e não acessa o banco. Ele só organiza dados do app, e cada mudança precisa da sua confirmação. CPF, contas e agências nunca são enviados à IA.")
+            Text("O agente não paga, não transfere e não acessa o banco. Ele só organiza dados do app, e cada mudança precisa da sua confirmação. CPF, contas e agências nunca são enviados à IA.\n\nNo modo Automático, o app tenta do modelo mais capaz ao mais leve. A troca de modelo vale a partir da próxima conversa.")
         }
     }
 
