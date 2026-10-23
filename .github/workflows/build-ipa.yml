@@ -75,9 +75,13 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            build | tee build.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)" || true
+            build > build.log 2>&1 || true
+          grep -E "error:|BUILD (SUCCEEDED|FAILED)" build.log | tail -20 || true
           { grep -E "error:" build.log || true; } | sort -u | head -40 | while read -r l; do echo "::error::${l: -300}"; done
-          test -d build/Build/Products/Release-iphoneos/Fluxo.app
+          # Falha de verdade: exige a mensagem de sucesso E o executável dentro do .app.
+          # (Antes, um .app vazio passava como sucesso.)
+          grep -q "BUILD SUCCEEDED" build.log
+          test -f build/Build/Products/Release-iphoneos/Fluxo.app/Fluxo
 
       - name: Empacotar o .ipa
         run: |
@@ -85,6 +89,8 @@ jobs:
           cp -R build/Build/Products/Release-iphoneos/Fluxo.app Payload/
           zip -qry Fluxo.ipa Payload
           ls -lh Fluxo.ipa
+          # Uma .ipa de verdade tem centenas de KB; menos de 100 KB indica pacote vazio.
+          test "$(stat -f%z Fluxo.ipa)" -gt 100000
           echo "SHA-256: $(shasum -a 256 Fluxo.ipa | cut -d' ' -f1)" | tee sha256.txt
 
       - name: Publicar o .ipa como artefato
