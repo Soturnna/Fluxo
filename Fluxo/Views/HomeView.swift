@@ -6,6 +6,7 @@ struct HomeView: View {
     @EnvironmentObject private var lock: AppLock
     @EnvironmentObject private var store: FinanceStore
     @AppStorage(SettingsKey.profileName) private var name = "Marcos"
+    @State private var selected: StoredTransaction?
 
     let openAgent: () -> Void
     let openSettings: () -> Void
@@ -45,6 +46,11 @@ struct HomeView: View {
         .background(Theme.ground.ignoresSafeArea())
         .refreshable { await store.sync() }
         .task { await store.syncIfStale() }
+        .sheet(item: $selected) { transaction in
+            TransactionDetailSheet(transaction: transaction)
+                .environmentObject(store)
+                .environmentObject(lock)
+        }
     }
 
     // MARK: Cabeçalho
@@ -221,10 +227,16 @@ struct HomeView: View {
                         if index > 0 {
                             Divider().overlay(Theme.line)
                         }
-                        TransactionRow(
-                            transaction: item,
-                            accountName: store.account(withId: item.accountId)?.displayName
-                        )
+                        Button {
+                            selected = item
+                        } label: {
+                            TransactionRow(
+                                transaction: item,
+                                category: store.category(for: item),
+                                accountName: store.account(withId: item.accountId)?.displayName
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, 14)

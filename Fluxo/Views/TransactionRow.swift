@@ -5,10 +5,11 @@ struct SignedMoneyText: View {
     @EnvironmentObject private var lock: AppLock
     let amount: Decimal
     var muted = false
+    var font: Font = .rounded(.subheadline, weight: .semibold)
 
     var body: some View {
         Text(display)
-            .font(.rounded(.subheadline, weight: .semibold))
+            .font(font)
             .monospacedDigit()
             .foregroundStyle(color)
             .lineLimit(1)
@@ -39,20 +40,23 @@ struct SignedMoneyText: View {
 /// Uma linha de transação: ícone da categoria, título, detalhes e valor.
 struct TransactionRow: View {
     let transaction: StoredTransaction
+    let category: Category
     let accountName: String?
+
+    private var isTransfer: Bool { category.kind == .transfer }
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             IconTile(
-                systemName: transaction.group.icon,
-                style: transaction.isInternalMovement ? .neutral : .security,
+                systemName: category.icon,
+                style: isTransfer ? .neutral : .security,
                 size: 36
             )
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(transaction.title)
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(transaction.isInternalMovement ? Theme.inkSecondary : Theme.ink)
+                    .foregroundStyle(isTransfer ? Theme.inkSecondary : Theme.ink)
                     .lineLimit(1)
                 Text(subtitle)
                     .font(.caption)
@@ -66,7 +70,7 @@ struct TransactionRow: View {
                         if let installment = transaction.installment {
                             Pill(text: "Parcela \(installment)", icon: "square.stack", tint: Theme.inkSecondary)
                         }
-                        if transaction.isInternalMovement {
+                        if isTransfer {
                             Pill(text: "Não conta nos gastos", icon: "arrow.left.arrow.right", tint: Theme.inkSecondary)
                         }
                     }
@@ -75,20 +79,21 @@ struct TransactionRow: View {
 
             Spacer(minLength: 8)
 
-            SignedMoneyText(amount: transaction.amount, muted: transaction.isInternalMovement)
+            SignedMoneyText(amount: transaction.amount, muted: isTransfer)
         }
         .padding(.vertical, 10)
+        .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
 
     private var subtitle: String {
-        var parts = [transaction.group.label]
+        var parts = [category.name]
         if let accountName { parts.append(accountName) }
         return parts.joined(separator: " · ")
     }
 
     private var hasBadges: Bool {
-        transaction.isPending || transaction.installment != nil || transaction.isInternalMovement
+        transaction.isPending || transaction.installment != nil || isTransfer
     }
 }
 

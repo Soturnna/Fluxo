@@ -62,16 +62,11 @@ struct StoredTransaction: Codable, Identifiable, Equatable {
         return description
     }
 
-    var group: CategoryGroup {
+    /// Categoria sugerida automaticamente a partir da categoria do banco.
+    /// A categoria final (que você pode trocar) é decidida pelo FinanceStore.
+    var automaticGroup: CategoryGroup {
         CategoryGroup(rawCategory: rawCategory, description: description)
     }
-
-    /// Movimentação entre contas próprias (pagar a fatura, aplicar no investimento).
-    /// Não é gasto nem renda: contar isso dobraria os valores.
-    var isInternalMovement: Bool { group.isInternal }
-
-    var isExpense: Bool { amount < 0 && !isInternalMovement }
-    var isIncome: Bool { amount > 0 && !isInternalMovement }
 }
 
 /// O conteúdo inteiro do cofre.
@@ -86,9 +81,57 @@ struct VaultSnapshot: Codable {
 
 // MARK: - Categorias
 
+/// O papel de uma categoria nas contas do mês.
+enum CategoryKind: String, Codable, CaseIterable, Identifiable {
+    case expense    // gasto
+    case income     // renda
+    case transfer   // movimentação entre contas próprias: não conta
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .expense: return "Gasto"
+        case .income: return "Renda"
+        case .transfer: return "Não conta"
+        }
+    }
+
+    var explanation: String {
+        switch self {
+        case .expense: return "Entra no gasto do mês e pode ter orçamento."
+        case .income: return "Entra nas entradas do mês."
+        case .transfer: return "Movimentação entre contas suas, como pagar a fatura ou investir. Fica fora dos totais para não contar duas vezes."
+        }
+    }
+}
+
+/// Uma categoria: as que vêm prontas ou as que você criar.
+struct Category: Codable, Identifiable, Hashable {
+    static let customPrefix = "custom-"
+
+    let id: String       // prontas: nome do grupo ("delivery"); suas: "custom-<UUID>"
+    var name: String
+    var icon: String     // nome de um SF Symbol
+    var kind: CategoryKind
+
+    var isBuiltIn: Bool { !id.hasPrefix(Self.customPrefix) }
+
+    /// Ícones oferecidos ao criar ou editar uma categoria.
+    static let iconChoices = [
+        "cart", "fork.knife", "takeoutbag.and.cup.and.straw", "cup.and.saucer", "car",
+        "fuelpump", "bus", "airplane", "house", "bolt", "drop", "wifi", "phone",
+        "bag", "tshirt", "gift", "heart", "cross.case", "pills", "pawprint",
+        "book", "graduationcap", "gamecontroller", "film", "music.note", "dumbbell",
+        "figure.and.child.holdinghands", "person.2", "wrench.and.screwdriver", "leaf",
+        "briefcase", "banknote", "creditcard", "chart.line.uptrend.xyaxis",
+        "arrow.left.arrow.right", "percent", "repeat", "sparkles", "ellipsis"
+    ]
+}
+
 /// Agrupa as categorias do Pluggy (em inglês) em grupos em português.
 /// A categoria original continua guardada em `rawCategory`.
-enum CategoryGroup: String, CaseIterable {
+enum CategoryGroup: String, CaseIterable, Codable {
     case delivery, restaurants, groceries, transport, shopping, subscriptions
     case health, education, home, leisure, transfers, income, investments
     case cardPayment, fees, other
@@ -181,6 +224,16 @@ enum CategoryGroup: String, CaseIterable {
     /// Movimentações internas: não contam como gasto nem renda.
     var isInternal: Bool {
         self == .cardPayment || self == .investments
+    }
+
+    var defaultKind: CategoryKind {
+        if isInternal { return .transfer }
+        return self == .income ? .income : .expense
+    }
+
+    /// A categoria pronta correspondente a este grupo.
+    var builtInCategory: Category {
+        Category(id: rawValue, name: label, icon: icon, kind: defaultKind)
     }
 }
 

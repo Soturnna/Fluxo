@@ -215,3 +215,33 @@ struct Screen<Content: View>: View {
         .background(Theme.ground.ignoresSafeArea())
     }
 }
+
+/// Campo de valor em reais no estilo dos apps de banco: você digita só
+/// números e eles entram pela direita (1 → R$ 0,01; 1234 → R$ 12,34).
+/// Assim não há vírgula, ponto nem formato errado para validar.
+struct CurrencyField: View {
+    let title: String
+    @Binding var value: Decimal
+
+    /// Teto de segurança: R$ 9.999.999,99.
+    private static let maxCents = 999_999_999
+
+    var body: some View {
+        TextField(title, text: Binding(
+            get: { Self.format(value) },
+            set: { newText in
+                let digits = newText.filter(\.isNumber)
+                let cents = min(Int(digits.suffix(9)) ?? 0, Self.maxCents)
+                value = Decimal(cents) / 100
+            }
+        ))
+        .keyboardType(.numberPad)
+        .font(.rounded(.title2, weight: .semibold))
+        .monospacedDigit()
+        .accessibilityLabel(title)
+    }
+
+    private static func format(_ value: Decimal) -> String {
+        value.formatted(.currency(code: "BRL").locale(.ptBR))
+    }
+}

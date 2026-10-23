@@ -22,6 +22,7 @@ struct SettingsView: View {
         NavigationStack {
             List {
                 securitySection
+                organizationSection
                 agentSection
                 credentialsSection
                 dataSection
@@ -81,6 +82,18 @@ struct SettingsView: View {
             Text("Segurança")
         } footer: {
             Text("Se o \(lock.biometryName) falhar, o iPhone pede o seu código. Para desligar ou afrouxar uma proteção, o app confirma sua identidade antes.")
+        }
+    }
+
+    private var organizationSection: some View {
+        Section {
+            NavigationLink {
+                CategoriesView()
+            } label: {
+                SettingLabel(title: "Categorias", detail: "Criar, renomear e trocar ícones", icon: "square.grid.2x2", style: .neutral)
+            }
+        } header: {
+            Text("Organização")
         }
     }
 

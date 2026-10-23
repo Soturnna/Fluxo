@@ -3,6 +3,8 @@ import SwiftUI
 /// Transações do mês, agrupadas por dia, com busca e totais.
 struct TransactionsView: View {
     @EnvironmentObject private var store: FinanceStore
+    @EnvironmentObject private var lock: AppLock
+    @State private var selected: StoredTransaction?
     @State private var month = Calendar.current.dateInterval(of: .month, for: .now)?.start ?? .now
     @State private var query = ""
 
@@ -17,7 +19,7 @@ struct TransactionsView: View {
         return monthTransactions.filter {
             $0.title.localizedStandardContains(text)
                 || $0.description.localizedStandardContains(text)
-                || $0.group.label.localizedStandardContains(text)
+                || store.category(for: $0).name.localizedStandardContains(text)
         }
     }
 
@@ -34,6 +36,11 @@ struct TransactionsView: View {
         }
         .refreshable { await store.sync() }
         .task { await store.syncIfStale() }
+        .sheet(item: $selected) { transaction in
+            TransactionDetailSheet(transaction: transaction)
+                .environmentObject(store)
+                .environmentObject(lock)
+        }
     }
 
     // MARK: Partes da tela
@@ -152,10 +159,17 @@ struct TransactionsView: View {
                             if index > 0 {
                                 Divider().overlay(Theme.line)
                             }
-                            TransactionRow(
-                                transaction: item,
-                                accountName: store.account(withId: item.accountId)?.displayName
-                            )
+                            Button {
+                                selected = item
+                            } label: {
+                                TransactionRow(
+                                    transaction: item,
+                                    category: store.category(for: item),
+                                    accountName: store.account(withId: item.accountId)?.displayName
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityHint("Toque para ver detalhes e trocar a categoria")
                         }
                     }
                     .padding(.horizontal, 14)

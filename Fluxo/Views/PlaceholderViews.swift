@@ -3,18 +3,6 @@ import SwiftUI
 /// Telas que ganham conteúdo nas próximas partes.
 /// Já existem para a navegação funcionar e para testar o visual no iPhone.
 
-struct BudgetsView: View {
-    var body: some View {
-        Screen("Orçamentos") {
-            EmptyStateView(
-                systemName: "chart.pie",
-                title: "Nenhum orçamento ainda",
-                message: "Na próxima etapa, você vai definir limites por categoria e acompanhar o mês com base nas suas transações."
-            )
-        }
-    }
-}
-
 struct AgentView: View {
     @Environment(\.dismiss) private var dismiss
 

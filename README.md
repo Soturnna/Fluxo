@@ -11,7 +11,7 @@ pelo GitHub Actions.
 | 1 | Fundação: visual, navegação, bloqueio por Face ID, Keychain, proteção no alternador, pipeline da `.ipa` | ✅ |
 | 2 | Conexão com o Meu Pluggy: autenticação, contas e transações | ✅ |
 | 3 | Cofre local criptografado, sincronização e tela de transações | ✅ |
-| 3b | Orçamentos por categoria | ⏳ |
+| 3b | Categorias editáveis (trocar, criar, regras por estabelecimento) e orçamentos | ✅ |
 | 4 | Agente com Gemini, filtros de privacidade e registro do que foi enviado | ⏳ |
 
 ## Modelo de segurança
@@ -49,7 +49,12 @@ pelo GitHub Actions.
    atômica e fica fora do backup.
 12. **Sincronização robusta.** A tarefa pertence ao armazenamento, não à tela: trocar
    de aba não a interrompe. Cancelamentos nunca sobrescrevem dados bons.
-13. **Ações fixadas por hash.** As GitHub Actions de terceiros usam o hash do commit,
+13. **Seus dados à parte.** Categorias, trocas, regras e orçamentos ficam numa
+   gaveta separada do cofre (`meus-dados.cofre`), com leitura tolerante a versões.
+   Uma ressincronização das transações nunca apaga o que você configurou. Nomes
+   digitados são limpos (sem caracteres de controle, até 30 caracteres) e ícones
+   só podem vir de uma lista fixa.
+14. **Ações fixadas por hash.** As GitHub Actions de terceiros usam o hash do commit,
    não a tag, para evitar troca maliciosa de versão.
 
 ## Estrutura

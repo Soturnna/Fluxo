@@ -27,10 +27,20 @@ final class FinanceStore: ObservableObject {
         case failed(String)
     }
 
-    @Published private(set) var snapshot: VaultSnapshot
+    @Published private(set) var snapshot: VaultSnapshot {
+        didSet { rebuildAutomaticCategories() }
+    }
+    @Published private(set) var userData: UserData {
+        didSet { rebuildCategoryIndex() }
+    }
     @Published private(set) var connections: [Connection] = []
     @Published private(set) var state: LoadState = .idle
     @Published private(set) var isConfigured = false
+
+    /// Todas as categorias (prontas + suas), por id.
+    private(set) var categoryIndex: [String: Category] = [:]
+    /// Categoria automática de cada transação, calculada uma vez por sincronização.
+    private var automaticCategory: [String: String] = [:]
 
     private let client = PluggyClient()
     private var syncTask: Task<Void, Never>?
@@ -42,8 +52,160 @@ final class FinanceStore: ObservableObject {
     private static let overlapDays = 10
 
     init() {
-        snapshot = Vault.load() ?? .empty
+        snapshot = Vault.load(VaultSnapshot.self, from: .finance) ?? .empty
+        userData = Vault.load(UserData.self, from: .userData) ?? .empty
         isConfigured = Self.hasCredentials()
+        // didSet não roda dentro do init; monta os índices aqui.
+        rebuildCategoryIndex()
+        rebuildAutomaticCategories()
+    }
+
+    // MARK: Categorias
+
+    /// Categorias prontas (com suas edições) seguidas das que você criou.
+    var allCategories: [Category] {
+        let builtIns = CategoryGroup.allCases.compactMap { categoryIndex[$0.rawValue] }
+        return builtIns + userData.customCategories
+    }
+
+    func category(withId id: String) -> Category? {
+        categoryIndex[id]
+    }
+
+    /// A categoria de uma transação, em ordem de prioridade:
+    /// 1. troca feita por você nesta transação;
+    /// 2. regra do estabelecimento ("sempre usar Delivery para iFood");
+    /// 3. sugestão automática a partir da categoria do banco.
+    func category(for transaction: StoredTransaction) -> Category {
+        if let id = userData.transactionCategory[transaction.id], let chosen = categoryIndex[id] {
+            return chosen
+        }
+        if let id = userData.merchantRules[Self.ruleKey(transaction.title)], let ruled = categoryIndex[id] {
+            return ruled
+        }
+        let automatic = automaticCategory[transaction.id] ?? transaction.automaticGroup.rawValue
+        return categoryIndex[automatic] ?? CategoryGroup.other.builtInCategory
+    }
+
+    func isExpense(_ transaction: StoredTransaction) -> Bool {
+        transaction.amount < 0 && category(for: transaction).kind != .transfer
+    }
+
+    func isIncome(_ transaction: StoredTransaction) -> Bool {
+        transaction.amount > 0 && category(for: transaction).kind != .transfer
+    }
+
+    /// Quantas transações têm o mesmo estabelecimento (para oferecer a regra).
+    func sameTitleCount(as transaction: StoredTransaction) -> Int {
+        let key = Self.ruleKey(transaction.title)
+        return transactions.filter { $0.id != transaction.id && Self.ruleKey($0.title) == key }.count
+    }
+
+    func transactionCount(inCategory id: String) -> Int {
+        transactions.filter { category(for: $0).id == id }.count
+    }
+
+    /// Troca a categoria de uma transação. Com `applyToSameTitle`, cria uma regra
+    /// para o estabelecimento: as transações dele, atuais e futuras, seguem a escolha.
+    func assignCategory(_ categoryId: String, to transaction: StoredTransaction, applyToSameTitle: Bool) {
+        guard categoryIndex[categoryId] != nil else { return }
+        var data = userData
+        if applyToSameTitle {
+            let key = Self.ruleKey(transaction.title)
+            data.merchantRules[key] = categoryId
+            // A regra passa a valer para todas: limpa trocas avulsas do mesmo estabelecimento.
+            for other in transactions where Self.ruleKey(other.title) == key {
+                data.transactionCategory.removeValue(forKey: other.id)
+            }
+        } else {
+            data.transactionCategory[transaction.id] = categoryId
+        }
+        saveUserData(data)
+    }
+
+    @discardableResult
+    func createCategory(name: String, icon: String, kind: CategoryKind) -> Category? {
+        guard let cleanName = Self.sanitizedName(name), isNameAvailable(cleanName, excluding: nil) else { return nil }
+        let category = Category(
+            id: Category.customPrefix + UUID().uuidString,
+            name: cleanName,
+            icon: Category.iconChoices.contains(icon) ? icon : "ellipsis",
+            kind: kind
+        )
+        var data = userData
+        data.customCategories.append(category)
+        saveUserData(data)
+        return category
+    }
+
+    /// Edita nome, ícone e tipo. Vale para categorias prontas e para as suas.
+    @discardableResult
+    func updateCategory(id: String, name: String, icon: String, kind: CategoryKind) -> Bool {
+        guard let cleanName = Self.sanitizedName(name), isNameAvailable(cleanName, excluding: id) else { return false }
+        let safeIcon = Category.iconChoices.contains(icon) || CategoryGroup(rawValue: id)?.icon == icon ? icon : "ellipsis"
+        var data = userData
+        if let index = data.customCategories.firstIndex(where: { $0.id == id }) {
+            data.customCategories[index].name = cleanName
+            data.customCategories[index].icon = safeIcon
+            data.customCategories[index].kind = kind
+        } else if CategoryGroup(rawValue: id) != nil {
+            data.builtInEdits[id] = CategoryEdit(name: cleanName, icon: safeIcon, kind: kind)
+        } else {
+            return false
+        }
+        if kind != .expense { data.budgets.removeAll { $0.categoryId == id } }
+        saveUserData(data)
+        return true
+    }
+
+    /// Volta uma categoria pronta ao original.
+    func resetBuiltInCategory(id: String) {
+        var data = userData
+        data.builtInEdits.removeValue(forKey: id)
+        saveUserData(data)
+    }
+
+    /// Exclui uma categoria sua. As transações dela voltam à categoria automática.
+    func deleteCustomCategory(id: String) {
+        guard id.hasPrefix(Category.customPrefix) else { return }
+        var data = userData
+        data.customCategories.removeAll { $0.id == id }
+        data.budgets.removeAll { $0.categoryId == id }
+        data.transactionCategory = data.transactionCategory.filter { $0.value != id }
+        data.merchantRules = data.merchantRules.filter { $0.value != id }
+        saveUserData(data)
+    }
+
+    func isNameAvailable(_ name: String, excluding id: String?) -> Bool {
+        let key = Self.ruleKey(name)
+        return !allCategories.contains { $0.id != id && Self.ruleKey($0.name) == key }
+    }
+
+    // MARK: Orçamentos
+
+    /// Cria ou altera o limite mensal de uma categoria de gasto.
+    func setBudget(categoryId: String, limit: Decimal) {
+        guard categoryIndex[categoryId]?.kind == .expense, limit > 0 else { return }
+        var data = userData
+        if let index = data.budgets.firstIndex(where: { $0.categoryId == categoryId }) {
+            data.budgets[index].limit = limit
+        } else {
+            data.budgets.append(Budget(categoryId: categoryId, limit: limit))
+        }
+        saveUserData(data)
+    }
+
+    func removeBudget(categoryId: String) {
+        var data = userData
+        data.budgets.removeAll { $0.categoryId == categoryId }
+        saveUserData(data)
+    }
+
+    /// Limite geral do mês. `nil` volta a usar a soma das categorias.
+    func setMonthlyLimit(_ value: Decimal?) {
+        var data = userData
+        data.monthlyLimit = value
+        saveUserData(data)
     }
 
     // MARK: Leituras para as telas
@@ -75,14 +237,113 @@ final class FinanceStore: ObservableObject {
 
     func totals(inMonthOf month: Date) -> (spent: Decimal, income: Decimal) {
         let items = transactions(inMonthOf: month)
-        let spent = items.filter(\.isExpense).reduce(Decimal(0)) { $0 - $1.amount }
-        let income = items.filter(\.isIncome).reduce(Decimal(0)) { $0 + $1.amount }
+        let spent = items.filter { isExpense($0) }.reduce(Decimal(0)) { $0 - $1.amount }
+        let income = items.filter { isIncome($0) }.reduce(Decimal(0)) { $0 + $1.amount }
         return (spent, income)
+    }
+
+    /// Gasto de cada categoria no mês (só gastos reais), por id da categoria.
+    func spendingByCategory(inMonthOf month: Date) -> [String: Decimal] {
+        var result: [String: Decimal] = [:]
+        for item in transactions(inMonthOf: month) where isExpense(item) {
+            result[category(for: item).id, default: 0] += -item.amount
+        }
+        return result
+    }
+
+    func progress(inMonthOf month: Date) -> [BudgetProgress] {
+        let spending = spendingByCategory(inMonthOf: month)
+        return userData.budgets
+            .compactMap { budget in
+                guard let category = categoryIndex[budget.categoryId] else { return nil }
+                return BudgetProgress(budget: budget, category: category, spent: spending[budget.categoryId] ?? 0)
+            }
+            .sorted { $0.fraction > $1.fraction }   // os mais críticos primeiro
+    }
+
+    /// Gasto em categorias sem orçamento definido.
+    func unbudgetedSpending(inMonthOf month: Date) -> Decimal {
+        let budgeted = Set(userData.budgets.map(\.categoryId))
+        return spendingByCategory(inMonthOf: month)
+            .filter { !budgeted.contains($0.key) }
+            .reduce(Decimal(0)) { $0 + $1.value }
+    }
+
+    /// Média mensal de gasto da categoria nos 3 meses completos anteriores.
+    func averageSpending(ofCategory id: String, monthsBack: Int = 3) -> Decimal {
+        let calendar = Calendar.current
+        guard let thisMonth = calendar.dateInterval(of: .month, for: .now)?.start else { return 0 }
+        var total = Decimal(0)
+        for offset in 1...monthsBack {
+            guard let month = calendar.date(byAdding: .month, value: -offset, to: thisMonth) else { continue }
+            total += spendingByCategory(inMonthOf: month)[id] ?? 0
+        }
+        return Money.decimal(from: (total as NSDecimalNumber).doubleValue / Double(monthsBack))
+    }
+
+    /// Dias que faltam no mês (contando hoje). Zero para meses passados.
+    func daysLeft(inMonthOf month: Date) -> Int {
+        let calendar = Calendar.current
+        guard calendar.isDate(month, equalTo: .now, toGranularity: .month),
+              let range = calendar.range(of: .day, in: .month, for: .now)
+        else { return 0 }
+        return range.count - calendar.component(.day, from: .now) + 1
     }
 
     func storedTransactionCount(forItem itemId: String) -> Int {
         let ids = Set(accounts.filter { $0.itemId == itemId }.map(\.id))
         return transactions.filter { ids.contains($0.accountId) }.count
+    }
+
+    // MARK: Índices e gravação
+
+    private func rebuildCategoryIndex() {
+        var index: [String: Category] = [:]
+        for group in CategoryGroup.allCases {
+            var category = group.builtInCategory
+            if let edit = userData.builtInEdits[group.rawValue] {
+                category.name = edit.name
+                category.icon = edit.icon
+                category.kind = edit.kind
+            }
+            index[category.id] = category
+        }
+        for custom in userData.customCategories {
+            index[custom.id] = custom
+        }
+        categoryIndex = index
+    }
+
+    private func rebuildAutomaticCategories() {
+        var map: [String: String] = [:]
+        for item in snapshot.transactions {
+            map[item.id] = item.automaticGroup.rawValue
+        }
+        automaticCategory = map
+    }
+
+    private func saveUserData(_ data: UserData) {
+        userData = data
+        do {
+            try Vault.save(data, in: .userData)
+        } catch {
+            state = .failed("Não foi possível gravar suas alterações no iPhone.")
+        }
+    }
+
+    /// Chave para comparar nomes: sem maiúsculas, acentos e espaços nas pontas.
+    static func ruleKey(_ text: String) -> String {
+        text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "pt_BR"))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Limpa o nome digitado: tira caracteres de controle, espaços nas pontas e
+    /// limita a 30 caracteres. Devolve nil se ficar vazio.
+    static func sanitizedName(_ raw: String) -> String? {
+        let cleaned = String(raw.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) })
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let limited = String(cleaned.prefix(30))
+        return limited.isEmpty ? nil : limited
     }
 
     // MARK: Sincronização
@@ -192,8 +453,16 @@ final class FinanceStore: ObservableObject {
         connections = liveConnections
         state = .loaded(.now)
 
+        // Trocas avulsas de transações que não existem mais são descartadas.
+        let existing = Set(newSnapshot.transactions.map(\.id))
+        if userData.transactionCategory.keys.contains(where: { !existing.contains($0) }) {
+            var data = userData
+            data.transactionCategory = data.transactionCategory.filter { existing.contains($0.key) }
+            saveUserData(data)
+        }
+
         do {
-            try Vault.save(newSnapshot)
+            try Vault.save(newSnapshot, in: .finance)
         } catch {
             // Sem conseguir gravar, os dados continuam só na memória desta sessão.
             state = .failed("Não foi possível gravar os dados no iPhone.")
