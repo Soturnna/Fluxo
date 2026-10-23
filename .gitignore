@@ -1,0 +1,18 @@
+# Gerados na compilação
+Fluxo.xcodeproj/
+Fluxo/Info.plist
+build/
+Payload/
+*.ipa
+Fluxo/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png
+.DS_Store
+
+# Segurança: arquivos de segredo nunca entram no repositório.
+# As chaves do app ficam só no Keychain do iPhone.
+.env
+.env.*
+*.xcconfig
+*secret*
+*Secret*
+*.p12
+*.mobileprovision

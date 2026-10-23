@@ -1,0 +1,118 @@
+name: Compilar IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Privilégio mínimo: por padrão, cada job só pode LER o repositório.
+permissions:
+  contents: read
+
+jobs:
+  # 1) Varredura de segredos. Se alguma chave, senha ou token tiver sido
+  #    enviada por engano ao repositório, a compilação nem começa.
+  segredos:
+    name: Procurar segredos no código
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o código com o histórico
+        # Ações de terceiros fixadas por hash de commit, não por tag:
+        # uma tag pode ser movida para código malicioso; um hash, não.
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Rodar o Gitleaks
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # 2) Compilação no Mac do GitHub, só depois da varredura passar.
+  compilar:
+    name: Compilar o .ipa
+    needs: segredos
+    runs-on: macos-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write # necessário apenas para publicar na página de Releases
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Escolher o Xcode estável mais recente
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: latest-stable
+
+      - name: Mostrar versões
+        run: |
+          xcodebuild -version
+          echo "::notice title=Ambiente::$(xcodebuild -version | tr '\n' ' ') | $(xcodebuild -showsdks | grep -o 'iphoneos[0-9.]*' | head -1)"
+
+      - name: Instalar o XcodeGen e o renderizador de SVG
+        run: brew install xcodegen librsvg
+
+      - name: Gerar o ícone 1024x1024 a partir do SVG
+        run: |
+          rsvg-convert -w 1024 -h 1024 -b "#C8F03C" design/icon.svg \
+            -o Fluxo/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png
+
+      - name: Gerar o projeto Xcode
+        run: xcodegen generate
+
+      - name: Compilar (sem assinatura)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project Fluxo.xcodeproj \
+            -scheme Fluxo \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build | tee build.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)" || true
+          { grep -E "error:" build.log || true; } | sort -u | head -40 | while read -r l; do echo "::error::${l: -300}"; done
+          test -d build/Build/Products/Release-iphoneos/Fluxo.app
+
+      - name: Empacotar o .ipa
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/Fluxo.app Payload/
+          zip -qry Fluxo.ipa Payload
+          ls -lh Fluxo.ipa
+          echo "SHA-256: $(shasum -a 256 Fluxo.ipa | cut -d' ' -f1)" | tee sha256.txt
+
+      - name: Publicar o .ipa como artefato
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Fluxo-ipa
+          path: Fluxo.ipa
+          retention-days: 30
+
+      - name: Publicar na página de Releases
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Fluxo 0.1 (build ${{ github.run_number }})
+          make_latest: true
+          files: Fluxo.ipa
+          body_path: sha256.txt
+
+      - name: Salvar o log no branch ci-logs (em caso de erro)
+        if: failure()
+        run: |
+          touch build.log
+          grep -iE "error|failed|warning: unable" build.log | sort -u > errors.txt || true
+          tail -150 build.log > tail.txt
+          git config user.name "fluxo-ci"
+          git config user.email "fluxo-ci@users.noreply.github.com"
+          git checkout --orphan ci-logs
+          git rm -rqf --cached . || true
+          git add -f errors.txt tail.txt
+          git commit -qm "log run ${{ github.run_number }}"
+          git push -qf origin ci-logs
