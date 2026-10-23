@@ -11,9 +11,9 @@ struct LockView: View {
             VStack(spacing: 0) {
                 Spacer()
 
-                AppMark(size: 88)
+                AppMark(size: 80)
                 Text("Fluxo")
-                    .font(.rounded(.largeTitle, weight: .heavy))
+                    .font(.rounded(.largeTitle, weight: .bold))
                     .foregroundStyle(.white)
                     .padding(.top, 18)
                 Text("Seu dinheiro, sem planilha.")
@@ -40,8 +40,7 @@ struct LockView: View {
                     Task { await lock.unlock() }
                 } label: {
                     Label("Desbloquear com \(lock.biometryName)", systemImage: lock.biometryIcon)
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, minHeight: 56)
+                        .frame(maxWidth: .infinity, minHeight: 54)
                 }
                 .buttonStyle(LimeButtonStyle())
                 .disabled(lock.isAuthenticating)

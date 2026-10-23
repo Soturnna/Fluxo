@@ -8,6 +8,9 @@ enum AppTab: Hashable {
 struct RootView: View {
     @State private var tab: AppTab = .home
     @State private var showAgent = false
+    /// Criado aqui (e não no App) de propósito: ao bloquear, o RootView é
+    /// desmontado e leva junto saldos, contas e o token do Pluggy.
+    @StateObject private var connections = ConnectionsStore()
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -31,6 +34,7 @@ struct RootView: View {
                 .ignoresSafeArea(.keyboard, edges: .bottom)
         }
         .background(Theme.ground.ignoresSafeArea())
+        .environmentObject(connections)
         .fullScreenCover(isPresented: $showAgent) {
             AgentView()
         }
@@ -64,38 +68,37 @@ struct FloatingTabBar: View {
                     Button {
                         selection = item.tab
                     } label: {
-                        VStack(spacing: 2) {
+                        VStack(spacing: 3) {
                             Image(systemName: item.icon)
-                                .font(.system(size: 19, weight: .semibold))
+                                .font(.system(size: 17, weight: .medium))
                             Text(item.title)
-                                .font(.caption2.weight(isSelected ? .bold : .semibold))
+                                .font(.caption2.weight(isSelected ? .semibold : .medium))
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.75)
                         }
                         .foregroundStyle(isSelected ? Theme.ink : Theme.inkSecondary)
-                        .frame(maxWidth: .infinity, minHeight: 52)
-                        .background(isSelected ? Theme.ink.opacity(0.08) : Color.clear, in: Capsule())
+                        .frame(maxWidth: .infinity, minHeight: 50)
+                        .background(isSelected ? Theme.ink.opacity(0.06) : Color.clear, in: Capsule())
                         .contentShape(Capsule())
                     }
                     .buttonStyle(.plain)
                     .accessibilityAddTraits(isSelected ? .isSelected : [])
                 }
             }
-            .padding(6)
+            .padding(5)
             .fluxoGlass(in: Capsule())
-            .shadow(color: Theme.ink.opacity(0.12), radius: 15, y: 8)
+            .floatingShadow()
             .sensoryFeedback(.selection, trigger: selection)
 
             Button(action: onAgent) {
                 Image(systemName: "sparkles")
-                    .font(.system(size: 24, weight: .semibold))
+                    .font(.system(size: 21, weight: .medium))
                     .foregroundStyle(Theme.ink)
-                    .frame(width: 64, height: 64)
+                    .frame(width: 60, height: 60)
                     .background(Theme.lime, in: Circle())
-                    .overlay(Circle().stroke(Theme.ink.opacity(0.1), lineWidth: 1))
             }
             .buttonStyle(.plain)
-            .shadow(color: Theme.ink.opacity(0.18), radius: 15, y: 8)
+            .floatingShadow()
             .accessibilityLabel("Abrir o agente")
         }
     }

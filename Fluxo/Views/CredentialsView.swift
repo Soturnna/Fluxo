@@ -28,6 +28,7 @@ enum CredentialKind {
 struct CredentialsView: View {
     let kind: CredentialKind
     @EnvironmentObject private var lock: AppLock
+    @EnvironmentObject private var connections: ConnectionsStore
 
     @State private var clientId = ""
     @State private var clientSecret = ""
@@ -44,11 +45,11 @@ struct CredentialsView: View {
     var body: some View {
         Form {
             Section {
-                Label(
-                    configured ? "Guardada no Keychain" : "Nenhuma credencial guardada",
-                    systemImage: configured ? "lock.fill" : "lock.open"
-                )
-                .foregroundStyle(configured ? Theme.positive : Theme.warning)
+                if configured {
+                    StatusBadge(text: "Guardada no Keychain", icon: "lock.fill", color: Theme.positive)
+                } else {
+                    StatusBadge(text: "Nenhuma credencial guardada", icon: "lock.open", color: Theme.warning)
+                }
             } footer: {
                 Text("Por segurança, os valores guardados nunca são exibidos. Para trocar, digite os novos e salve.")
             }
@@ -167,6 +168,7 @@ struct CredentialsView: View {
             clearFields()
             configured = true
             feedback = Feedback(text: "Salvo no Keychain.", isError: false)
+            if kind == .pluggy { await connections.credentialsChanged() }
         } catch {
             feedback = Feedback(text: "Não foi possível salvar: \(error.localizedDescription)", isError: true)
         }
@@ -177,6 +179,7 @@ struct CredentialsView: View {
         guard await lock.authenticate(reason: "Remover credenciais do Keychain") else { return }
         kind.keys.forEach { KeychainStore.delete($0) }
         configured = false
+        if kind == .pluggy { await connections.credentialsChanged() }
         feedback = Feedback(text: "Removido do Keychain.", isError: false)
     }
 

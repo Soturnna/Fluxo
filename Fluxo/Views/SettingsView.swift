@@ -61,21 +61,21 @@ struct SettingsView: View {
     private var securitySection: some View {
         Section {
             Toggle(isOn: loosening($requireAuth, reason: "Desligar o bloqueio do Fluxo")) {
-                rowLabel("Exigir \(lock.biometryName) para abrir", icon: lock.biometryIcon)
+                SettingLabel(title: "Exigir \(lock.biometryName) para abrir", icon: lock.biometryIcon)
             }
             Picker(selection: lockDelayBinding) {
                 ForEach(LockDelay.allCases) { option in
                     Text(option.label).tag(option.rawValue)
                 }
             } label: {
-                rowLabel("Bloquear ao sair", icon: "lock")
+                SettingLabel(title: "Bloquear ao sair", icon: "lock")
             }
             .disabled(!requireAuth)
             Toggle(isOn: $hideValuesOnOpen) {
-                rowLabel("Abrir com valores ocultos", icon: "eye.slash")
+                SettingLabel(title: "Abrir com valores ocultos", icon: "eye.slash")
             }
             Toggle(isOn: loosening($shieldInSwitcher, reason: "Mostrar o Fluxo no alternador de apps")) {
-                rowLabel("Esconder no alternador de apps", icon: "rectangle.on.rectangle")
+                SettingLabel(title: "Esconder no alternador", icon: "rectangle.on.rectangle")
             }
         } header: {
             Text("Segurança")
@@ -87,18 +87,18 @@ struct SettingsView: View {
     private var agentSection: some View {
         Section {
             Toggle(isOn: loosening($anonymizeNames, reason: "Enviar nomes de pessoas para a IA")) {
-                rowLabel(
-                    "Trocar nomes de pessoas",
+                SettingLabel(
+                    title: "Trocar nomes de pessoas",
                     detail: "Pix vão para a IA como “Pessoa 1”",
                     icon: "person.crop.circle.badge.questionmark",
-                    tile: Theme.lime,
-                    glyph: Theme.ink
+                    style: .agent
                 )
             }
-            LabeledContent {
-                Text("Google Gemini")
-            } label: {
-                rowLabel("Provedor de IA", icon: "sparkles", tile: Theme.lime, glyph: Theme.ink)
+            HStack {
+                SettingLabel(title: "Provedor de IA", icon: "sparkles", style: .agent)
+                Spacer(minLength: 8)
+                Text("Gemini")
+                    .foregroundStyle(Theme.inkSecondary)
             }
         } header: {
             Text("Privacidade do agente")
@@ -110,9 +110,14 @@ struct SettingsView: View {
     private var credentialsSection: some View {
         Section {
             NavigationLink {
+                ConnectionsView()
+            } label: {
+                SettingLabel(title: "Conexões Open Finance", icon: "building.columns", style: .neutral)
+            }
+            NavigationLink {
                 CredentialsView(kind: .pluggy)
             } label: {
-                credentialRow("Pluggy", configured: pluggyConfigured)
+                credentialRow("Credenciais do Pluggy", configured: pluggyConfigured)
             }
             NavigationLink {
                 CredentialsView(kind: .gemini)
@@ -120,7 +125,7 @@ struct SettingsView: View {
                 credentialRow("Chave do Gemini", configured: geminiConfigured)
             }
         } header: {
-            Text("Credenciais")
+            Text("Conexões e chaves")
         } footer: {
             Text("As chaves ficam no Keychain, presas a este iPhone. Nunca entram no código do app nem no GitHub.")
         }
@@ -131,8 +136,7 @@ struct SettingsView: View {
             Button(role: .destructive) {
                 confirmWipe = true
             } label: {
-                rowLabel("Apagar todos os dados", icon: "trash", tile: Theme.dangerSoft, glyph: Theme.danger)
-                    .foregroundStyle(Theme.danger)
+                SettingLabel(title: "Apagar todos os dados", icon: "trash", style: .danger)
             }
         } header: {
             Text("Dados")
@@ -193,37 +197,15 @@ struct SettingsView: View {
         return "Fluxo \(version) (build \(build))"
     }
 
-    private func rowLabel(
-        _ title: String,
-        detail: String? = nil,
-        icon: String,
-        tile: Color = Theme.forest,
-        glyph: Color = Theme.lime
-    ) -> some View {
-        Label {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                if let detail {
-                    Text(detail)
-                        .font(.footnote)
-                        .foregroundStyle(Theme.inkSecondary)
-                }
-            }
-        } icon: {
-            IconTile(systemName: icon, background: tile, foreground: glyph)
-        }
-    }
-
     private func credentialRow(_ title: String, configured: Bool) -> some View {
-        LabeledContent {
-            Label(
-                configured ? "No Keychain" : "Não configurado",
-                systemImage: configured ? "lock.fill" : "exclamationmark.circle"
-            )
-            .font(.subheadline)
-            .foregroundStyle(configured ? Theme.inkSecondary : Theme.warning)
-        } label: {
-            rowLabel(title, icon: "key", tile: Theme.track, glyph: Theme.ink)
+        HStack(spacing: 8) {
+            SettingLabel(title: title, icon: "key", style: .neutral)
+            Spacer(minLength: 8)
+            if configured {
+                StatusBadge(text: "No Keychain", icon: "lock.fill")
+            } else {
+                StatusBadge(text: "Pendente", icon: "exclamationmark.circle", color: Theme.warning)
+            }
         }
     }
 }

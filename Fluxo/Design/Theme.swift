@@ -6,8 +6,8 @@ enum Theme {
     // Fundos e superfícies
     static let ground = Color(hex: 0xF3F4EE)          // fundo das telas
     static let surface = Color.white                    // cartões de conteúdo
-    static let line = Color(hex: 0xE2E5DC)              // bordas e divisórias
-    static let track = Color(hex: 0xE8EBE3)             // trilho de barras de progresso
+    static let line = Color(hex: 0xDFE3D8)              // bordas finas e divisórias
+    static let track = Color(hex: 0xE8EBE3)             // trilho de barras e fundos neutros
 
     // Texto (todos com contraste acima de 4,5:1 sobre o fundo)
     static let ink = Color(hex: 0x101A13)
@@ -25,6 +25,10 @@ enum Theme {
     static let warning = Color(hex: 0x7A4A00)
     static let danger = Color(hex: 0xA63A1C)
     static let dangerSoft = Color(hex: 0xFBE4DE)
+
+    // Medidas
+    static let cardRadius: CGFloat = 20
+    static let hairline: CGFloat = 0.75
 }
 
 extension Color {
@@ -63,16 +67,22 @@ extension View {
         #endif
     }
 
-    /// Cartão branco com borda fina: a superfície padrão de conteúdo.
+    /// Cartão branco com borda finíssima: a superfície padrão de conteúdo.
+    /// A separação do fundo vem do tom, não de contornos grossos.
     func card(padding: CGFloat = 16) -> some View {
         self
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(Theme.line, lineWidth: 1)
+                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                    .strokeBorder(Theme.line, lineWidth: Theme.hairline)
             )
+    }
+
+    /// Sombra suave das peças flutuantes (barra de abas e botão do agente).
+    func floatingShadow() -> some View {
+        self.shadow(color: Theme.ink.opacity(0.08), radius: 18, x: 0, y: 6)
     }
 }
 
@@ -84,9 +94,9 @@ struct LimeButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
+            .font(.body.weight(.semibold))
             .foregroundStyle(Theme.ink)
             .background(Theme.lime, in: Capsule())
-            .overlay(Capsule().stroke(Theme.ink.opacity(0.1), lineWidth: 1))
             .opacity(isEnabled ? (configuration.isPressed ? 0.85 : 1) : 0.5)
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
             .animation(.easeOut(duration: 0.15), value: configuration.isPressed)

@@ -9,7 +9,7 @@ pelo GitHub Actions.
 | Parte | Conteúdo | Situação |
 |---|---|---|
 | 1 | Fundação: visual, navegação, bloqueio por Face ID, Keychain, proteção no alternador, pipeline da `.ipa` | ✅ |
-| 2 | Conexão com o Meu Pluggy: autenticação, contas e transações | ⏳ |
+| 2 | Conexão com o Meu Pluggy: autenticação, contas e transações | ✅ |
 | 3 | Banco de dados local criptografado e telas com dados reais | ⏳ |
 | 4 | Agente com Gemini, filtros de privacidade e registro do que foi enviado | ⏳ |
 
@@ -30,7 +30,15 @@ pelo GitHub Actions.
 7. **Agente só de leitura** (Parte 4). Nenhuma ferramenta de pagamento existe no
    código. Apenas data, valor, categoria e estabelecimento vão para a IA; CPF,
    contas, agências e o bloco `paymentData` nunca saem do aparelho.
-8. **Ações fixadas por hash.** As GitHub Actions de terceiros usam o hash do commit,
+8. **Lista de permissão na leitura do Pluggy.** Os modelos decodificam só os campos
+   usados. CPF, número da conta, agência, `paymentData` e CNPJ de estabelecimentos
+   são ignorados já na leitura do JSON e nunca entram na memória do app.
+9. **Cliente de rede restrito.** Endereço fixo (`api.pluggy.ai`), sessão efêmera sem
+   cache nem cookies, TLS 1.2+, token de vida curta só na memória, cursor de
+   paginação extraído (o link enviado pelo servidor nunca é seguido) e limite de páginas.
+10. **Dados só enquanto desbloqueado.** Saldos e contas vivem na árvore de telas do app
+   desbloqueado e são descartados ao bloquear.
+11. **Ações fixadas por hash.** As GitHub Actions de terceiros usam o hash do commit,
    não a tag, para evitar troca maliciosa de versão.
 
 ## Estrutura
@@ -38,6 +46,7 @@ pelo GitHub Actions.
 - `project.yml`: definição do projeto para o XcodeGen
 - `Fluxo/App`: ponto de entrada e troca entre bloqueio e app
 - `Fluxo/Security`: bloqueio, Keychain, proteção do alternador, preferências
+- `Fluxo/Pluggy`: cliente da API, modelos com lista de permissão, estado das conexões
 - `Fluxo/Design`: tema e componentes visuais
 - `Fluxo/Views`: telas
 - `design/icon.svg`: ícone (convertido em PNG na compilação)

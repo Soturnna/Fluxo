@@ -33,7 +33,7 @@ struct AppMark: View {
 
     var body: some View {
         FlowMark()
-            .stroke(Theme.ink, style: StrokeStyle(lineWidth: size * 0.085, lineCap: .round, lineJoin: .round))
+            .stroke(Theme.ink, style: StrokeStyle(lineWidth: size * 0.075, lineCap: .round, lineJoin: .round))
             .frame(width: size * 0.62, height: size * 0.62)
             .frame(width: size, height: size)
             .background(Theme.lime, in: RoundedRectangle(cornerRadius: size * 0.27, style: .continuous))
@@ -41,20 +41,87 @@ struct AppMark: View {
     }
 }
 
-/// Ícone em um quadrado colorido, no estilo dos Ajustes do iOS.
+/// Ícone em um quadrado suave, no estilo dos Ajustes do iOS.
+/// Fundo claro e traço médio: leve, sem blocos escuros pesando a lista.
 struct IconTile: View {
+    enum Style {
+        case security   // verde da marca
+        case agent      // verde-lima do agente
+        case neutral    // cinza
+        case danger     // vermelho
+
+        var background: Color {
+            switch self {
+            case .security: return Theme.forest.opacity(0.08)
+            case .agent: return Theme.lime.opacity(0.55)
+            case .neutral: return Theme.track
+            case .danger: return Theme.dangerSoft
+            }
+        }
+
+        var foreground: Color {
+            switch self {
+            case .security: return Theme.forest
+            case .agent: return Theme.ink
+            case .neutral: return Theme.inkSecondary
+            case .danger: return Theme.danger
+            }
+        }
+    }
+
     let systemName: String
-    var background: Color = Theme.forest
-    var foreground: Color = Theme.lime
-    var size: CGFloat = 30
+    var style: Style = .security
+    var size: CGFloat = 28
 
     var body: some View {
         Image(systemName: systemName)
-            .font(.system(size: size * 0.5, weight: .semibold))
-            .foregroundStyle(foreground)
+            .font(.system(size: size * 0.5, weight: .medium))
+            .foregroundStyle(style.foreground)
             .frame(width: size, height: size)
-            .background(background, in: RoundedRectangle(cornerRadius: size * 0.28, style: .continuous))
+            .background(style.background, in: RoundedRectangle(cornerRadius: size * 0.27, style: .continuous))
             .accessibilityHidden(true)
+    }
+}
+
+/// Rótulo padrão de uma linha de ajuste: ícone, título e, se houver, um detalhe.
+struct SettingLabel: View {
+    let title: String
+    var detail: String? = nil
+    let icon: String
+    var style: IconTile.Style = .security
+
+    var body: some View {
+        HStack(spacing: 12) {
+            IconTile(systemName: icon, style: style)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .foregroundStyle(style == .danger ? Theme.danger : Theme.ink)
+                if let detail {
+                    Text(detail)
+                        .font(.footnote)
+                        .foregroundStyle(Theme.inkSecondary)
+                }
+            }
+        }
+    }
+}
+
+/// Selo de situação discreto: ícone pequeno + texto curto, sempre em uma linha.
+struct StatusBadge: View {
+    let text: String
+    let icon: String
+    var color: Color = Theme.inkSecondary
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .imageScale(.small)
+            Text(text)
+        }
+        .font(.footnote)
+        .foregroundStyle(color)
+        .lineLimit(1)
+        .fixedSize()
     }
 }
 
@@ -67,15 +134,16 @@ struct EmptyStateView: View {
     var action: (() -> Void)? = nil
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
             Image(systemName: systemName)
-                .font(.system(size: 30, weight: .semibold))
+                .font(.system(size: 22, weight: .medium))
                 .foregroundStyle(Theme.forest)
-                .frame(width: 68, height: 68)
-                .background(Theme.lime, in: Circle())
+                .frame(width: 52, height: 52)
+                .background(Theme.lime.opacity(0.55), in: Circle())
                 .accessibilityHidden(true)
+                .padding(.bottom, 2)
             Text(title)
-                .font(.rounded(.title3, weight: .bold))
+                .font(.rounded(.headline, weight: .semibold))
                 .foregroundStyle(Theme.ink)
                 .multilineTextAlignment(.center)
             Text(message)
@@ -86,15 +154,14 @@ struct EmptyStateView: View {
             if let actionTitle, let action {
                 Button(action: action) {
                     Text(actionTitle)
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, minHeight: 50)
+                        .frame(maxWidth: .infinity, minHeight: 48)
                 }
                 .buttonStyle(LimeButtonStyle())
-                .padding(.top, 4)
+                .padding(.top, 6)
             }
         }
         .frame(maxWidth: .infinity)
-        .card(padding: 24)
+        .card(padding: 22)
     }
 }
 
@@ -103,7 +170,7 @@ struct EmptyStateView: View {
 struct MoneyText: View {
     @EnvironmentObject private var lock: AppLock
     let value: Decimal?
-    var font: Font = .rounded(.largeTitle, weight: .heavy)
+    var font: Font = .rounded(.largeTitle, weight: .bold)
 
     var body: some View {
         Text(display)
@@ -132,9 +199,9 @@ struct Screen<Content: View>: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 12) {
                 Text(title)
-                    .font(.rounded(.largeTitle, weight: .heavy))
+                    .font(.rounded(.largeTitle, weight: .bold))
                     .foregroundStyle(Theme.ink)
                     .padding(.horizontal, 4)
                     .accessibilityAddTraits(.isHeader)

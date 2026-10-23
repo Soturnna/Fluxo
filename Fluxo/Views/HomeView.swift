@@ -1,8 +1,10 @@
 import SwiftUI
 
-/// Tela inicial. Nesta parte ainda não há dados: os blocos mostram o estado vazio.
+/// Tela inicial: saldo real das contas (via Meu Pluggy) e atalhos.
+/// Transações e orçamentos entram na Parte 3.
 struct HomeView: View {
     @EnvironmentObject private var lock: AppLock
+    @EnvironmentObject private var store: ConnectionsStore
     @AppStorage(SettingsKey.profileName) private var name = "Marcos"
 
     let openAgent: () -> Void
@@ -10,23 +12,25 @@ struct HomeView: View {
 
     private var monthLabel: String {
         Date.now
-            .formatted(.dateTime.month(.wide).year().locale(Locale(identifier: "pt_BR")))
+            .formatted(.dateTime.month(.wide).year().locale(.ptBR))
             .uppercased()
     }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 12) {
                 header
                 balanceCard
                 agentCard
-                EmptyStateView(
-                    systemName: "building.columns",
-                    title: "Conecte seus bancos",
-                    message: "Cadastre as credenciais do Meu Pluggy em Ajustes. Na próxima etapa, contas e transações aparecem aqui.",
-                    actionTitle: "Ir para Ajustes",
-                    action: openSettings
-                )
+                if !store.isConfigured && store.state == .idle {
+                    EmptyStateView(
+                        systemName: "building.columns",
+                        title: "Conecte seus bancos",
+                        message: "Cadastre as credenciais do Meu Pluggy em Ajustes para ver seus saldos aqui.",
+                        actionTitle: "Ir para Ajustes",
+                        action: openSettings
+                    )
+                }
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
@@ -34,17 +38,21 @@ struct HomeView: View {
         }
         .scrollIndicators(.hidden)
         .background(Theme.ground.ignoresSafeArea())
+        .refreshable { await store.refresh() }
+        .task {
+            if store.state == .idle { await store.refresh() }
+        }
     }
 
     private var header: some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(monthLabel)
-                    .tracking(0.5)
-                    .font(.footnote.weight(.semibold))
+                    .tracking(0.4)
+                    .font(.caption.weight(.medium))
                     .foregroundStyle(Theme.inkTertiary)
                 Text("Olá, \(name)")
-                    .font(.rounded(.title, weight: .heavy))
+                    .font(.rounded(.title2, weight: .bold))
                     .foregroundStyle(Theme.ink)
                     .accessibilityAddTraits(.isHeader)
             }
@@ -53,11 +61,11 @@ struct HomeView: View {
                 lock.valuesHidden.toggle()
             } label: {
                 Image(systemName: lock.valuesHidden ? "eye.slash" : "eye")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(Theme.ink)
                     .frame(width: 44, height: 44)
                     .background(Theme.surface, in: Circle())
-                    .overlay(Circle().stroke(Theme.line, lineWidth: 1))
+                    .overlay(Circle().strokeBorder(Theme.line, lineWidth: Theme.hairline))
             }
             .buttonStyle(.plain)
             .accessibilityLabel(lock.valuesHidden ? "Mostrar valores" : "Ocultar valores")
@@ -67,44 +75,72 @@ struct HomeView: View {
     }
 
     private var balanceCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Saldo consolidado")
-                .font(.subheadline.weight(.medium))
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Saldo em conta")
+                .font(.subheadline)
                 .foregroundStyle(Theme.onForestSecondary)
-            MoneyText(value: nil, font: .rounded(.largeTitle, weight: .heavy))
+            MoneyText(value: store.bankBalance, font: .rounded(.largeTitle, weight: .bold))
                 .foregroundStyle(.white)
-            Label("Nenhum banco conectado ainda", systemImage: "link.badge.plus")
-                .font(.footnote)
-                .foregroundStyle(Theme.onForestSecondary)
+            HStack(spacing: 6) {
+                if store.state == .loading {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .tint(Theme.onForestSecondary)
+                }
+                Text(balanceCaption)
+            }
+            .font(.footnote)
+            .foregroundStyle(Theme.onForestSecondary)
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.forest, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .background(Theme.forest, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var balanceCaption: String {
+        switch store.state {
+        case .loading:
+            return "Atualizando…"
+        case .failed(let message):
+            return message
+        case .loaded:
+            var parts: [String] = []
+            let accounts = store.bankAccountCount
+            parts.append(accounts == 1 ? "1 conta" : "\(accounts) contas")
+            if store.cardCount > 0 {
+                parts.append(store.cardCount == 1 ? "1 cartão" : "\(store.cardCount) cartões")
+            }
+            return parts.joined(separator: " · ")
+        case .idle:
+            return "Nenhum banco conectado ainda"
+        }
     }
 
     private var agentCard: some View {
         Button(action: openAgent) {
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
                 Image(systemName: "sparkles")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(Theme.lime)
-                    .frame(width: 36, height: 36)
+                    .frame(width: 34, height: 34)
                     .background(Theme.ink, in: Circle())
                     .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("AGENTE FLUXO")
-                        .tracking(0.6)
-                        .font(.caption.weight(.bold))
-                    Text("Em breve: pergunte sobre seus gastos em linguagem natural.")
-                        .font(.subheadline.weight(.medium))
-                        .multilineTextAlignment(.leading)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Agente Fluxo")
+                        .font(.subheadline.weight(.semibold))
+                    Text("Em breve: pergunte sobre seus gastos.")
+                        .font(.footnote)
                 }
                 Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .accessibilityHidden(true)
             }
             .foregroundStyle(Theme.ink)
-            .padding(16)
+            .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.lime, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .background(Theme.lime, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
         }
         .buttonStyle(.plain)
     }
