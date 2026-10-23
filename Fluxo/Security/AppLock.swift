@@ -1,18 +1,29 @@
 import SwiftUI
 import LocalAuthentication
 
-/// Controla o bloqueio do app e o botão de ocultar valores.
+/// Controla o bloqueio do app, a sessão de uso e o botão de ocultar valores.
 ///
-/// Regras:
-/// 1. O app abre bloqueado (se a proteção estiver ligada).
-/// 2. Ao ir para segundo plano, conta o tempo; ao voltar, bloqueia se passou do limite.
-/// 3. Desbloquear exige Face ID, com o código do iPhone como alternativa.
+/// Duas ideias separadas:
+/// - BLOQUEIO: uma tela opaca por cima de tudo, que só sai com Face ID.
+///   O que estava aberto embaixo continua lá (você volta de onde parou).
+/// - SESSÃO: o conjunto de telas e dados em memória. Se o app ficar mais de
+///   5 minutos em segundo plano, a sessão é descartada e tudo é recriado do zero.
 @MainActor
 final class AppLock: ObservableObject {
     @Published private(set) var isLocked: Bool
     @Published var valuesHidden: Bool
     @Published private(set) var errorMessage: String?
     @Published private(set) var isAuthenticating = false
+
+    /// Muda a cada nova sessão. A árvore de telas usa este valor como identidade:
+    /// quando ele muda, o SwiftUI destrói as telas antigas e cria novas.
+    @Published private(set) var sessionID = UUID()
+    /// Só vira true depois do primeiro desbloqueio da sessão. Antes disso,
+    /// nenhuma tela com dados é montada (nem por um instante, atrás do bloqueio).
+    @Published private(set) var sessionStarted: Bool
+
+    /// Tempo máximo em segundo plano antes de descartar a sessão.
+    static let sessionLifetime: UInt64 = 5 * 60
 
     /// Nome e ícone da biometria do aparelho ("Face ID", "faceid").
     let biometryName: String
@@ -21,10 +32,14 @@ final class AppLock: ObservableObject {
     private let defaults = UserDefaults.standard
     /// Momento em que o app foi para segundo plano, num relógio monotônico.
     private var backgroundedAt: UInt64?
+    /// Evita abrir o Face ID sozinho mais de uma vez por retorno ao app.
+    private var didAutoPrompt = false
 
     init() {
         SettingsDefaults.register()
-        isLocked = UserDefaults.standard.bool(forKey: SettingsKey.requireAuth)
+        let requireAuth = UserDefaults.standard.bool(forKey: SettingsKey.requireAuth)
+        isLocked = requireAuth
+        sessionStarted = !requireAuth
         valuesHidden = UserDefaults.standard.bool(forKey: SettingsKey.hideValuesOnOpen)
 
         let context = LAContext()
@@ -40,6 +55,10 @@ final class AppLock: ObservableObject {
             biometryName = "código"
             biometryIcon = "lock"
         }
+    }
+
+    private var requireAuth: Bool {
+        defaults.bool(forKey: SettingsKey.requireAuth)
     }
 
     // MARK: Autenticação
@@ -80,36 +99,56 @@ final class AppLock: ObservableObject {
     func unlock() async {
         guard isLocked else { return }
         if await authenticate(reason: "Desbloquear o Fluxo") {
-            valuesHidden = defaults.bool(forKey: SettingsKey.hideValuesOnOpen)
+            if !sessionStarted {
+                valuesHidden = defaults.bool(forKey: SettingsKey.hideValuesOnOpen)
+            }
+            sessionStarted = true
             isLocked = false
         }
     }
 
-    func lockNow() {
-        if defaults.bool(forKey: SettingsKey.requireAuth) {
-            isLocked = true
-        }
+    /// Encerra a sessão na hora (usado depois de apagar todos os dados).
+    func endSession() {
+        startFreshSession()
+    }
+
+    private func startFreshSession() {
+        sessionID = UUID()
+        sessionStarted = !requireAuth
+        isLocked = requireAuth
+        valuesHidden = defaults.bool(forKey: SettingsKey.hideValuesOnOpen)
     }
 
     // MARK: Ciclo de vida
 
     func handleScenePhase(_ phase: ScenePhase) {
-        guard defaults.bool(forKey: SettingsKey.requireAuth) else {
-            backgroundedAt = nil
-            return
-        }
         let delay = UInt64(max(0, defaults.integer(forKey: SettingsKey.lockDelay)))
 
         switch phase {
         case .background:
             backgroundedAt = Self.monotonicNow()
-            if delay == 0 { isLocked = true }
+            didAutoPrompt = false
+            if requireAuth && delay == 0 { isLocked = true }
+
         case .active:
             if let since = backgroundedAt {
                 let elapsedSeconds = (Self.monotonicNow() - since) / 1_000_000_000
-                if elapsedSeconds >= delay { isLocked = true }
+                if elapsedSeconds >= Self.sessionLifetime {
+                    startFreshSession()          // muito tempo fora: descarta tudo
+                } else if requireAuth && elapsedSeconds >= delay {
+                    isLocked = true              // pouco tempo fora: só bloqueia
+                }
                 backgroundedAt = nil
             }
+            if isLocked && !didAutoPrompt {
+                didAutoPrompt = true
+                Task { [weak self] in
+                    // Pequena espera para a tela de bloqueio aparecer antes do Face ID.
+                    try? await Task.sleep(nanoseconds: 350_000_000)
+                    await self?.unlock()
+                }
+            }
+
         default:
             break
         }

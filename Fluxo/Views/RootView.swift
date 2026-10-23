@@ -8,8 +8,8 @@ enum AppTab: Hashable {
 struct RootView: View {
     @State private var tab: AppTab = .home
     @State private var showAgent = false
-    /// Criado aqui (e não no App) de propósito: ao bloquear, o RootView é
-    /// desmontado e leva junto saldos, contas e o token do Pluggy.
+    /// Criado aqui (e não no App) de propósito: quando a sessão expira, o
+    /// RootView é recriado e leva junto saldos, contas e o token do Pluggy.
     @StateObject private var connections = ConnectionsStore()
 
     var body: some View {
@@ -34,6 +34,8 @@ struct RootView: View {
                 .ignoresSafeArea(.keyboard, edges: .bottom)
         }
         .background(Theme.ground.ignoresSafeArea())
+        // A barra fica sempre colada embaixo, mesmo com o teclado aberto.
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .environmentObject(connections)
         .fullScreenCover(isPresented: $showAgent) {
             AgentView()

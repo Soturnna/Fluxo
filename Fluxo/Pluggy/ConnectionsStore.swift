@@ -2,9 +2,9 @@ import Foundation
 
 /// Estado das conexões do Open Finance enquanto o app está desbloqueado.
 ///
-/// Nesta parte os dados ficam SÓ na memória. Esta classe pertence à árvore de
-/// telas do app desbloqueado: quando o app bloqueia, ela é destruída junto
-/// com saldos, contas e o token do Pluggy. (O armazenamento local criptografado
+/// Nesta parte os dados ficam SÓ na memória. Esta classe pertence à sessão:
+/// quando a sessão expira (5 min fora do app), ela é destruída junto com
+/// saldos, contas e o token do Pluggy. (O armazenamento local criptografado
 /// chega na Parte 3.)
 @MainActor
 final class ConnectionsStore: ObservableObject {

@@ -20,8 +20,9 @@ pelo GitHub Actions.
    desbloqueado e fora de backups.
 2. **Varredura de segredos.** Todo push passa pelo Gitleaks antes de compilar.
 3. **Bloqueio do app.** Face ID (ou código do iPhone) ao abrir e ao voltar do
-   segundo plano. O tempo é medido por relógio monotônico, que não muda se o
-   horário do aparelho for alterado.
+   segundo plano, numa janela própria acima de tudo (inclusive alertas e telas
+   cheias). O tempo é medido por relógio monotônico, que não muda se o horário
+   do aparelho for alterado.
 4. **Afrouxar exige identidade.** Desligar qualquer proteção, salvar credenciais
    ou apagar dados pede Face ID.
 5. **Alternador de apps.** Uma janela acima de tudo cobre a tela quando o app sai
@@ -36,8 +37,10 @@ pelo GitHub Actions.
 9. **Cliente de rede restrito.** Endereço fixo (`api.pluggy.ai`), sessão efêmera sem
    cache nem cookies, TLS 1.2+, token de vida curta só na memória, cursor de
    paginação extraído (o link enviado pelo servidor nunca é seguido) e limite de páginas.
-10. **Dados só enquanto desbloqueado.** Saldos e contas vivem na árvore de telas do app
-   desbloqueado e são descartados ao bloquear.
+10. **Sessão com prazo.** Saldos, contas, token e textos digitados vivem na sessão.
+   Voltar ao app em menos de 5 minutos só exige Face ID e retoma de onde parou;
+   depois disso, a sessão é descartada e tudo é recriado do zero. Nenhuma tela
+   com dados é montada antes do primeiro desbloqueio da sessão.
 11. **Ações fixadas por hash.** As GitHub Actions de terceiros usam o hash do commit,
    não a tag, para evitar troca maliciosa de versão.
 

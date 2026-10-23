@@ -24,7 +24,7 @@ enum CredentialKind {
 /// Três regras de segurança:
 /// 1. Os campos são "só escrita": o valor guardado nunca volta para a tela.
 /// 2. Salvar ou remover exige Face ID.
-/// 3. Ao sair da tela, o que foi digitado é apagado da memória.
+/// 3. Ao sair da tela (ou quando a sessão expira), o que foi digitado é apagado da memória.
 struct CredentialsView: View {
     let kind: CredentialKind
     @EnvironmentObject private var lock: AppLock
@@ -98,14 +98,17 @@ struct CredentialsView: View {
         switch kind {
         case .pluggy:
             Section {
-                SecureField("Client ID", text: $clientId)
+                // O Client ID identifica a aplicação, não é segredo: fica visível
+                // para você conferir o que colou. O Secret, sim, fica oculto.
+                TextField("Client ID", text: $clientId)
+                    .font(.callout.monospaced())
                 SecureField("Client Secret", text: $clientSecret)
                 TextField("IDs das conexões, separados por vírgula", text: $itemIdsText, axis: .vertical)
                     .font(.callout.monospaced())
             } header: {
                 Text("Dashboard Pluggy")
             } footer: {
-                Text("Crie as credenciais em dashboard.pluggy.ai, na aplicação ligada ao Meu Pluggy. Cada banco conectado tem um ID de conexão (item ID), no formato 8-4-4-4-12.")
+                Text("Crie as credenciais em dashboard.pluggy.ai, na aplicação ligada ao Meu Pluggy. Cada banco conectado tem um ID de conexão (item ID), no formato 8-4-4-4-12.\n\nPode sair do app para copiar os dados: o que já foi digitado continua aqui por até 5 minutos.")
             }
         case .gemini:
             Section {

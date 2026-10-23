@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Tela de bloqueio. Pede o Face ID assim que aparece.
+/// Tela de bloqueio, exibida numa janela própria por cima do app.
 struct LockView: View {
     @EnvironmentObject private var lock: AppLock
 
@@ -54,23 +54,7 @@ struct LockView: View {
             .padding(.horizontal, 24)
             .padding(.bottom, 16)
         }
-        // Abre o Face ID sozinho uma vez por retorno ao app.
-        // O próprio pedido de Face ID deixa a cena "inativa" e depois "ativa" de novo;
-        // sem a trava abaixo, cancelar o Face ID faria ele reabrir em ciclo.
-        .task(id: scenePhase) {
-            switch scenePhase {
-            case .background:
-                didAutoPrompt = false
-            case .active where !didAutoPrompt:
-                didAutoPrompt = true
-                try? await Task.sleep(nanoseconds: 350_000_000)
-                await lock.unlock()
-            default:
-                break
-            }
-        }
+        // O pedido automático de Face ID agora é feito pelo AppLock,
+        // que acompanha o ciclo de vida do app.
     }
-
-    @Environment(\.scenePhase) private var scenePhase
-    @State private var didAutoPrompt = false
 }

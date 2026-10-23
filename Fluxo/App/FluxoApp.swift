@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 @main
 struct FluxoApp: App {
@@ -19,29 +20,31 @@ struct FluxoApp: App {
     }
 }
 
-/// Decide entre a tela de bloqueio e o app, e aciona a proteção do alternador.
+/// Liga o ciclo de vida do app às regras de segurança.
 ///
-/// Quando o app bloqueia, a árvore de telas inteira (RootView) é DESMONTADA,
-/// não apenas escondida. Assim nenhuma tela aberta, folha ou valor continua
-/// na memória da interface atrás do bloqueio.
+/// - Antes do primeiro desbloqueio da sessão, nenhuma tela com dados é montada.
+/// - Bloquear cobre o app com uma janela própria; o que estava aberto continua.
+/// - Uma sessão nova (após 5 min fora) recria todas as telas do zero,
+///   descartando saldos, contas, token do Pluggy e qualquer texto digitado.
 struct AppRoot: View {
     @EnvironmentObject private var lock: AppLock
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage(SettingsKey.shieldInSwitcher) private var shieldInSwitcher = true
     @State private var shield = ShieldWindowController()
+    @State private var lockWindow = LockWindowController()
 
     var body: some View {
         ZStack {
-            if lock.isLocked {
-                LockView()
-                    .transition(.opacity)
-            } else {
+            if lock.sessionStarted {
                 RootView()
-                    .transition(.opacity)
+                    .id(lock.sessionID)                   // sessão nova = telas novas
+                    .accessibilityHidden(lock.isLocked)   // VoiceOver não lê o que está por baixo
+            } else {
+                Theme.forest.ignoresSafeArea()
             }
         }
-        .animation(.easeOut(duration: 0.2), value: lock.isLocked)
-        .onChange(of: scenePhase) { _, phase in
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            if phase != .active { Self.dismissKeyboard() }
             lock.handleScenePhase(phase)
             if phase == .active {
                 shield.hide()
@@ -49,5 +52,18 @@ struct AppRoot: View {
                 shield.show()
             }
         }
+        .onChange(of: lock.isLocked, initial: true) { _, locked in
+            if locked {
+                lockWindow.show(lock: lock)
+            } else {
+                lockWindow.hide()
+            }
+        }
+    }
+
+    /// Fecha o teclado ao sair do app. Assim o iOS não "esquece" o espaço
+    /// reservado para ele, que antes empurrava a barra de abas para o meio da tela.
+    private static func dismissKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }

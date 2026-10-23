@@ -46,7 +46,7 @@ struct SettingsView: View {
                     Task { @MainActor in
                         guard await lock.authenticate(reason: "Apagar todos os dados do Fluxo") else { return }
                         DataWiper.wipeEverything()
-                        lock.lockNow()
+                        lock.endSession()
                     }
                 }
                 Button("Cancelar", role: .cancel) {}
