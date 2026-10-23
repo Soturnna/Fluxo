@@ -95,6 +95,11 @@ struct SettingsView: View {
                 SettingLabel(title: "Categorias", detail: "Criar, renomear e trocar ícones", icon: "square.grid.2x2", style: .neutral)
             }
             NavigationLink {
+                ApplePaySetupView()
+            } label: {
+                SettingLabel(title: "Compras do Apple Pay", detail: "Registrar na hora, pelo app Atalhos", icon: "wave.3.right", style: .neutral)
+            }
+            NavigationLink {
                 NotificationsView()
             } label: {
                 SettingLabel(

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 enum AppTab: Hashable {
     case home, transactions, budgets, settings
@@ -51,7 +52,13 @@ struct RootView: View {
         .environmentObject(audit)
         // Alertas: avaliados ao abrir a sessão, depois de cada sincronização
         // e quando seus dados mudam (orçamentos, gastos previstos...).
-        .task { await NotificationPlanner.evaluate(finance) }
+        .task {
+            ProvisionalInbox.drain(into: finance)   // compras do Apple Pay que chegaram
+            await NotificationPlanner.evaluate(finance)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            ProvisionalInbox.drain(into: finance)
+        }
         .onChange(of: finance.lastSyncAt) { _, _ in
             Task { await NotificationPlanner.evaluate(finance) }
         }

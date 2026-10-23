@@ -43,6 +43,58 @@ struct PlannedExpense: Codable, Identifiable, Equatable {
     }
 }
 
+/// Algo que você registrou antes de o banco mandar: print de Pix, compra no
+/// Apple Pay, digitado ou pedido ao agente. Fica "provisório" até a conciliação
+/// achar a transação real correspondente; aí sai da conta do saldo estimado.
+struct ProvisionalEntry: Codable, Identifiable, Equatable {
+    enum Source: String, Codable {
+        case screenshot   // print
+        case applePay     // automação da Carteira
+        case manual       // digitado
+        case agent        // pedido ao agente
+    }
+
+    /// Por onde o dinheiro passou. Só o que passa pela conta mexe no saldo.
+    enum Method: String, Codable {
+        case account      // Pix, débito, boleto, transferência
+        case creditCard   // compra no crédito: vai para a fatura
+
+        var label: String { self == .account ? "Conta" : "Cartão de crédito" }
+    }
+
+    let id: String
+    var date: Date               // quando aconteceu (com hora)
+    var title: String            // "Pix enviado", "Mercado"
+    var counterparty: String?    // nome de quem recebeu/pagou (só neste iPhone)
+    var amount: Decimal          // negativo = saída, positivo = entrada
+    var method: Method
+    var source: Source
+    var createdAt: Date
+    /// Transação do banco que confirmou este lançamento (conciliação).
+    var matchedTransactionId: String?
+
+    init(id: String = UUID().uuidString, date: Date, title: String, counterparty: String?,
+         amount: Decimal, method: Method, source: Source) {
+        self.id = id
+        self.date = date
+        self.title = title
+        self.counterparty = counterparty
+        self.amount = amount
+        self.method = method
+        self.source = source
+        self.createdAt = .now
+        self.matchedTransactionId = nil
+    }
+
+    var isPending: Bool { matchedTransactionId == nil }
+
+    /// "Pix enviado · Fulano de Tal"
+    var displayTitle: String {
+        guard let counterparty, !counterparty.isEmpty else { return title }
+        return "\(title) · \(counterparty)"
+    }
+}
+
 struct UserData: Codable, Equatable {
     var version = 1
     var customCategories: [Category] = []
@@ -58,6 +110,8 @@ struct UserData: Codable, Equatable {
     var plannedExpenses: [PlannedExpense] = []
     /// Notas suas em transações: id da transação → texto.
     var transactionNotes: [String: String] = [:]
+    /// Lançamentos provisórios (ainda não confirmados pelo banco).
+    var provisionalEntries: [ProvisionalEntry] = []
 
     static let empty = UserData()
 
@@ -76,6 +130,7 @@ struct UserData: Codable, Equatable {
         budgets = try c.decodeIfPresent([Budget].self, forKey: .budgets) ?? []
         plannedExpenses = try c.decodeIfPresent([PlannedExpense].self, forKey: .plannedExpenses) ?? []
         transactionNotes = try c.decodeIfPresent([String: String].self, forKey: .transactionNotes) ?? [:]
+        provisionalEntries = (try? c.decodeIfPresent([ProvisionalEntry].self, forKey: .provisionalEntries)) ?? []
     }
 
     var effectiveMonthlyLimit: Decimal? {

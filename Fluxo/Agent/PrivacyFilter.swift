@@ -53,6 +53,11 @@ final class PrivacyFilter {
         return Self.neutralizeMarkers(Self.maskNumbers(transaction.title))
     }
 
+    /// Nome de pessoa digitado ou lido de um print: vira "Pessoa N".
+    func safeName(_ name: String) -> String {
+        anonymizeNames ? alias(for: name) : Self.neutralizeMarkers(Self.maskNumbers(name))
+    }
+
     /// Qualquer texto livre (nota, descrição) antes de sair do iPhone.
     func safeText(_ text: String) -> String {
         Self.neutralizeMarkers(Self.maskNumbers(text))

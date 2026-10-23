@@ -8,6 +8,7 @@ struct HomeView: View {
     @AppStorage(SettingsKey.profileName) private var name = "Marcos"
     @State private var selected: StoredTransaction?
     @State private var planned: PlannedEditorTarget?
+    @State private var registering = false
 
     let openAgent: () -> Void
     let openSettings: () -> Void
@@ -27,6 +28,7 @@ struct HomeView: View {
                 if store.isConfigured {
                     monthCard
                     agentCard
+                    ProvisionalSection(onAdd: { registering = true })
                     UpcomingPlannedSection(
                         onAdd: { planned = .new },
                         onSelect: { planned = .edit($0) }
@@ -53,6 +55,11 @@ struct HomeView: View {
         .task { await store.syncIfStale() }
         .sheet(item: $selected) { transaction in
             TransactionDetailSheet(transaction: transaction)
+                .environmentObject(store)
+                .environmentObject(lock)
+        }
+        .sheet(isPresented: $registering) {
+            ProvisionalEditorSheet()
                 .environmentObject(store)
                 .environmentObject(lock)
         }
@@ -98,12 +105,20 @@ struct HomeView: View {
     // MARK: Saldo
 
     private var balanceCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Saldo em conta")
+        let estimate = store.estimatedBalance
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(estimate == nil ? "Saldo em conta" : "Saldo estimado agora")
                 .font(.subheadline)
                 .foregroundStyle(Theme.onForestSecondary)
-            MoneyText(value: store.bankBalance, font: .rounded(.largeTitle, weight: .bold))
+            MoneyText(value: estimate?.value ?? store.bankBalance, font: .rounded(.largeTitle, weight: .bold))
                 .foregroundStyle(.white)
+            if let estimate {
+                // Transparência: de onde vem a estimativa.
+                Text(estimateCaption(estimate))
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(Theme.lime)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             HStack(spacing: 6) {
                 if store.state == .loading {
                     ProgressView()
@@ -122,6 +137,16 @@ struct HomeView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.forest, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
         .accessibilityElement(children: .combine)
+    }
+
+    private func estimateCaption(_ estimate: (value: Decimal, adjustment: Decimal, count: Int)) -> String {
+        let when = store.bankDataAt.map { FinanceStore.bankTimeLabel($0) } ?? "última busca"
+        let items = estimate.count == 1 ? "1 lançamento registrado depois" : "\(estimate.count) lançamentos registrados depois"
+        if lock.valuesHidden { return "Saldo do banco (\(when)) + \(items)" }
+        let bank = (store.bankBalance ?? 0).formatted(.currency(code: "BRL").locale(.ptBR))
+        let delta = abs(estimate.adjustment).formatted(.currency(code: "BRL").locale(.ptBR))
+        let sign = estimate.adjustment < 0 ? "−" : "+"
+        return "Banco \(bank) (\(when)) \(sign) \(delta) de \(items)"
     }
 
     private var balanceCaption: String {

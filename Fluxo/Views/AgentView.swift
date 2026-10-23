@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 /// Conversa com o agente.
 struct AgentView: View {
@@ -8,6 +9,8 @@ struct AgentView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var input = ""
+    @State private var receiptPhoto: PhotosPickerItem?
+    @State private var showReceipt = false
     @FocusState private var inputFocused: Bool
 
     private let suggestions = [
@@ -75,6 +78,16 @@ struct AgentView: View {
             }
         }
         .tint(Theme.link)
+        .onChange(of: receiptPhoto) { _, item in
+            if item != nil { showReceipt = true }
+        }
+        .sheet(isPresented: $showReceipt, onDismiss: { receiptPhoto = nil }) {
+            ProvisionalEditorSheet(initialPhoto: receiptPhoto) { entry in
+                let value = abs(entry.amount).formatted(.currency(code: "BRL").locale(.ptBR))
+                agent.noteLocal("Registrado: \(entry.displayTitle) · \(value). Aguardando o banco (já no saldo estimado).")
+            }
+            .environmentObject(store)
+        }
     }
 
     // MARK: Boas-vindas
@@ -161,6 +174,18 @@ struct AgentView: View {
     private var composer: some View {
         VStack(spacing: 6) {
             HStack(alignment: .bottom, spacing: 8) {
+                // Print de Pix ou comprovante: lido no iPhone, nada vai para a IA.
+                PhotosPicker(selection: $receiptPhoto, matching: .images) {
+                    Image(systemName: "photo.badge.plus")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(Theme.ink)
+                        .frame(width: 46, height: 46)
+                        .background(Theme.surface, in: Circle())
+                        .overlay(Circle().strokeBorder(Theme.line, lineWidth: 1))
+                }
+                .accessibilityLabel("Registrar a partir de um print")
+                .disabled(agent.isThinking)
+
                 TextField("Pergunte ou peça algo", text: $input, axis: .vertical)
                     .lineLimit(1...4)
                     .focused($inputFocused)
@@ -187,7 +212,7 @@ struct AgentView: View {
                 .opacity(input.trimmingCharacters(in: .whitespaces).isEmpty || agent.isThinking ? 0.5 : 1)
                 .accessibilityLabel("Enviar")
             }
-            Text("Nomes de pessoas e números de documentos são filtrados antes do envio.")
+            Text("Nomes e documentos são filtrados antes do envio. Prints são lidos só no iPhone.")
                 .font(.caption2)
                 .foregroundStyle(Theme.inkSecondary)
         }

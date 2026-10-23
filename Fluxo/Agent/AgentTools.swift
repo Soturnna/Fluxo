@@ -9,6 +9,7 @@ struct PendingAction: Identifiable {
         case note(transaction: StoredTransaction, text: String)
         case budget(categoryId: String, limit: Decimal)
         case createCategory(name: String, kind: CategoryKind)
+        case provisional(ProvisionalEntry)
     }
 
     enum Status: Equatable {
@@ -130,6 +131,18 @@ enum AgentTools {
                 ], required: ["categoria", "limite"])
             ],
             [
+                "name": "registrar_lancamento",
+                "description": "Propõe registrar algo que o usuário acabou de fazer e o banco ainda não mostra (Pix enviado ou recebido, compra, boleto). Fica provisório até o banco confirmar e, se for pela conta, já entra no saldo estimado. O usuário confirma no app.",
+                "parameters": object([
+                    "data_hora": string("Quando aconteceu, AAAA-MM-DDTHH:MM. Sem hora, use AAAA-MM-DD. Se o usuário não disser, omita (vale agora)."),
+                    "descricao": string("O que foi, curto (ex.: Pix enviado, Mercado, Conta de luz)."),
+                    "pessoa_ou_loja": string("Quem recebeu ou pagou (opcional). Use os rótulos Pessoa N como estão."),
+                    "valor": number("Valor em reais, positivo."),
+                    "tipo": string("Direção do dinheiro.", enumValues: ["saida", "entrada"]),
+                    "meio": string("Por onde passou: conta (Pix, débito, boleto) ou cartão de crédito.", enumValues: ["conta", "cartao_credito"])
+                ], required: ["descricao", "valor", "tipo"])
+            ],
+            [
                 "name": "criar_categoria",
                 "description": "Propõe criar uma categoria nova. O usuário confirma no app.",
                 "parameters": object([
@@ -154,6 +167,7 @@ enum AgentTools {
         case "anotar_transacao": return proposeNote(args, store, privacy)
         case "definir_orcamento": return proposeBudget(args, store)
         case "criar_categoria": return proposeCategory(args, store)
+        case "registrar_lancamento": return proposeProvisional(args, privacy)
         default: return failure("Ferramenta desconhecida.")
         }
     }
@@ -204,6 +218,22 @@ enum AgentTools {
             )
         }
         if let limit = store.userData.effectiveMonthlyLimit { response["limite_do_mes"] = money(limit) }
+
+        // O que você registrou e o banco ainda não mostrou.
+        let pending = store.pendingProvisionals
+        if !pending.isEmpty {
+            response["lancamentos_aguardando_banco"] = pending.prefix(10).map { item -> [String: Any] in
+                var row: [String: Any] = [
+                    "data_hora": dayFormatter("yyyy-MM-dd'T'HH:mm").string(from: item.date),
+                    "descricao": privacy.safeText(item.title),
+                    "valor": money(item.amount),
+                    "meio": item.method == .account ? "conta" : "cartao_credito"
+                ]
+                if let name = item.counterparty { row["pessoa_ou_loja"] = privacy.safeName(name) }
+                return row
+            }
+        }
+        if let estimate = store.estimatedBalance { response["saldo_estimado_agora"] = money(estimate.value) }
 
         // Ritmo do mês: média por dia e, no mês atual, projeção linear até o fim.
         let calendar = Calendar.current
@@ -397,6 +427,43 @@ enum AgentTools {
         return proposal(PendingAction(kind: .createCategory(name: name, kind: kind), title: "Criar categoria", details: ["\(name) · \(kind.label)"]))
     }
 
+    private static func proposeProvisional(_ args: [String: Any], _ privacy: PrivacyFilter) -> ToolOutcome {
+        guard let amount = parseAmount(args["valor"]) else { return failure("Valor inválido.") }
+        guard let title = FinanceStore.sanitizedName(privacy.reveal(args["descricao"] as? String ?? ""), maxLength: 60) else {
+            return failure("Descrição vazia.")
+        }
+        var date = Date.now
+        if let text = args["data_hora"] as? String, !text.isEmpty {
+            // Só o dia: se for hoje, vale agora; senão, meio-dia daquele dia.
+            let dayOnly = parseDay(text).map { Calendar.current.isDateInToday($0) ? Date.now : $0.addingTimeInterval(12 * 3600) }
+            guard let parsed = parseDateTime(text) ?? dayOnly, FinanceStore.isReasonableProvisionalDate(parsed) else {
+                return failure("Data inválida. Use AAAA-MM-DDTHH:MM, de até 60 dias atrás.")
+            }
+            date = parsed
+        }
+        let counterparty = (args["pessoa_ou_loja"] as? String).map { privacy.reveal(privacy.resolveAlias($0)) }
+            .flatMap { FinanceStore.sanitizedName($0, maxLength: 60) }
+        let isIncome = (args["tipo"] as? String) == "entrada"
+        let method: ProvisionalEntry.Method = (args["meio"] as? String) == "cartao_credito" ? .creditCard : .account
+
+        let entry = ProvisionalEntry(date: date, title: title, counterparty: counterparty,
+                                     amount: isIncome ? amount : -amount, method: method, source: .agent)
+        let when = FinanceStore.bankTimeLabel(date)
+        return proposal(PendingAction(
+            kind: .provisional(entry),
+            title: "Registrar lançamento",
+            details: [
+                entry.displayTitle,
+                "\(isIncome ? "+" : "−")\(brl(amount)) · \(when) · \(method.label)",
+                "Fica aguardando o banco confirmar"
+            ]
+        ))
+    }
+
+    static func parseDateTime(_ text: String) -> Date? {
+        dayFormatter("yyyy-MM-dd'T'HH:mm").date(from: String(text.prefix(16)))
+    }
+
     // MARK: Executar uma proposta confirmada
 
     /// Chamado só quando você toca em "Confirmar". Valida tudo de novo, porque
@@ -421,6 +488,8 @@ enum AgentTools {
             return .done
         case .createCategory(let name, let kind):
             return store.createCategory(name: name, icon: "ellipsis", kind: kind) == nil ? .failed("Nome já usado.") : .done
+        case .provisional(let entry):
+            return store.saveProvisional(entry) ? .done : .failed("Dados inválidos.")
         }
     }
 

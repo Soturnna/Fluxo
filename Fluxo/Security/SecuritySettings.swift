@@ -78,6 +78,7 @@ enum DataWiper {
     /// Apaga o cofre local, as credenciais e as preferências.
     static func wipeEverything() {
         NotificationCleanup.removeAll()
+        ProvisionalInbox.removeAll()
         Vault.destroy()
         KeychainStore.deleteAll()
         if let bundleID = Bundle.main.bundleIdentifier {

@@ -58,6 +58,7 @@ final class FinanceStore: ObservableObject {
         // didSet não roda dentro do init; monta os índices aqui.
         rebuildCategoryIndex()
         rebuildAutomaticCategories()
+        reconcileProvisionals()
     }
 
     // MARK: Categorias
@@ -396,7 +397,7 @@ final class FinanceStore: ObservableObject {
         automaticCategory = map
     }
 
-    private func saveUserData(_ data: UserData) {
+    func saveUserData(_ data: UserData) {
         userData = data
         do {
             try Vault.save(data, in: .userData)
@@ -527,6 +528,7 @@ final class FinanceStore: ObservableObject {
         snapshot = newSnapshot
         connections = liveConnections
         state = .loaded(.now)
+        reconcileProvisionals()
 
         // Trocas avulsas de transações que não existem mais são descartadas.
         let existing = Set(newSnapshot.transactions.map(\.id))
@@ -598,6 +600,33 @@ extension FinanceStore.Connection {
             }
             return .ok
         }
+    }
+
+    /// Por que o cartão de crédito não aparece. Nil quando aparece (ou sem dados).
+    /// Baseado nos códigos de aviso do Pluggy: CC_001 = sem permissão para
+    /// cartões; CC_002 = aprovação pendente no banco; CC_003/CC_004 = cartão
+    /// indisponível no banco; CC_005/CC_006 = sem permissão para faturas/compras.
+    var creditCardDiagnosis: String? {
+        guard let item, errorMessage == nil, !accounts.contains(where: \.isCreditCard) else { return nil }
+        let codes = item.creditCardWarnings
+        let list = codes.joined(separator: ", ")
+
+        if codes.contains(where: { ["CC_001", "CC_005", "CC_006"].contains($0) }) {
+            return "Não aparece porque a autorização não inclui o cartão (\(list)). Refaça a conexão do \(institution) no Meu Pluggy e marque Cartão de crédito ao autorizar."
+        }
+        if codes.contains("CC_002") || item.hasResourcesPendingAuthorization {
+            return "Não aparece porque o cartão espera sua aprovação no app do \(institution) (Open Finance › compartilhamentos)."
+        }
+        if codes.contains("CC_003") || codes.contains("CC_004") {
+            return "O \(institution) informa o cartão como indisponível no Open Finance (\(list)). Pode ser efeito do bloqueio do cartão."
+        }
+        if !item.products.isEmpty && !item.products.contains("CREDIT_CARDS") {
+            return "Não aparece porque esta conexão não pediu o produto Cartão de crédito ao banco."
+        }
+        if !codes.isEmpty {
+            return "O Pluggy não devolveu o cartão e avisou: \(list)."
+        }
+        return "O Pluggy não devolveu nenhum cartão nesta conexão e não informou o motivo. Confira no Meu Pluggy se o cartão aparece na conexão do \(institution)."
     }
 
     var consentDaysLeft: Int? {

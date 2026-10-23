@@ -22,9 +22,56 @@ struct PluggyItem: Decodable {
     let consentExpiresAt: Date?
     let nextAutoSyncAt: Date?
     let error: ItemError?
+    /// Produtos pedidos na conexão (ex.: ACCOUNTS, CREDIT_CARDS, TRANSACTIONS).
+    let products: [String]
+    /// Algum dado ainda espera sua aprovação no app do banco.
+    let hasResourcesPendingAuthorization: Bool
+    /// Códigos de aviso do Pluggy sobre o cartão (ex.: CC_001 = sem permissão).
+    /// Só os códigos: o texto dos avisos não é guardado.
+    let creditCardWarnings: [String]
 
     struct ItemError: Decodable {
         let code: String?
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, status, lastUpdatedAt, consentExpiresAt, nextAutoSyncAt, error
+        case products, hasResourcesPendingAuthorization, statusDetail, warnings
+    }
+
+    /// Formatos possíveis dos avisos: dentro de statusDetail.creditCards.warnings
+    /// ou num bloco warnings.creditCards. Os dois são lidos.
+    private struct StatusDetail: Decodable {
+        let creditCards: ProductStatus?
+    }
+    private struct ProductStatus: Decodable {
+        let warnings: [Warning]?
+    }
+    private struct TopWarnings: Decodable {
+        let creditCards: [Warning]?
+    }
+    private struct Warning: Decodable {
+        let code: String?
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        status = try c.decode(String.self, forKey: .status)
+        lastUpdatedAt = try c.decodeIfPresent(Date.self, forKey: .lastUpdatedAt)
+        consentExpiresAt = try c.decodeIfPresent(Date.self, forKey: .consentExpiresAt)
+        nextAutoSyncAt = try c.decodeIfPresent(Date.self, forKey: .nextAutoSyncAt)
+        error = try? c.decodeIfPresent(ItemError.self, forKey: .error)
+
+        // Campos de diagnóstico: lidos com `try?`. Se o formato mudar, viram
+        // vazios em vez de derrubar a sincronização inteira.
+        products = (try? c.decodeIfPresent([String].self, forKey: .products)) ?? []
+        hasResourcesPendingAuthorization = (try? c.decodeIfPresent(Bool.self, forKey: .hasResourcesPendingAuthorization)) ?? false
+        let detail = (try? c.decodeIfPresent(StatusDetail.self, forKey: .statusDetail))?.creditCards?.warnings ?? []
+        let top = (try? c.decodeIfPresent(TopWarnings.self, forKey: .warnings))?.creditCards ?? []
+        let codes = (detail + top).compactMap(\.code)
+            .filter { $0.range(of: "^[A-Z]{2,5}_[0-9]{3}$", options: .regularExpression) != nil }
+        creditCardWarnings = Array(Set(codes)).sorted()
     }
 }
 

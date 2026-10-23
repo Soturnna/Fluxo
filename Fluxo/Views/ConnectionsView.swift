@@ -195,6 +195,23 @@ private struct ConnectionCard: View {
                 }
             }
 
+            if let diagnosis = connection.creditCardDiagnosis {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "creditcard.trianglebadge.exclamationmark")
+                        .foregroundStyle(Theme.warning)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Cartão de crédito")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(Theme.ink)
+                        Text(diagnosis)
+                            .font(.footnote)
+                            .foregroundStyle(Theme.inkSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+            }
+
             StatusBadge(
                 text: storedCount == 1 ? "1 transação guardada neste iPhone" : "\(storedCount) transações guardadas neste iPhone",
                 icon: "lock.fill"
