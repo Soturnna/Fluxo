@@ -16,6 +16,7 @@ enum Vault {
     enum Drawer: String {
         case finance = "financas.cofre"      // contas e transações (recriável pelo Pluggy)
         case userData = "meus-dados.cofre"   // categorias, trocas e orçamentos (só existem aqui)
+        case auditLog = "registro.cofre"     // o que foi enviado ao Gemini
     }
 
     enum VaultError: Error {

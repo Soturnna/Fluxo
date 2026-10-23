@@ -7,6 +7,7 @@ struct HomeView: View {
     @EnvironmentObject private var store: FinanceStore
     @AppStorage(SettingsKey.profileName) private var name = "Marcos"
     @State private var selected: StoredTransaction?
+    @State private var planned: PlannedEditorTarget?
 
     let openAgent: () -> Void
     let openSettings: () -> Void
@@ -26,6 +27,10 @@ struct HomeView: View {
                 if store.isConfigured {
                     monthCard
                     agentCard
+                    UpcomingPlannedSection(
+                        onAdd: { planned = .new },
+                        onSelect: { planned = .edit($0) }
+                    )
                     recentSection
                 } else {
                     agentCard
@@ -48,6 +53,11 @@ struct HomeView: View {
         .task { await store.syncIfStale() }
         .sheet(item: $selected) { transaction in
             TransactionDetailSheet(transaction: transaction)
+                .environmentObject(store)
+                .environmentObject(lock)
+        }
+        .sheet(item: $planned) { target in
+            PlannedExpenseEditor(existing: target.expense)
                 .environmentObject(store)
                 .environmentObject(lock)
         }
@@ -180,7 +190,7 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Agente Fluxo")
                         .font(.subheadline.weight(.semibold))
-                    Text("Em breve: pergunte sobre seus gastos.")
+                    Text("Pergunte, organize e preveja gastos.")
                         .font(.footnote)
                 }
                 Spacer(minLength: 0)

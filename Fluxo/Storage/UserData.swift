@@ -22,6 +22,27 @@ struct Budget: Codable, Identifiable, Equatable {
     var id: String { categoryId }
 }
 
+/// Um gasto que ainda vai acontecer ("dia 26 vou comprar um tênis de R$ 300").
+/// Não existe no banco: é um lembrete seu, usado para projetar o mês.
+struct PlannedExpense: Codable, Identifiable, Equatable {
+    let id: String
+    var date: Date
+    var title: String
+    var amount: Decimal          // sempre positivo
+    var categoryId: String?
+    var createdByAgent: Bool
+
+    init(id: String = UUID().uuidString, date: Date, title: String, amount: Decimal,
+         categoryId: String?, createdByAgent: Bool) {
+        self.id = id
+        self.date = date
+        self.title = title
+        self.amount = amount
+        self.categoryId = categoryId
+        self.createdByAgent = createdByAgent
+    }
+}
+
 struct UserData: Codable, Equatable {
     var version = 1
     var customCategories: [Category] = []
@@ -33,6 +54,10 @@ struct UserData: Codable, Equatable {
     /// Limite geral do mês. Se vazio, usa a soma dos limites das categorias.
     var monthlyLimit: Decimal?
     var budgets: [Budget] = []
+    /// Gastos previstos (futuros).
+    var plannedExpenses: [PlannedExpense] = []
+    /// Notas suas em transações: id da transação → texto.
+    var transactionNotes: [String: String] = [:]
 
     static let empty = UserData()
 
@@ -49,6 +74,8 @@ struct UserData: Codable, Equatable {
         merchantRules = try c.decodeIfPresent([String: String].self, forKey: .merchantRules) ?? [:]
         monthlyLimit = try c.decodeIfPresent(Decimal.self, forKey: .monthlyLimit)
         budgets = try c.decodeIfPresent([Budget].self, forKey: .budgets) ?? []
+        plannedExpenses = try c.decodeIfPresent([PlannedExpense].self, forKey: .plannedExpenses) ?? []
+        transactionNotes = try c.decodeIfPresent([String: String].self, forKey: .transactionNotes) ?? [:]
     }
 
     var effectiveMonthlyLimit: Decimal? {

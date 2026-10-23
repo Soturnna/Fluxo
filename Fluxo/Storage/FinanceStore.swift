@@ -208,6 +208,80 @@ final class FinanceStore: ObservableObject {
         saveUserData(data)
     }
 
+    // MARK: Gastos previstos e notas
+
+    /// Previstos ordenados por data. `fromDaysAgo` mantém visíveis os que
+    /// acabaram de passar, para você marcar como resolvidos.
+    func plannedExpenses(fromDaysAgo days: Int = 3) -> [PlannedExpense] {
+        let start = Calendar.current.date(byAdding: .day, value: -days, to: Calendar.current.startOfDay(for: .now)) ?? .now
+        return userData.plannedExpenses
+            .filter { $0.date >= start }
+            .sorted { $0.date < $1.date }
+    }
+
+    func plannedExpenses(inMonthOf month: Date) -> [PlannedExpense] {
+        guard let interval = Calendar.current.dateInterval(of: .month, for: month) else { return [] }
+        return userData.plannedExpenses.filter { interval.contains($0.date) }.sorted { $0.date < $1.date }
+    }
+
+    /// Quanto ainda está comprometido no mês: previstos de hoje em diante.
+    func pendingPlannedTotal(inMonthOf month: Date) -> Decimal {
+        let today = Calendar.current.startOfDay(for: .now)
+        return plannedExpenses(inMonthOf: month)
+            .filter { $0.date >= today }
+            .reduce(Decimal(0)) { $0 + $1.amount }
+    }
+
+    /// Cria ou atualiza um gasto previsto, validando cada campo.
+    @discardableResult
+    func savePlannedExpense(_ expense: PlannedExpense) -> Bool {
+        guard let title = Self.sanitizedName(expense.title, maxLength: 60),
+              expense.amount > 0, expense.amount < 10_000_000,
+              Self.isReasonablePlanDate(expense.date)
+        else { return false }
+        var clean = expense
+        clean.title = title
+        if let id = clean.categoryId, categoryIndex[id] == nil { clean.categoryId = nil }
+
+        var data = userData
+        if let index = data.plannedExpenses.firstIndex(where: { $0.id == clean.id }) {
+            data.plannedExpenses[index] = clean
+        } else {
+            data.plannedExpenses.append(clean)
+        }
+        saveUserData(data)
+        return true
+    }
+
+    func deletePlannedExpense(id: String) {
+        var data = userData
+        data.plannedExpenses.removeAll { $0.id == id }
+        saveUserData(data)
+    }
+
+    func note(for transaction: StoredTransaction) -> String? {
+        userData.transactionNotes[transaction.id]
+    }
+
+    func setNote(_ text: String?, for transactionId: String) {
+        var data = userData
+        if let text, let clean = Self.sanitizedName(text, maxLength: 200) {
+            data.transactionNotes[transactionId] = clean
+        } else {
+            data.transactionNotes.removeValue(forKey: transactionId)
+        }
+        saveUserData(data)
+    }
+
+    /// Datas aceitas para um gasto previsto: de 1 mês atrás até 2 anos à frente.
+    static func isReasonablePlanDate(_ date: Date) -> Bool {
+        let calendar = Calendar.current
+        guard let min = calendar.date(byAdding: .month, value: -1, to: .now),
+              let max = calendar.date(byAdding: .year, value: 2, to: .now)
+        else { return false }
+        return date >= min && date <= max
+    }
+
     // MARK: Leituras para as telas
 
     var accounts: [StoredAccount] { snapshot.accounts }
@@ -339,10 +413,10 @@ final class FinanceStore: ObservableObject {
 
     /// Limpa o nome digitado: tira caracteres de controle, espaços nas pontas e
     /// limita a 30 caracteres. Devolve nil se ficar vazio.
-    static func sanitizedName(_ raw: String) -> String? {
+    static func sanitizedName(_ raw: String, maxLength: Int = 30) -> String? {
         let cleaned = String(raw.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) })
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        let limited = String(cleaned.prefix(30))
+        let limited = String(cleaned.prefix(maxLength))
         return limited.isEmpty ? nil : limited
     }
 
@@ -455,9 +529,11 @@ final class FinanceStore: ObservableObject {
 
         // Trocas avulsas de transações que não existem mais são descartadas.
         let existing = Set(newSnapshot.transactions.map(\.id))
-        if userData.transactionCategory.keys.contains(where: { !existing.contains($0) }) {
+        if userData.transactionCategory.keys.contains(where: { !existing.contains($0) })
+            || userData.transactionNotes.keys.contains(where: { !existing.contains($0) }) {
             var data = userData
             data.transactionCategory = data.transactionCategory.filter { existing.contains($0.key) }
+            data.transactionNotes = data.transactionNotes.filter { existing.contains($0.key) }
             saveUserData(data)
         }
 

@@ -12,6 +12,10 @@ struct RootView: View {
     /// RootView é recriado e leva junto da memória saldos, transações e o
     /// token do Pluggy. No disco, eles continuam só dentro do cofre cifrado.
     @StateObject private var finance = FinanceStore()
+    /// A conversa com o agente vive enquanto a sessão estiver aberta.
+    @StateObject private var agent = AgentEngine()
+    @StateObject private var audit = AuditLog()
+    @EnvironmentObject private var lock: AppLock
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -42,8 +46,14 @@ struct RootView: View {
         // A barra fica sempre colada embaixo, mesmo com o teclado aberto.
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .environmentObject(finance)
+        .environmentObject(agent)
+        .environmentObject(audit)
         .fullScreenCover(isPresented: $showAgent) {
             AgentView()
+                .environmentObject(finance)
+                .environmentObject(agent)
+                .environmentObject(audit)
+                .environmentObject(lock)
         }
     }
 }

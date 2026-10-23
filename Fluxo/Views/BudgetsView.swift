@@ -94,17 +94,18 @@ struct BudgetsView: View {
         let spent = store.totals(inMonthOf: month).spent
         let limit = store.userData.effectiveMonthlyLimit
         let daysLeft = store.daysLeft(inMonthOf: month)
+        let planned = store.pendingPlannedTotal(inMonthOf: month)
 
         return VStack(alignment: .leading, spacing: 10) {
             if let limit {
-                let free = limit - spent
+                let free = limit - spent - planned
                 Text(free >= 0 ? (isCurrentMonth ? "Livre para gastar" : "Sobrou no mês") : "Acima do limite")
                     .font(.subheadline)
                     .foregroundStyle(Theme.onForestSecondary)
                 MoneyText(value: abs(free), font: .rounded(.largeTitle, weight: .bold))
                     .foregroundStyle(.white)
-                ProgressBar(fraction: Self.fraction(spent, of: limit), fill: free >= 0 ? Theme.lime : Theme.dangerSoft, track: .white.opacity(0.16))
-                Text(overviewCaption(spent: spent, limit: limit, free: free, daysLeft: daysLeft))
+                ProgressBar(fraction: Self.fraction(spent + planned, of: limit), fill: free >= 0 ? Theme.lime : Theme.dangerSoft, track: .white.opacity(0.16))
+                Text(overviewCaption(spent: spent, planned: planned, limit: limit, free: free, daysLeft: daysLeft))
                     .font(.footnote)
                     .foregroundStyle(Theme.onForestSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -125,9 +126,10 @@ struct BudgetsView: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func overviewCaption(spent: Decimal, limit: Decimal, free: Decimal, daysLeft: Int) -> String {
+    private func overviewCaption(spent: Decimal, planned: Decimal, limit: Decimal, free: Decimal, daysLeft: Int) -> String {
         if lock.valuesHidden { return "Valores ocultos" }
         var parts = ["\(Self.brl(spent)) de \(Self.brl(limit))"]
+        if planned > 0 { parts.append("\(Self.brl(planned)) previstos") }
         if daysLeft > 0 {
             parts.append(daysLeft == 1 ? "último dia" : "faltam \(daysLeft) dias")
             if free > 0 {

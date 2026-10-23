@@ -12,7 +12,7 @@ pelo GitHub Actions.
 | 2 | Conexão com o Meu Pluggy: autenticação, contas e transações | ✅ |
 | 3 | Cofre local criptografado, sincronização e tela de transações | ✅ |
 | 3b | Categorias editáveis (trocar, criar, regras por estabelecimento) e orçamentos | ✅ |
-| 4 | Agente com Gemini, filtros de privacidade e registro do que foi enviado | ⏳ |
+| 4 | Agente com Gemini (consultas, gastos previstos, alterações com confirmação), filtros de privacidade e registro do que foi enviado | ✅ |
 
 ## Modelo de segurança
 
@@ -29,9 +29,16 @@ pelo GitHub Actions.
 5. **Alternador de apps.** Uma janela acima de tudo cobre a tela quando o app sai
    do primeiro plano.
 6. **Só HTTPS.** Nenhuma exceção ao App Transport Security.
-7. **Agente só de leitura** (Parte 4). Nenhuma ferramenta de pagamento existe no
-   código. Apenas data, valor, categoria e estabelecimento vão para a IA; CPF,
-   contas, agências e o bloco `paymentData` nunca saem do aparelho.
+7. **Agente sem acesso ao dinheiro.** Nenhuma ferramenta de pagamento ou de escrita
+   no banco existe no código. O agente lê dados e *propõe* mudanças locais (gasto
+   previsto, categoria, nota, orçamento, categoria nova); cada proposta vira um
+   cartão que só é aplicado quando você toca em Confirmar, e é validada de novo
+   nesse momento. Isso também neutraliza injeção de instruções: um texto malicioso
+   numa descrição de Pix não consegue alterar nada sozinho.
+   Para a IA vão só data, valor, categoria, título e nota; ids reais viram
+   referências curtas (t1, p1), nomes em Pix viram "Pessoa N" (revertidos só na
+   tela) e sequências longas de dígitos são mascaradas. Tudo o que é enviado fica
+   num registro cifrado que você pode auditar em Ajustes.
 8. **Lista de permissão na leitura do Pluggy.** Os modelos decodificam só os campos
    usados. CPF, número da conta, agência, `paymentData` e CNPJ de estabelecimentos
    são ignorados já na leitura do JSON e nunca entram na memória do app.
@@ -64,6 +71,7 @@ pelo GitHub Actions.
 - `Fluxo/Security`: bloqueio, Keychain, proteção do alternador, preferências
 - `Fluxo/Pluggy`: cliente da API e modelos com lista de permissão
 - `Fluxo/Storage`: cofre cifrado, modelos guardados, categorias e sincronização
+- `Fluxo/Agent`: cliente do Gemini, ferramentas, filtro de privacidade e registro
 - `Fluxo/Design`: tema e componentes visuais
 - `Fluxo/Views`: telas
 - `design/icon.svg`: ícone (convertido em PNG na compilação)

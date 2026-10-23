@@ -9,6 +9,7 @@ struct TransactionDetailSheet: View {
 
     @State private var selectedId = ""
     @State private var applyToSameTitle = true
+    @State private var note = ""
     @State private var loaded = false
 
     private var current: Category { store.category(for: transaction) }
@@ -72,17 +73,30 @@ struct TransactionDetailSheet: View {
                 }
 
                 Section {
+                    TextField("Ex.: presente de aniversário", text: $note, axis: .vertical)
+                        .lineLimit(1...4)
+                } header: {
+                    Text("Nota")
+                } footer: {
+                    Text("Só fica neste iPhone. O agente pode ler e escrever notas para você.")
+                }
+
+                Section {
                     Button {
-                        store.assignCategory(
-                            selected.id,
-                            to: transaction,
-                            applyToSameTitle: applyToSameTitle && sameTitleCount > 0
-                        )
+                        if selected.id != current.id {
+                            store.assignCategory(
+                                selected.id,
+                                to: transaction,
+                                applyToSameTitle: applyToSameTitle && sameTitleCount > 0
+                            )
+                        }
+                        if note != (store.note(for: transaction) ?? "") {
+                            store.setNote(note.isEmpty ? nil : note, for: transaction.id)
+                        }
                         dismiss()
                     } label: {
                         Text("Salvar").frame(maxWidth: .infinity)
                     }
-                    .disabled(selected.id == current.id && !(applyToSameTitle && sameTitleCount > 0))
                 }
             }
             .scrollContentBackground(.hidden)
@@ -98,6 +112,7 @@ struct TransactionDetailSheet: View {
                 guard !loaded else { return }
                 loaded = true
                 selectedId = current.id
+                note = store.note(for: transaction) ?? ""
             }
         }
         .tint(Theme.link)

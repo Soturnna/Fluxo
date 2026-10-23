@@ -5,6 +5,7 @@ struct TransactionsView: View {
     @EnvironmentObject private var store: FinanceStore
     @EnvironmentObject private var lock: AppLock
     @State private var selected: StoredTransaction?
+    @State private var planned: PlannedEditorTarget?
     @State private var month = Calendar.current.dateInterval(of: .month, for: .now)?.start ?? .now
     @State private var query = ""
 
@@ -32,6 +33,7 @@ struct TransactionsView: View {
             searchField
             monthSwitcher
             totalsRow
+            plannedSection
             content
         }
         .refreshable { await store.sync() }
@@ -40,6 +42,46 @@ struct TransactionsView: View {
             TransactionDetailSheet(transaction: transaction)
                 .environmentObject(store)
                 .environmentObject(lock)
+        }
+        .sheet(item: $planned) { target in
+            PlannedExpenseEditor(existing: target.expense)
+                .environmentObject(store)
+                .environmentObject(lock)
+        }
+    }
+
+    /// Gastos previstos do mês (só aparecem sem busca ativa).
+    @ViewBuilder
+    private var plannedSection: some View {
+        let items = query.isEmpty ? store.plannedExpenses(inMonthOf: month) : []
+        if !items.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Previstos")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.inkTertiary)
+                    .padding(.horizontal, 4)
+                    .padding(.top, 6)
+                VStack(spacing: 0) {
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                        if index > 0 { Divider().overlay(Theme.line) }
+                        Button {
+                            planned = .edit(item)
+                        } label: {
+                            PlannedExpenseRow(
+                                expense: item,
+                                category: item.categoryId.flatMap { store.category(withId: $0) }
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 14)
+                .background(Theme.surface.opacity(0.6), in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                        .strokeBorder(Theme.line, style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                )
+            }
         }
     }
 

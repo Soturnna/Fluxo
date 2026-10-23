@@ -107,16 +107,22 @@ struct SettingsView: View {
                     style: .agent
                 )
             }
+            NavigationLink {
+                AuditLogView()
+            } label: {
+                SettingLabel(title: "Registro do que foi enviado", icon: "doc.text.magnifyingglass", style: .agent)
+            }
             HStack {
-                SettingLabel(title: "Provedor de IA", icon: "sparkles", style: .agent)
+                SettingLabel(title: "Modelo de IA", icon: "sparkles", style: .agent)
                 Spacer(minLength: 8)
-                Text("Gemini")
+                Text(GeminiClient.model)
+                    .font(.footnote)
                     .foregroundStyle(Theme.inkSecondary)
             }
         } header: {
             Text("Privacidade do agente")
         } footer: {
-            Text("O agente terá só ferramentas de leitura: não paga, não transfere e não altera nada no banco. CPF, contas e agências nunca são enviados à IA.")
+            Text("O agente não paga, não transfere e não acessa o banco. Ele só organiza dados do app, e cada mudança precisa da sua confirmação. CPF, contas e agências nunca são enviados à IA.")
         }
     }
 
