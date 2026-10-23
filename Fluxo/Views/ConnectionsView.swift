@@ -1,22 +1,25 @@
 import SwiftUI
 
-/// Conexões do Open Finance: situação de cada banco e teste de leitura.
+/// Conexões do Open Finance: situação de cada banco e sincronização.
 struct ConnectionsView: View {
-    @EnvironmentObject private var store: ConnectionsStore
+    @EnvironmentObject private var store: FinanceStore
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 infoCard
 
-                if !store.isConfigured && store.state == .idle {
+                if !store.isConfigured {
                     notConfiguredCard
                 } else {
                     stateBanner
                     ForEach(store.connections) { connection in
-                        ConnectionCard(connection: connection)
+                        ConnectionCard(
+                            connection: connection,
+                            storedCount: store.storedTransactionCount(forItem: connection.id)
+                        )
                     }
-                    testButton
+                    syncButton
                 }
 
                 Link(destination: URL(string: "https://meu.pluggy.ai")!) {
@@ -42,8 +45,8 @@ struct ConnectionsView: View {
         .background(Theme.ground.ignoresSafeArea())
         .navigationTitle("Conexões")
         .navigationBarTitleDisplayMode(.large)
-        .task { await store.refresh() }
-        .refreshable { await store.refresh() }
+        .task { await store.sync() }
+        .refreshable { await store.sync() }
     }
 
     private var infoCard: some View {
@@ -85,7 +88,7 @@ struct ConnectionsView: View {
         case .loading:
             HStack(spacing: 8) {
                 ProgressView()
-                Text("Consultando o Pluggy…")
+                Text("Sincronizando com o Pluggy…")
                     .font(.subheadline)
                     .foregroundStyle(Theme.inkSecondary)
             }
@@ -94,7 +97,7 @@ struct ConnectionsView: View {
             StatusBadge(text: message, icon: "exclamationmark.triangle.fill", color: Theme.danger)
                 .padding(.horizontal, 4)
         case .loaded(let date):
-            Text("Consultado \(date.formatted(Date.RelativeFormatStyle(presentation: .named, locale: .ptBR)))")
+            Text("Sincronizado \(date.formatted(Date.RelativeFormatStyle(presentation: .named, locale: .ptBR)))")
                 .font(.footnote)
                 .foregroundStyle(Theme.inkTertiary)
                 .padding(.horizontal, 4)
@@ -103,11 +106,11 @@ struct ConnectionsView: View {
         }
     }
 
-    private var testButton: some View {
+    private var syncButton: some View {
         Button {
-            Task { await store.refresh(countTransactions: true) }
+            Task { await store.sync() }
         } label: {
-            Label("Testar leitura completa", systemImage: "arrow.triangle.2.circlepath")
+            Label("Sincronizar agora", systemImage: "arrow.triangle.2.circlepath")
                 .font(.body.weight(.medium))
                 .foregroundStyle(Theme.ink)
                 .frame(maxWidth: .infinity, minHeight: 48)
@@ -120,7 +123,8 @@ struct ConnectionsView: View {
 
 /// Cartão de uma conexão: banco, situação, autorização e contas.
 private struct ConnectionCard: View {
-    let connection: ConnectionsStore.Connection
+    let connection: FinanceStore.Connection
+    let storedCount: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -134,7 +138,7 @@ private struct ConnectionCard: View {
 
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(alignment: .firstTextBaseline) {
-                        Text(connection.displayName)
+                        Text(connection.institution)
                             .font(.body.weight(.semibold))
                             .foregroundStyle(Theme.ink)
                         Spacer(minLength: 8)
@@ -155,14 +159,15 @@ private struct ConnectionCard: View {
                 Divider().overlay(Theme.line)
                 VStack(spacing: 10) {
                     ForEach(connection.accounts) { account in
-                        HStack {
+                        HStack(alignment: .firstTextBaseline) {
                             VStack(alignment: .leading, spacing: 1) {
-                                Text(account.marketingName ?? account.name)
+                                Text(kindLabel(account))
                                     .font(.subheadline)
                                     .foregroundStyle(Theme.ink)
-                                Text(account.isCreditCard ? "Cartão de crédito" : "Conta")
+                                Text(account.marketingName ?? account.name)
                                     .font(.caption)
                                     .foregroundStyle(Theme.inkTertiary)
+                                    .lineLimit(1)
                             }
                             Spacer(minLength: 8)
                             MoneyText(value: account.balance, font: .rounded(.subheadline, weight: .semibold))
@@ -173,15 +178,17 @@ private struct ConnectionCard: View {
                 }
             }
 
-            if let count = connection.recentTransactionCount {
-                StatusBadge(
-                    text: "\(count) transações lidas nos últimos 30 dias",
-                    icon: "checkmark.circle.fill",
-                    color: Theme.positive
-                )
-            }
+            StatusBadge(
+                text: storedCount == 1 ? "1 transação guardada neste iPhone" : "\(storedCount) transações guardadas neste iPhone",
+                icon: "lock.fill"
+            )
         }
         .card()
+    }
+
+    private func kindLabel(_ account: PluggyAccount) -> String {
+        if account.isCreditCard { return "Cartão de crédito" }
+        return account.subtype == "SAVINGS_ACCOUNT" ? "Poupança" : "Conta"
     }
 
     @ViewBuilder
@@ -201,7 +208,7 @@ private struct ConnectionCard: View {
     private var syncLine: String {
         var parts = [connection.accountsSummary]
         if let last = connection.item?.lastUpdatedAt {
-            parts.append("sincronizado \(last.formatted(Date.RelativeFormatStyle(presentation: .named, locale: .ptBR)))")
+            parts.append("atualizado no banco \(last.formatted(Date.RelativeFormatStyle(presentation: .named, locale: .ptBR)))")
         }
         return parts.joined(separator: " · ")
     }

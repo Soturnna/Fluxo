@@ -28,7 +28,7 @@ enum CredentialKind {
 struct CredentialsView: View {
     let kind: CredentialKind
     @EnvironmentObject private var lock: AppLock
-    @EnvironmentObject private var connections: ConnectionsStore
+    @EnvironmentObject private var connections: FinanceStore
 
     @State private var clientId = ""
     @State private var clientSecret = ""

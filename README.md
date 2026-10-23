@@ -10,7 +10,8 @@ pelo GitHub Actions.
 |---|---|---|
 | 1 | Fundação: visual, navegação, bloqueio por Face ID, Keychain, proteção no alternador, pipeline da `.ipa` | ✅ |
 | 2 | Conexão com o Meu Pluggy: autenticação, contas e transações | ✅ |
-| 3 | Banco de dados local criptografado e telas com dados reais | ⏳ |
+| 3 | Cofre local criptografado, sincronização e tela de transações | ✅ |
+| 3b | Orçamentos por categoria | ⏳ |
 | 4 | Agente com Gemini, filtros de privacidade e registro do que foi enviado | ⏳ |
 
 ## Modelo de segurança
@@ -41,7 +42,14 @@ pelo GitHub Actions.
    Voltar ao app em menos de 5 minutos só exige Face ID e retoma de onde parou;
    depois disso, a sessão é descartada e tudo é recriado do zero. Nenhuma tela
    com dados é montada antes do primeiro desbloqueio da sessão.
-11. **Ações fixadas por hash.** As GitHub Actions de terceiros usam o hash do commit,
+11. **Cofre local cifrado.** Contas e transações ficam num único arquivo cifrado com
+   AES-GCM (256 bits). A chave é gerada no iPhone e guardada no Keychain como
+   `ThisDeviceOnly`, então uma cópia do arquivo em outro lugar é ilegível; o GCM
+   também detecta adulteração. O arquivo usa Proteção de Dados completa, gravação
+   atômica e fica fora do backup.
+12. **Sincronização robusta.** A tarefa pertence ao armazenamento, não à tela: trocar
+   de aba não a interrompe. Cancelamentos nunca sobrescrevem dados bons.
+13. **Ações fixadas por hash.** As GitHub Actions de terceiros usam o hash do commit,
    não a tag, para evitar troca maliciosa de versão.
 
 ## Estrutura
@@ -49,7 +57,8 @@ pelo GitHub Actions.
 - `project.yml`: definição do projeto para o XcodeGen
 - `Fluxo/App`: ponto de entrada e troca entre bloqueio e app
 - `Fluxo/Security`: bloqueio, Keychain, proteção do alternador, preferências
-- `Fluxo/Pluggy`: cliente da API, modelos com lista de permissão, estado das conexões
+- `Fluxo/Pluggy`: cliente da API e modelos com lista de permissão
+- `Fluxo/Storage`: cofre cifrado, modelos guardados, categorias e sincronização
 - `Fluxo/Design`: tema e componentes visuais
 - `Fluxo/Views`: telas
 - `design/icon.svg`: ícone (convertido em PNG na compilação)

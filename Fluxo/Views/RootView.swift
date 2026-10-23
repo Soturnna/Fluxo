@@ -9,15 +9,20 @@ struct RootView: View {
     @State private var tab: AppTab = .home
     @State private var showAgent = false
     /// Criado aqui (e não no App) de propósito: quando a sessão expira, o
-    /// RootView é recriado e leva junto saldos, contas e o token do Pluggy.
-    @StateObject private var connections = ConnectionsStore()
+    /// RootView é recriado e leva junto da memória saldos, transações e o
+    /// token do Pluggy. No disco, eles continuam só dentro do cofre cifrado.
+    @StateObject private var finance = FinanceStore()
 
     var body: some View {
         ZStack(alignment: .bottom) {
             Group {
                 switch tab {
                 case .home:
-                    HomeView(openAgent: { showAgent = true }, openSettings: { tab = .settings })
+                    HomeView(
+                        openAgent: { showAgent = true },
+                        openSettings: { tab = .settings },
+                        openTransactions: { tab = .transactions }
+                    )
                 case .transactions:
                     TransactionsView()
                 case .budgets:
@@ -36,7 +41,7 @@ struct RootView: View {
         .background(Theme.ground.ignoresSafeArea())
         // A barra fica sempre colada embaixo, mesmo com o teclado aberto.
         .ignoresSafeArea(.keyboard, edges: .bottom)
-        .environmentObject(connections)
+        .environmentObject(finance)
         .fullScreenCover(isPresented: $showAgent) {
             AgentView()
         }

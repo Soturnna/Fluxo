@@ -179,6 +179,10 @@ actor PluggyClient {
         do {
             result = try await session.data(for: request)
         } catch {
+            // Cancelamento não é falha de rede: quem chamou desistiu do pedido.
+            if error is CancellationError || (error as? URLError)?.code == .cancelled {
+                throw CancellationError()
+            }
             throw PluggyError.network
         }
         let (data, response) = result

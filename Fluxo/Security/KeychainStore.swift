@@ -7,6 +7,7 @@ enum KeychainKey: String, CaseIterable {
     case pluggyClientSecret = "pluggy.clientSecret"
     case pluggyItemIds = "pluggy.itemIds"
     case geminiApiKey = "gemini.apiKey"
+    case vaultKey = "vault.key"          // chave que cifra o cofre local
 }
 
 enum KeychainError: LocalizedError {

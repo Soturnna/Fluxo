@@ -56,8 +56,9 @@ enum FirstLaunch {
 }
 
 enum DataWiper {
-    /// Apaga credenciais e preferências. Nas próximas partes, também o banco local.
+    /// Apaga o cofre local, as credenciais e as preferências.
     static func wipeEverything() {
+        Vault.destroy()
         KeychainStore.deleteAll()
         if let bundleID = Bundle.main.bundleIdentifier {
             UserDefaults.standard.removePersistentDomain(forName: bundleID)

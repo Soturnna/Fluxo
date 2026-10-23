@@ -3,25 +3,13 @@ import SwiftUI
 /// Telas que ganham conteúdo nas próximas partes.
 /// Já existem para a navegação funcionar e para testar o visual no iPhone.
 
-struct TransactionsView: View {
-    var body: some View {
-        Screen("Transações") {
-            EmptyStateView(
-                systemName: "list.bullet.rectangle",
-                title: "Nenhuma transação ainda",
-                message: "Depois que os bancos forem conectados, as transações aparecem aqui, agrupadas por dia."
-            )
-        }
-    }
-}
-
 struct BudgetsView: View {
     var body: some View {
         Screen("Orçamentos") {
             EmptyStateView(
                 systemName: "chart.pie",
                 title: "Nenhum orçamento ainda",
-                message: "Com as transações importadas, você poderá definir limites por categoria e acompanhar o mês."
+                message: "Na próxima etapa, você vai definir limites por categoria e acompanhar o mês com base nas suas transações."
             )
         }
     }
