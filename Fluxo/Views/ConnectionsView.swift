@@ -208,7 +208,10 @@ private struct ConnectionCard: View {
     private var syncLine: String {
         var parts = [connection.accountsSummary]
         if let last = connection.item?.lastUpdatedAt {
-            parts.append("atualizado no banco \(last.formatted(Date.RelativeFormatStyle(presentation: .named, locale: .ptBR)))")
+            parts.append("dados do banco de \(FinanceStore.bankTimeLabel(last))")
+        }
+        if let next = connection.item?.nextAutoSyncAt, next > .now {
+            parts.append("próxima busca \(FinanceStore.bankTimeLabel(next))")
         }
         return parts.joined(separator: " · ")
     }

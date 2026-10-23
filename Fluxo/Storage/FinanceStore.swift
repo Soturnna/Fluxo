@@ -494,7 +494,8 @@ final class FinanceStore: ObservableObject {
                         institution: connection.institution,
                         isCreditCard: account.isCreditCard,
                         isSavings: account.subtype == "SAVINGS_ACCOUNT",
-                        balance: account.balance
+                        balance: account.balance,
+                        bankDataAt: connection.item?.lastUpdatedAt
                     )
                     newSnapshot.accounts.removeAll { $0.id == account.id }
                     newSnapshot.accounts.append(stored)

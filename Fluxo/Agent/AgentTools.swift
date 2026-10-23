@@ -197,6 +197,12 @@ enum AgentTools {
             "maiores_gastos": biggest
         ]
         if let balance = store.bankBalance { response["saldo_em_conta"] = money(balance) }
+        if let bankAt = store.bankDataAt {
+            // Horário local (São Paulo), escrito por extenso para não haver confusão de fuso.
+            response["saldo_buscado_no_banco_em"] = bankAt.formatted(
+                .dateTime.day(.twoDigits).month(.twoDigits).year().hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.ptBR)
+            )
+        }
         if let limit = store.userData.effectiveMonthlyLimit { response["limite_do_mes"] = money(limit) }
 
         // Ritmo do mês: média por dia e, no mês atual, projeção linear até o fim.

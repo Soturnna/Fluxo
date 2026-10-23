@@ -137,7 +137,10 @@ struct HomeView: View {
         let accounts = store.bankAccountCount
         if accounts > 0 { parts.append(accounts == 1 ? "1 conta" : "\(accounts) contas") }
         if store.cardCount > 0 { parts.append(store.cardCount == 1 ? "1 cartão" : "\(store.cardCount) cartões") }
-        if let last = store.lastSyncAt {
+        if let bankAt = store.bankDataAt {
+            // A hora que importa é a do banco, não a da conversa com o Pluggy.
+            parts.append("saldo do banco de \(FinanceStore.bankTimeLabel(bankAt))")
+        } else if let last = store.lastSyncAt {
             parts.append("atualizado \(last.formatted(Date.RelativeFormatStyle(presentation: .named, locale: .ptBR)))")
         } else if store.state == .loading {
             parts.append("buscando seus dados…")

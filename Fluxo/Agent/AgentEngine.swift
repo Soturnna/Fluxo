@@ -235,7 +235,9 @@ final class AgentEngine: ObservableObject {
         4. Nomes de pessoas aparecem como "Pessoa N" por privacidade. Use esses rótulos como estão.
         5. Para datas relativas ("dia 26", "sexta que vem"), calcule a partir de hoje. Se o dia citado \
         já passou neste mês, use o mesmo dia do mês seguinte.
-        6. Nos dados, valores negativos são saídas e positivos são entradas. Aplicações em investimento \
+        6. O saldo vem do banco com atraso (o Meu Pluggy busca 1 vez por dia). Ao citar o saldo, diga de \
+        quando ele é, usando saldo_buscado_no_banco_em (ex.: "saldo de hoje, 10:14"). \
+        Nos dados, valores negativos são saídas e positivos são entradas. Aplicações em investimento \
         e transferências entre contas próprias não são consumo: se aparecerem como gasto, você pode sugerir \
         trocá-las para uma categoria que não conta.
         7. Formato (o app transforma em visual). Português do Brasil, valores como R$ 1.234,56:

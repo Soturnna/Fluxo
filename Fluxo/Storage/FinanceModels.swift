@@ -13,6 +13,9 @@ struct StoredAccount: Codable, Identifiable, Equatable {
     let isCreditCard: Bool
     let isSavings: Bool
     var balance: Decimal
+    /// Quando o Pluggy buscou estes dados no banco (não quando o app falou
+    /// com o Pluggy). É a "idade" real do saldo. Opcional: cofres antigos não têm.
+    var bankDataAt: Date? = nil
 
     /// Ex.: "Nubank · Conta", "Nubank · Cartão".
     var displayName: String {
