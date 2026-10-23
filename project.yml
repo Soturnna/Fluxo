@@ -37,6 +37,11 @@ targets:
           UIApplicationSupportsMultipleScenes: false
         # Texto mostrado pelo iOS na primeira vez que o app pede o Face ID.
         NSFaceIDUsageDescription: O Fluxo usa o Face ID para proteger suas informações financeiras.
+        # Checagem em segundo plano para os alertas (o iOS decide quando rodar).
+        UIBackgroundModes:
+          - fetch
+        BGTaskSchedulerPermittedIdentifiers:
+          - com.soturnna.fluxo.refresh
         # Segurança de rede: nenhuma exceção ao App Transport Security.
         # Sem NSAppTransportSecurity aqui, o iOS só permite conexões HTTPS.
     settings:

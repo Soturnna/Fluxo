@@ -13,6 +13,8 @@ pelo GitHub Actions.
 | 3 | Cofre local criptografado, sincronização e tela de transações | ✅ |
 | 3b | Categorias editáveis (trocar, criar, regras por estabelecimento) e orçamentos | ✅ |
 | 4 | Agente com Gemini (consultas, gastos previstos, alterações com confirmação), filtros de privacidade e registro do que foi enviado | ✅ |
+| 4b | Respostas visuais do agente: gráficos calculados no iPhone e sugestões de ação | ✅ |
+| 5 | Notificações locais: orçamentos, ritmo do mês, gasto alto, gastos previstos, resumo semanal e conexão expirando | 🧪 |
 
 ## Modelo de segurança
 
@@ -63,6 +65,11 @@ pelo GitHub Actions.
    só podem vir de uma lista fixa.
 14. **Ações fixadas por hash.** As GitHub Actions de terceiros usam o hash do commit,
    não a tag, para evitar troca maliciosa de versão.
+15. **Notificações só locais.** Nenhum servidor de push: o iPhone agenda e mostra.
+   A checagem em segundo plano só roda com o iPhone desbloqueado (o cofre e o
+   Keychain continuam fechados com ele bloqueado). O que já foi avisado fica no
+   cofre cifrado (`avisos.cofre`), para não repetir. Passar a mostrar valores pede
+   Face ID, e nomes de pessoas em Pix nunca aparecem na notificação.
 
 ## Estrutura
 
@@ -71,7 +78,8 @@ pelo GitHub Actions.
 - `Fluxo/Security`: bloqueio, Keychain, proteção do alternador, preferências
 - `Fluxo/Pluggy`: cliente da API e modelos com lista de permissão
 - `Fluxo/Storage`: cofre cifrado, modelos guardados, categorias e sincronização
-- `Fluxo/Agent`: cliente do Gemini, ferramentas, filtro de privacidade e registro
+- `Fluxo/Agent`: cliente do Gemini, ferramentas, filtro de privacidade, registro e respostas visuais
+- `Fluxo/Notifications`: alertas locais, checagem em segundo plano e abertura na aba certa
 - `Fluxo/Design`: tema e componentes visuais
 - `Fluxo/Views`: telas
 - `design/icon.svg`: ícone (convertido em PNG na compilação)

@@ -16,6 +16,7 @@ struct RootView: View {
     @StateObject private var agent = AgentEngine()
     @StateObject private var audit = AuditLog()
     @EnvironmentObject private var lock: AppLock
+    @ObservedObject private var router = NotificationRouter.shared
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -48,6 +49,27 @@ struct RootView: View {
         .environmentObject(finance)
         .environmentObject(agent)
         .environmentObject(audit)
+        // Alertas: avaliados ao abrir a sessão, depois de cada sincronização
+        // e quando seus dados mudam (orçamentos, gastos previstos...).
+        .task { await NotificationPlanner.evaluate(finance) }
+        .onChange(of: finance.lastSyncAt) { _, _ in
+            Task { await NotificationPlanner.evaluate(finance) }
+        }
+        .onChange(of: finance.userData) { _, _ in
+            Task { await NotificationPlanner.evaluate(finance) }
+        }
+        // Toque numa notificação: vai para a aba dela.
+        .onChange(of: router.requested, initial: true) { _, route in
+            guard let route else { return }
+            showAgent = false
+            switch route {
+            case .home: tab = .home
+            case .transactions: tab = .transactions
+            case .budgets: tab = .budgets
+            case .settings: tab = .settings
+            }
+            router.requested = nil
+        }
         .fullScreenCover(isPresented: $showAgent) {
             AgentView()
                 .environmentObject(finance)

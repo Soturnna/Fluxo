@@ -14,6 +14,7 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.shieldInSwitcher) private var shieldInSwitcher = true
     @AppStorage(SettingsKey.anonymizeNames) private var anonymizeNames = true
     @AppStorage(SettingsKey.agentModel) private var agentModel = AgentModelChoice.automatic.rawValue
+    @AppStorage(SettingsKey.notifyEnabled) private var notificationsOn = false
 
     @State private var pluggyConfigured = false
     @State private var geminiConfigured = false
@@ -92,6 +93,16 @@ struct SettingsView: View {
                 CategoriesView()
             } label: {
                 SettingLabel(title: "Categorias", detail: "Criar, renomear e trocar ícones", icon: "square.grid.2x2", style: .neutral)
+            }
+            NavigationLink {
+                NotificationsView()
+            } label: {
+                SettingLabel(
+                    title: "Notificações",
+                    detail: notificationsOn ? "Ligadas" : "Orçamentos, previstos, gasto alto e resumo",
+                    icon: "bell",
+                    style: .neutral
+                )
             }
         } header: {
             Text("Organização")

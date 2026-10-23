@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import UserNotifications
 
 @main
 struct FluxoApp: App {
@@ -8,6 +9,10 @@ struct FluxoApp: App {
     init() {
         SettingsDefaults.register()
         FirstLaunch.purgeLeftoverSecretsIfNeeded()
+        // Notificações: o delegado e a tarefa de segundo plano precisam
+        // existir antes de o app terminar de abrir.
+        UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
+        BackgroundRefresh.register()
     }
 
     var body: some Scene {
@@ -51,6 +56,7 @@ struct AppRoot: View {
             } else if shieldInSwitcher {
                 shield.show()
             }
+            if phase == .background { BackgroundRefresh.schedule() }
         }
         .onChange(of: lock.isLocked, initial: true) { _, locked in
             if locked {

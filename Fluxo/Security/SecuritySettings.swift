@@ -9,6 +9,15 @@ enum SettingsKey {
     static let shieldInSwitcher = "security.shieldInSwitcher"
     static let anonymizeNames = "agent.anonymizeNames"
     static let agentModel = "agent.model"
+    // Notificações (só escolhas; nenhum dado financeiro fica no UserDefaults).
+    static let notifyEnabled = "notify.enabled"
+    static let notifyBudgets = "notify.budgets"
+    static let notifyPlanned = "notify.planned"
+    static let notifyLarge = "notify.largeExpense"
+    static let notifyLargeThreshold = "notify.largeExpenseThreshold"
+    static let notifyWeekly = "notify.weekly"
+    static let notifyConnection = "notify.connection"
+    static let notifyShowValues = "notify.showValues"
     static let profileName = "profile.name"
     static let hasLaunchedBefore = "app.hasLaunchedBefore"
 }
@@ -40,6 +49,14 @@ enum SettingsDefaults {
             SettingsKey.shieldInSwitcher: true,
             SettingsKey.anonymizeNames: true,
             SettingsKey.agentModel: AgentModelChoice.automatic.rawValue,
+            SettingsKey.notifyEnabled: false,          // só liga depois da permissão do iOS
+            SettingsKey.notifyBudgets: true,
+            SettingsKey.notifyPlanned: true,
+            SettingsKey.notifyLarge: true,
+            SettingsKey.notifyLargeThreshold: 200.0,
+            SettingsKey.notifyWeekly: true,
+            SettingsKey.notifyConnection: true,
+            SettingsKey.notifyShowValues: true,        // escolha sua: valores visíveis
             SettingsKey.profileName: "Marcos"
         ])
     }
@@ -60,6 +77,7 @@ enum FirstLaunch {
 enum DataWiper {
     /// Apaga o cofre local, as credenciais e as preferências.
     static func wipeEverything() {
+        NotificationCleanup.removeAll()
         Vault.destroy()
         KeychainStore.deleteAll()
         if let bundleID = Bundle.main.bundleIdentifier {

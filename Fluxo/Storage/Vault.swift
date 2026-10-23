@@ -17,6 +17,7 @@ enum Vault {
         case finance = "financas.cofre"      // contas e transações (recriável pelo Pluggy)
         case userData = "meus-dados.cofre"   // categorias, trocas e orçamentos (só existem aqui)
         case auditLog = "registro.cofre"     // o que foi enviado ao Gemini
+        case notifications = "avisos.cofre"  // o que já foi avisado (para não repetir)
     }
 
     enum VaultError: Error {
