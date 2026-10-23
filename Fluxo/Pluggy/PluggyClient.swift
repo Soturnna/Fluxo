@@ -6,6 +6,7 @@ enum PluggyError: LocalizedError {
     case unauthorized
     case notFound
     case rateLimited
+    case rejected(Int, String?)
     case server(Int)
     case network
     case invalidResponse
@@ -19,6 +20,8 @@ enum PluggyError: LocalizedError {
         case .unauthorized: return "O acesso ao Pluggy expirou. Tente de novo."
         case .notFound: return "Conexão não encontrada. Confira o ID no dashboard do Pluggy."
         case .rateLimited: return "Muitas consultas seguidas. Aguarde um pouco."
+        case .rejected(let status, let code):
+            return "O Pluggy recusou o pedido (\(status)\(code.map { " · \($0)" } ?? ""))."
         case .server(let code): return "O Pluggy respondeu com erro (\(code))."
         case .network: return "Sem conexão com a internet ou o Pluggy não respondeu."
         case .invalidResponse: return "Resposta inesperada do Pluggy."
@@ -33,7 +36,10 @@ enum PluggyError: LocalizedError {
 /// - Endereço fixo: o cliente só fala com https://api.pluggy.ai.
 /// - Sessão "efêmera": nada de cache, cookies ou respostas gravadas em disco.
 /// - Token de acesso só na memória, com validade curta, renovado quando vence.
-/// - Apenas GET de dados. Não existe aqui nenhuma chamada de pagamento.
+/// - Leitura de dados (GET) e um único pedido de escrita: o PATCH que pede ao
+///   Pluggy para buscar no banco de novo. Ele não envia nada ao banco nem
+///   movimenta dinheiro; só antecipa a busca diária. Não existe aqui nenhuma
+///   chamada de pagamento ou transferência.
 actor PluggyClient {
     private static let host = "api.pluggy.ai"
     private static let baseURL = URL(string: "https://api.pluggy.ai")!
@@ -91,6 +97,28 @@ actor PluggyClient {
             cursor = nextCursor
         }
         return all
+    }
+
+    /// Pede ao Pluggy uma busca extra no banco (PATCH /items/{id}, corpo vazio).
+    /// O Pluggy limita a 1 pedido por hora por conexão.
+    func requestUpdate(itemId: String) async throws {
+        for attempt in 0..<2 {
+            let key = try await validApiKey()
+            var request = URLRequest(url: Self.baseURL.appendingPathComponent("items/\(itemId)"))
+            request.httpMethod = "PATCH"
+            request.setValue(key, forHTTPHeaderField: "X-API-KEY")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            request.httpBody = Data("{}".utf8)
+            do {
+                _ = try await send(request, isAuthRequest: false)
+                return
+            } catch PluggyError.unauthorized {
+                // 403 de novo com token novo: o Pluggy não permite atualizar esta conexão.
+                guard attempt == 0 else { throw PluggyError.rejected(403, nil) }
+                reset()
+            }
+        }
     }
 
     /// Descarta o token da memória (chamado ao bloquear o app ou trocar credenciais).
@@ -200,9 +228,26 @@ actor PluggyClient {
             throw PluggyError.notFound
         case 429:
             throw PluggyError.rateLimited
+        case 400, 409, 422:
+            throw PluggyError.rejected(http.statusCode, Self.safeErrorCode(data))
         default:
             throw PluggyError.server(http.statusCode)
         }
+    }
+
+    /// Do corpo de um erro, aproveita só um código técnico (ex.: ITEM_IS_UPDATING).
+    /// Texto livre nunca é exibido: poderia conter dados da conta.
+    private static func safeErrorCode(_ data: Data) -> String? {
+        guard data.count < 8000,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return nil }
+        for key in ["codeDescription", "errorCode", "code"] {
+            if let value = json[key] as? String,
+               value.range(of: "^[A-Z][A-Z0-9_]{2,59}$", options: .regularExpression) != nil {
+                return value
+            }
+        }
+        return nil
     }
 
     private static func dayString(_ date: Date) -> String {

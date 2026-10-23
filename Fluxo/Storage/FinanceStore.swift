@@ -36,6 +36,7 @@ final class FinanceStore: ObservableObject {
     @Published private(set) var connections: [Connection] = []
     @Published private(set) var state: LoadState = .idle
     @Published private(set) var isConfigured = false
+    @Published private(set) var isRequestingBankUpdate = false
 
     /// Todas as categorias (prontas + suas), por id.
     private(set) var categoryIndex: [String: Category] = [:]
@@ -445,6 +446,67 @@ final class FinanceStore: ObservableObject {
         syncTask = task
         await task.value
         syncTask = nil
+    }
+
+    /// "Buscar no banco agora": pede ao Pluggy uma busca extra no banco, espera
+    /// terminar (até 2 minutos) e sincroniza. Devolve a mensagem para a tela.
+    ///
+    /// Diferença para `sync()`: sincronizar só lê o que o Pluggy JÁ buscou;
+    /// isto pede ao Pluggy que vá ao banco de novo.
+    func requestBankUpdate() async -> String {
+        guard isConfigured, !isRequestingBankUpdate else { return "" }
+
+        // O Pluggy aceita 1 pedido por hora; o app nem tenta antes disso.
+        let defaults = UserDefaults.standard
+        if let last = defaults.object(forKey: SettingsKey.lastBankUpdateRequest) as? Date,
+           Date().timeIntervalSince(last) < 3600 {
+            return "O Pluggy aceita 1 pedido por hora. Você pode pedir de novo \(Self.bankTimeLabel(last.addingTimeInterval(3600)))."
+        }
+
+        isRequestingBankUpdate = true
+        defer { isRequestingBankUpdate = false }
+
+        var accepted: [String] = []
+        var refusal: String?
+        for itemId in Self.storedItemIds() {
+            do {
+                try await client.requestUpdate(itemId: itemId)
+                accepted.append(itemId)
+            } catch is CancellationError {
+                return ""
+            } catch PluggyError.rateLimited {
+                refusal = "O Pluggy só aceita 1 pedido de atualização por hora para cada conexão."
+            } catch {
+                refusal = (error as? LocalizedError)?.errorDescription ?? "Erro inesperado."
+            }
+        }
+        guard !accepted.isEmpty else {
+            return refusal ?? "Nenhuma conexão para atualizar."
+        }
+        defaults.set(Date(), forKey: SettingsKey.lastBankUpdateRequest)
+
+        // Espera o Pluggy terminar de falar com o banco: confere a cada 5 s, por até 2 min.
+        var finished = false
+        for _ in 0..<24 {
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            if Task.isCancelled { return "" }
+            var stillUpdating = false
+            for itemId in accepted {
+                if let item = try? await client.item(id: itemId), ["UPDATING", "MERGING"].contains(item.status) {
+                    stillUpdating = true
+                }
+            }
+            if !stillUpdating { finished = true; break }
+        }
+
+        await sync()
+        guard finished else {
+            return "O banco ainda está respondendo ao Pluggy. Os dados novos entram na próxima sincronização."
+        }
+        if let bankAt = bankDataAt {
+            return "Pronto. Saldo do banco de \(Self.bankTimeLabel(bankAt))."
+        }
+        return "Pronto."
     }
 
     /// Chamado quando as credenciais mudam: descarta o token antigo.
