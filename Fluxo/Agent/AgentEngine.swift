@@ -29,6 +29,9 @@ final class AgentEngine: ObservableObject {
 
     private let client = GeminiClient()
     private var privacy = PrivacyFilter()
+    /// Modelo desta conversa. Começa no principal; se ele estiver sobrecarregado
+    /// logo na primeira pergunta, a conversa passa para um modelo reserva.
+    private var model = GeminiClient.primaryModel
     /// Histórico no formato do Gemini. As respostas do modelo são guardadas
     /// exatamente como chegaram (inclui assinaturas internas que o Gemini exige de volta).
     private var history: [[String: Any]] = []
@@ -43,6 +46,7 @@ final class AgentEngine: ObservableObject {
         entries = []
         history = []
         privacy = PrivacyFilter()
+        model = GeminiClient.primaryModel
     }
 
     // MARK: Perguntar
@@ -125,16 +129,26 @@ final class AgentEngine: ObservableObject {
     // MARK: Pedido ao Gemini
 
     private func askGemini() async throws -> [String: Any] {
-        let body: [String: Any] = [
-            "systemInstruction": ["parts": [["text": Self.systemPrompt()]]],
-            "contents": history,
-            "tools": [["functionDeclarations": AgentTools.declarations]],
-            "toolConfig": ["functionCallingConfig": ["mode": "AUTO"]],
-            // Raciocínio "baixo": respostas mais rápidas, suficiente para consultas e propostas.
-            "generationConfig": ["thinkingConfig": ["thinkingLevel": "LOW"]]
-        ]
-        let data = try JSONSerialization.data(withJSONObject: body)
-        let reply = try await client.generate(body: data)
+        let reply: Data
+        do {
+            reply = try await client.generate(model: model, body: try requestBody(for: model))
+        } catch let error as GeminiError where error.isOverloaded && !historyHasModelTurns {
+            // Troca de modelo só antes da primeira resposta: depois disso, o histórico
+            // tem assinaturas internas que pertencem ao modelo que as gerou.
+            var lastError: Error = error
+            var answered: Data?
+            for fallback in GeminiClient.fallbackModels where fallback != model {
+                do {
+                    answered = try await client.generate(model: fallback, body: try requestBody(for: fallback))
+                    model = fallback
+                    break
+                } catch let next as GeminiError where next.isOverloaded {
+                    lastError = next
+                }
+            }
+            guard let answered else { throw lastError }
+            reply = answered
+        }
 
         guard let json = try? JSONSerialization.jsonObject(with: reply) as? [String: Any] else {
             throw GeminiError.invalidResponse
@@ -151,6 +165,24 @@ final class AgentEngine: ObservableObject {
         }
         if content["role"] == nil { content["role"] = "model" }
         return content
+    }
+
+    private var historyHasModelTurns: Bool {
+        history.contains { ($0["role"] as? String) == "model" }
+    }
+
+    private func requestBody(for model: String) throws -> Data {
+        var body: [String: Any] = [
+            "systemInstruction": ["parts": [["text": Self.systemPrompt()]]],
+            "contents": history,
+            "tools": [["functionDeclarations": AgentTools.declarations]],
+            "toolConfig": ["functionCallingConfig": ["mode": "AUTO"]]
+        ]
+        if !model.contains("lite") {
+            // Raciocínio "baixo": respostas mais rápidas, suficiente para consultas e propostas.
+            body["generationConfig"] = ["thinkingConfig": ["thinkingLevel": "LOW"]]
+        }
+        return try JSONSerialization.data(withJSONObject: body)
     }
 
     /// Instruções fixas do agente. Não contêm dado pessoal: nem nome, nem conta.

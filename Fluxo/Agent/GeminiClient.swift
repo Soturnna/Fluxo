@@ -17,10 +17,27 @@ enum GeminiError: LocalizedError {
         case .quotaExceeded: return "O limite gratuito do Gemini foi atingido. Tente de novo em alguns instantes."
         case .badRequest: return "O Gemini não entendeu o pedido. Tente reformular."
         case .modelUnavailable: return "O modelo do Gemini usado pelo app não está disponível. Ele precisa ser atualizado."
+        case .server(let code) where code == 503:
+            return "O Gemini está sobrecarregado agora (503). Já tentei de novo e com modelos reserva; aguarde um pouco."
         case .server(let code): return "O Gemini respondeu com erro (\(code))."
         case .network(let detail, _): return detail
         case .invalidResponse: return "Resposta inesperada do Gemini."
         }
+    }
+
+    /// Falhas passageiras: vale esperar e tentar de novo.
+    var isTransient: Bool {
+        switch self {
+        case .server(let code): return [500, 502, 503, 504].contains(code)
+        case .network(_, let retryable): return retryable
+        default: return false
+        }
+    }
+
+    /// Servidor indisponível ou sobrecarregado: vale trocar para um modelo reserva.
+    var isOverloaded: Bool {
+        if case .server(let code) = self { return [500, 503, 504].contains(code) }
+        return false
     }
 }
 
@@ -34,7 +51,11 @@ enum GeminiError: LocalizedError {
 ///
 /// Recebe e devolve `Data` já pronto: quem monta o pedido é o AgentEngine.
 struct GeminiClient {
-    static let model = "gemini-3.8-flash"
+    /// Modelo principal e reservas (todos com plano gratuito), em ordem de preferência.
+    static let primaryModel = "gemini-3.8-flash"
+    static let fallbackModels = ["gemini-3.6-flash", "gemini-3.5-flash-lite"]
+    static var model: String { primaryModel }
+    static var allModels: [String] { [primaryModel] + fallbackModels }
     private static let host = "generativelanguage.googleapis.com"
 
     private let session: URLSession = {
@@ -76,31 +97,47 @@ struct GeminiClient {
 
     static var hasKey: Bool { KeychainStore.exists(.geminiApiKey) }
 
-    /// Envia o pedido. Falhas passageiras (tempo esgotado, conexão caída)
-    /// ganham uma segunda tentativa automática.
-    func generate(body: Data) async throws -> Data {
-        do {
-            return try await attempt(body: body)
-        } catch GeminiError.network(_, let retryable) where retryable {
-            try await Task.sleep(nanoseconds: 800_000_000)
-            return try await attempt(body: body)
+    /// Envia o pedido a um modelo. Falhas passageiras (sobrecarga, tempo
+    /// esgotado, conexão caída) ganham até duas novas tentativas, com espera
+    /// crescente (1 s, depois 2,5 s): o "recuo exponencial" recomendado para
+    /// não sobrecarregar ainda mais um servidor que já está no limite.
+    func generate(model: String, body: Data) async throws -> Data {
+        var delay: UInt64 = 1_000_000_000
+        for attemptNumber in 0..<3 {
+            do {
+                return try await attempt(model: model, body: body)
+            } catch let error as GeminiError where error.isTransient && attemptNumber < 2 {
+                try await Task.sleep(nanoseconds: delay)
+                delay = delay * 5 / 2
+            }
         }
+        throw GeminiError.invalidResponse // inalcançável: o laço sempre retorna ou lança
     }
 
     /// Teste de conexão sem nenhum dado seu: só pede ao modelo para responder "ok".
     func ping() async -> String {
-        let body = #"{"contents":[{"role":"user","parts":[{"text":"Responda apenas: ok"}]}]}"#
-        do {
-            _ = try await attempt(body: Data(body.utf8))
-            return "Conexão funcionando. A chave e o modelo \(Self.model) estão ok."
-        } catch {
-            return (error as? LocalizedError)?.errorDescription ?? "Falha desconhecida."
+        let body = Data(#"{"contents":[{"role":"user","parts":[{"text":"Responda apenas: ok"}]}]}"#.utf8)
+        var lastError: Error?
+        for model in Self.allModels {
+            do {
+                _ = try await attempt(model: model, body: body)
+                return model == Self.primaryModel
+                    ? "Conexão funcionando com o modelo \(model)."
+                    : "O modelo principal está indisponível agora, mas a chave funciona com o reserva \(model)."
+            } catch let error as GeminiError where error.isOverloaded {
+                lastError = error
+                continue
+            } catch {
+                return (error as? LocalizedError)?.errorDescription ?? "Falha desconhecida."
+            }
         }
+        return (lastError as? LocalizedError)?.errorDescription ?? "Falha desconhecida."
     }
 
-    private func attempt(body: Data) async throws -> Data {
+    private func attempt(model: String, body: Data) async throws -> Data {
         guard let key = KeychainStore.read(.geminiApiKey) else { throw GeminiError.missingKey }
-        guard let url = URL(string: "https://\(Self.host)/v1beta/models/\(Self.model):generateContent") else {
+        guard Self.allModels.contains(model),
+              let url = URL(string: "https://\(Self.host)/v1beta/models/\(model):generateContent") else {
             throw GeminiError.invalidResponse
         }
 
