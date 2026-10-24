@@ -543,8 +543,8 @@ extension FinanceStore {
         let calendar = Calendar.current
         let thisMonth = calendar.dateInterval(of: .month, for: .now)?.start ?? .now
         let months = (1...3).compactMap { calendar.date(byAdding: .month, value: -$0, to: thisMonth) }
-        let totals = months.map { totals(inMonthOf: $0) }
-        let withData = totals.filter { $0.spent > 0 || $0.income > 0 }
+        let monthTotals = months.map { self.totals(inMonthOf: $0) }
+        let withData = monthTotals.filter { $0.spent > 0 || $0.income > 0 }
         let count = Decimal(max(withData.count, 1))
         let averageSpending = withData.reduce(Decimal(0)) { $0 + $1.spent } / count
         let surplus: Decimal? = withData.isEmpty ? nil : withData.reduce(Decimal(0)) { $0 + $1.income - $1.spent } / count
@@ -611,7 +611,7 @@ extension FinanceStore {
 
         let share = readiness.reserveDone ? surplus : Money.decimal(from: (surplus as NSDecimalNumber).doubleValue * 0.4)
         let amount = AgentTools.brl(share)
-        switch profile?.label {
+        switch profile?.label ?? "" {
         case "Conservador":
             steps.append(PlanStep(title: "Investir com segurança", detail: "\(amount) por mês em renda fixa: CDB, LCI/LCA e Tesouro, de bancos e prazos diferentes."))
         case "Arrojado":

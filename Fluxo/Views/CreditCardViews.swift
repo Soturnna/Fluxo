@@ -33,6 +33,7 @@ struct BlockedBadge: View {
 }
 
 /// "Fecha 1 nov · vence 7 nov"
+@MainActor
 func billDatesLine(_ summary: FinanceStore.CardSummary) -> String {
     var parts: [String] = []
     if let close = summary.nextClose { parts.append("Fecha \(FinanceStore.dayLabel(close))") }
