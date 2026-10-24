@@ -6,6 +6,8 @@ import UniformTypeIdentifiers
 /// e o arquivo não fica guardado. Só as correções (id da compra → fatura) vão para o cofre.
 struct BillImportSheet: View {
     let card: StoredAccount
+    /// Arquivo já lido pela tela do cartão (o seletor abre lá, fora da folha).
+    var initialFile: BillFile? = nil
     @EnvironmentObject private var store: FinanceStore
     @Environment(\.dismiss) private var dismiss
 
@@ -38,8 +40,15 @@ struct BillImportSheet: View {
                     ToolbarItem(placement: .confirmationAction) { Button("Aplicar") { apply() }.bold() }
                 }
             }
-            .fileImporter(isPresented: $picking, allowedContentTypes: [.commaSeparatedText, .text, .data]) { outcome in
+            .fileImporter(isPresented: $picking, allowedContentTypes: BillFileParser.contentTypes) { outcome in
                 if case .success(let url) = outcome { load(url) }
+            }
+            .onAppear {
+                if file == nil, let initialFile {
+                    file = initialFile
+                    targetIndex = suggestedIndex(for: initialFile)
+                    compute()
+                }
             }
         }
     }
@@ -183,13 +192,8 @@ struct BillImportSheet: View {
 
     private func load(_ url: URL) {
         error = nil
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         do {
-            let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
-            guard size <= BillFileParser.maxBytes else { throw BillImportError.tooLarge }
-            let data = try Data(contentsOf: url, options: .uncached)
-            let parsed = try BillFileParser.parse(data: data, fileName: url.lastPathComponent)
+            let parsed = try BillFileParser.read(url)
             file = parsed
             targetIndex = suggestedIndex(for: parsed)
             compute()

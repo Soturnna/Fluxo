@@ -1,4 +1,5 @@
 import Foundation
+import UniformTypeIdentifiers
 
 /// Uma linha da fatura exportada pelo banco (CSV ou OFX).
 struct BillFileLine: Identifiable {
@@ -36,6 +37,31 @@ enum BillImportError: LocalizedError {
 /// Lista de permissão: só data, descrição, valor e parcela. Tudo no iPhone.
 enum BillFileParser {
     static let maxBytes = 2_000_000
+
+    /// CSV, OFX ou texto. `.data` cobre arquivos sem tipo reconhecido pelo iOS.
+    static var contentTypes: [UTType] {
+        [.commaSeparatedText, .plainText, .text, UTType(filenameExtension: "ofx"), UTType(filenameExtension: "csv"), .data]
+            .compactMap { $0 }
+    }
+
+    /// Lê um arquivo escolhido no app Arquivos (com acesso temporário e limite de tamanho).
+    static func read(_ url: URL) throws -> BillFile {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        var data = Data()
+        var readError: Error?
+        // Coordena a leitura: arquivos do iCloud são baixados antes de abrir.
+        NSFileCoordinator().coordinate(readingItemAt: url, options: [.withoutChanges], error: nil) { safeURL in
+            do {
+                let size = (try? safeURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+                guard size <= maxBytes else { throw BillImportError.tooLarge }
+                data = try Data(contentsOf: safeURL, options: .uncached)
+            } catch { readError = error }
+        }
+        if let readError { throw readError }
+        guard !data.isEmpty else { throw BillImportError.unreadable }
+        return try parse(data: data, fileName: url.lastPathComponent)
+    }
 
     static func parse(data: Data, fileName: String) throws -> BillFile {
         guard data.count <= maxBytes else { throw BillImportError.tooLarge }

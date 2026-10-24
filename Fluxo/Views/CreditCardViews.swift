@@ -161,7 +161,15 @@ struct CreditCardView: View {
     @EnvironmentObject private var lock: AppLock
     @State private var tab: BillTab = .current
     @State private var selected: StoredTransaction?
-    @State private var importing: StoredAccount?
+    @State private var importing: ImportRequest?
+    @State private var pickingFile = false
+    @State private var importError: String?
+
+    struct ImportRequest: Identifiable {
+        let card: StoredAccount
+        let file: BillFile?
+        let id = UUID()
+    }
 
     enum BillTab: String, CaseIterable, Identifiable {
         case current = "Fatura atual"
@@ -193,10 +201,24 @@ struct CreditCardView: View {
                 .environmentObject(store)
                 .environmentObject(lock)
         }
-        .sheet(item: $importing) { card in
-            BillImportSheet(card: card)
+        .sheet(item: $importing) { request in
+            BillImportSheet(card: request.card, initialFile: request.file)
                 .environmentObject(store)
                 .environmentObject(lock)
+        }
+        .fileImporter(isPresented: $pickingFile, allowedContentTypes: BillFileParser.contentTypes) { outcome in
+            guard let card = store.creditCards.first else { return }
+            switch outcome {
+            case .success(let url):
+                do {
+                    importing = ImportRequest(card: card, file: try BillFileParser.read(url))
+                    importError = nil
+                } catch {
+                    importError = (error as? LocalizedError)?.errorDescription ?? BillImportError.unreadable.errorDescription
+                }
+            case .failure:
+                importError = BillImportError.unreadable.errorDescription
+            }
         }
     }
 
@@ -225,13 +247,20 @@ struct CreditCardView: View {
         if summary.limit != nil { limitCard(summary) }
         closeDayCard(summary.schedule)
         checkCard(summary)
-        Button { importing = summary.account } label: {
+        Button { pickingFile = true } label: {
             Label("Importar fatura do banco (CSV ou OFX)", systemImage: "doc.badge.arrow.up")
                 .font(.subheadline.weight(.semibold))
                 .frame(maxWidth: .infinity, minHeight: 44)
         }
         .buttonStyle(.bordered)
         .tint(Theme.forest)
+        if let importError {
+            banner(LocalizedStringKey(importError), icon: "exclamationmark.triangle", color: Theme.danger)
+        }
+        Text("Também dá para conferir pelo agente: toque na foto, depois em \"Conferir fatura do cartão\" e mande os prints da fatura.")
+            .font(.caption)
+            .foregroundStyle(Theme.inkSecondary)
+            .padding(.horizontal, 4)
         upcomingChart(summary.schedule)
 
         Picker("Faturas", selection: $tab) {
