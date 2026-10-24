@@ -1,6 +1,11 @@
 import SwiftUI
 
-/// Tela inicial: saldo, resumo do mês e últimas transações.
+/// Telas que abrem a partir do Início.
+enum HomeRoute: Hashable {
+    case card, cashFlow
+}
+
+/// Tela inicial: saldo, cartão, mês, próximos 30 dias e últimas transações.
 /// Mostra na hora o que está no cofre e sincroniza em seguida.
 struct HomeView: View {
     @EnvironmentObject private var lock: AppLock
@@ -13,6 +18,7 @@ struct HomeView: View {
     let openAgent: () -> Void
     let openSettings: () -> Void
     let openTransactions: () -> Void
+    let openInvestments: () -> Void
 
     private var monthLabel: String {
         Date.now
@@ -21,12 +27,28 @@ struct HomeView: View {
     }
 
     var body: some View {
+        NavigationStack {
+            content
+                .toolbar(.hidden, for: .navigationBar)
+                .navigationDestination(for: HomeRoute.self) { route in
+                    switch route {
+                    case .card: CreditCardView()
+                    case .cashFlow: CashFlowView()
+                    }
+                }
+        }
+    }
+
+    private var content: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 header
                 balanceCard
                 if store.isConfigured {
+                    CreditCardHomeCard()
                     monthCard
+                    CashFlowPreviewCard()
+                    investmentsCard
                     agentCard
                     ProvisionalSection(onAdd: { registering = true })
                     UpcomingPlannedSection(
@@ -98,6 +120,17 @@ struct HomeView: View {
             .buttonStyle(.plain)
             .accessibilityLabel(lock.valuesHidden ? "Mostrar valores" : "Ocultar valores")
             .sensoryFeedback(.selection, trigger: lock.valuesHidden)
+
+            Button(action: openSettings) {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(Theme.ink)
+                    .frame(width: 44, height: 44)
+                    .background(Theme.surface, in: Circle())
+                    .overlay(Circle().strokeBorder(Theme.line, lineWidth: Theme.hairline))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Ajustes")
         }
         .padding(.horizontal, 4)
     }
@@ -177,7 +210,51 @@ struct HomeView: View {
 
     private var monthCard: some View {
         let totals = store.totals(inMonthOf: .now)
-        return HStack(spacing: 0) {
+        let accountSpent = store.totals(inMonthOf: .now, origin: .account).spent
+        let cardSpent = store.totals(inMonthOf: .now, origin: .card).spent
+        return VStack(alignment: .leading, spacing: 12) {
+            monthTotals(totals)
+            if cardSpent > 0 {
+                originSplit(account: accountSpent, card: cardSpent)
+            }
+        }
+        .card(padding: 16)
+    }
+
+    /// Divisão do gasto do mês: conta (azul) e cartão (laranja), com valores escritos.
+    private func originSplit(account: Decimal, card: Decimal) -> some View {
+        let total = (account + card as NSDecimalNumber).doubleValue
+        let accountShare = total > 0 ? (account as NSDecimalNumber).doubleValue / total : 0
+        return VStack(alignment: .leading, spacing: 8) {
+            GeometryReader { proxy in
+                HStack(spacing: 2) {
+                    Rectangle().fill(ChartPalette.income)
+                        .frame(width: max((proxy.size.width - 2) * accountShare, 0))
+                    Rectangle().fill(ChartPalette.spending)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+            }
+            .frame(height: 10)
+            .accessibilityHidden(true)
+            HStack(spacing: 14) {
+                legend(color: ChartPalette.income, label: "Conta", value: account)
+                legend(color: ChartPalette.spending, label: "Cartão", value: card)
+            }
+        }
+    }
+
+    private func legend(color: Color, label: String, value: Decimal) -> some View {
+        HStack(spacing: 6) {
+            RoundedRectangle(cornerRadius: 3).fill(color).frame(width: 10, height: 10)
+            Text(label).foregroundStyle(Theme.inkSecondary)
+            MoneyText(value: value, font: .footnote.weight(.semibold))
+        }
+        .font(.footnote)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func monthTotals(_ totals: (spent: Decimal, income: Decimal)) -> some View {
+        HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 4) {
                 Label("Gasto do mês", systemImage: "arrow.up.right")
                     .font(.caption.weight(.medium))
@@ -201,7 +278,41 @@ struct HomeView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .card(padding: 16)
+    }
+
+    // MARK: Investimentos
+
+    @ViewBuilder
+    private var investmentsCard: some View {
+        if !store.activeInvestments.isEmpty {
+            Button(action: openInvestments) {
+                HStack(spacing: 12) {
+                    IconTile(systemName: "chart.line.uptrend.xyaxis", style: .neutral, size: 40)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Investimentos")
+                            .font(.footnote)
+                            .foregroundStyle(Theme.inkSecondary)
+                        MoneyText(value: store.investedTotal, font: .rounded(.title3, weight: .semibold))
+                            .foregroundStyle(Theme.ink)
+                        if let profit = store.investmentsLastMonthProfit {
+                            HStack(spacing: 3) {
+                                Text("+")
+                                MoneyText(value: profit, font: .caption.weight(.medium))
+                                Text("no último mês")
+                            }
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(Theme.positive)
+                        }
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Theme.inkTertiary)
+                }
+                .card(padding: 16)
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     // MARK: Agente

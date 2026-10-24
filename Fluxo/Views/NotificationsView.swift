@@ -81,7 +81,7 @@ struct NotificationsView: View {
     private var alertsSection: some View {
         Section {
             Toggle(isOn: $budgets) {
-                SettingLabel(title: "Orçamentos", detail: "Aos 90%, ao estourar e quando o ritmo do mês passa do limite", icon: "chart.pie", style: .neutral)
+                SettingLabel(title: "Orçamentos", detail: "Aos 90%, ao estourar, ritmo do mês e saldo previsto negativo", icon: "chart.pie", style: .neutral)
             }
             Toggle(isOn: $planned) {
                 SettingLabel(title: "Gastos previstos", detail: "Às 9h do dia marcado", icon: "calendar", style: .neutral)

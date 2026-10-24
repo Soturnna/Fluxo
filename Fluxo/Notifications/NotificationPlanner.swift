@@ -80,7 +80,10 @@ enum NotificationPlanner {
         prune(&ledger)
 
         var alerts: [Alert] = []
-        if NotificationPrefs.budgets { alerts += budgetAlerts(store, &ledger) }
+        if NotificationPrefs.budgets {
+            alerts += budgetAlerts(store, &ledger)
+            alerts += cashFlowAlerts(store, &ledger)
+        }
         if NotificationPrefs.largeExpense { alerts += largeExpenseAlerts(store, &ledger) }
         // Teto por rodada: nunca uma enxurrada de avisos de uma vez.
         alerts.prefix(4).forEach(post)
@@ -145,6 +148,21 @@ enum NotificationPlanner {
             }
         }
         return alerts
+    }
+
+    /// Saldo previsto negativo nos próximos 30 dias: um aviso por "buraco".
+    private static func cashFlowAlerts(_ store: FinanceStore, _ ledger: inout NotificationLedger) -> [Alert] {
+        guard let projection = store.projectCashFlow(), let first = projection.firstNegative else { return [] }
+        let key = "\(AgentTools.dayString(first))|saldo-negativo"
+        guard ledger.monthFlags.insert(key).inserted else { return [] }
+        let day = FinanceStore.dayLabel(first)
+        return [Alert(
+            id: "cashflow-\(AgentTools.dayString(first))",
+            title: "Saldo pode ficar negativo",
+            body: show("Previsão: \(brl(projection.minBalance)) em \(FinanceStore.dayLabel(projection.minDate)). \(projection.suggestion ?? "")",
+                       or: "Pela previsão, o saldo da conta fica negativo a partir de \(day)."),
+            tab: .home
+        )]
     }
 
     private static func largeExpenseAlerts(_ store: FinanceStore, _ ledger: inout NotificationLedger) -> [Alert] {
@@ -321,9 +339,11 @@ enum NotificationPlanner {
     /// Guarda só o mês atual e o anterior, e gastos altos dos últimos 10 dias.
     private static func prune(_ ledger: inout NotificationLedger) {
         let calendar = Calendar.current
-        let keep = [Date.now, calendar.date(byAdding: .month, value: -1, to: .now) ?? .now].map(AgentTools.monthString)
-        ledger.budgetLevels = ledger.budgetLevels.filter { entry in keep.contains { entry.key.hasPrefix($0) } }
-        ledger.monthFlags = ledger.monthFlags.filter { flag in keep.contains { flag.hasPrefix($0) } }
+        // Chaves começam por "AAAA-MM": comparar o texto já ordena por data.
+        // Ficam o mês anterior em diante (inclusive avisos de dias do mês que vem).
+        let oldest = AgentTools.monthString(calendar.date(byAdding: .month, value: -1, to: .now) ?? .now)
+        ledger.budgetLevels = ledger.budgetLevels.filter { String($0.key.prefix(7)) >= oldest }
+        ledger.monthFlags = ledger.monthFlags.filter { String($0.prefix(7)) >= oldest }
         let tenDaysAgo = calendar.date(byAdding: .day, value: -10, to: .now) ?? .now
         ledger.largeExpenses = ledger.largeExpenses.filter { $0.value >= tenDaysAgo }
     }

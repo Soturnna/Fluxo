@@ -17,6 +17,21 @@ struct StoredAccount: Codable, Identifiable, Equatable {
     /// com o Pluggy). É a "idade" real do saldo. Opcional: cofres antigos não têm.
     var bankDataAt: Date? = nil
 
+    // Só para cartão de crédito (opcionais: cofres antigos não têm).
+    var creditLimit: Decimal? = nil
+    var availableCreditLimit: Decimal? = nil
+    var billCloseDate: Date? = nil
+    var billDueDate: Date? = nil
+    var minimumPayment: Decimal? = nil
+    var cardStatus: String? = nil
+    var brand: String? = nil
+
+    /// Bloqueado ou cancelado no banco.
+    var isCardBlocked: Bool {
+        guard let cardStatus else { return false }
+        return cardStatus != "ACTIVE"
+    }
+
     /// Ex.: "Nubank · Conta", "Nubank · Cartão".
     var displayName: String {
         let kind = isCreditCard ? "Cartão" : (isSavings ? "Poupança" : "Conta")
@@ -73,13 +88,78 @@ struct StoredTransaction: Codable, Identifiable, Equatable {
 }
 
 /// O conteúdo inteiro do cofre.
+/// Fatura fechada de um cartão.
+struct StoredBill: Codable, Identifiable, Equatable {
+    let id: String
+    let accountId: String
+    let dueDate: Date
+    let total: Decimal
+    let minimumPayment: Decimal?
+}
+
+/// Um investimento guardado no cofre.
+struct StoredInvestment: Codable, Identifiable, Equatable {
+    let id: String
+    let itemId: String
+    let name: String
+    let type: String
+    let subtype: String?
+    let balance: Decimal
+    let profit: Decimal?
+    let status: String?
+    let rate: Double?
+    let rateType: String?
+    let fixedAnnualRate: Double?
+    let dueDate: Date?
+    let issuer: String?
+    let lastMonthRate: Double?
+    let lastTwelveMonthsRate: Double?
+
+    init(pluggy source: PluggyInvestment, itemId: String) {
+        id = source.id
+        self.itemId = itemId
+        name = source.name
+        type = source.type
+        subtype = source.subtype
+        balance = source.balance
+        profit = source.profit
+        status = source.status
+        rate = source.rate
+        rateType = source.rateType
+        fixedAnnualRate = source.fixedAnnualRate
+        dueDate = source.dueDate
+        issuer = source.issuer
+        lastMonthRate = source.lastMonthRate
+        lastTwelveMonthsRate = source.lastTwelveMonthsRate
+    }
+
+    /// Resgatado por completo: fica na lista de "Resgatados".
+    var isWithdrawn: Bool { status == "TOTAL_WITHDRAWAL" || (balance == 0 && status != "PENDING") }
+}
+
 struct VaultSnapshot: Codable {
     var version = 1
     var lastSyncAt: Date?
     var accounts: [StoredAccount] = []
     var transactions: [StoredTransaction] = []
+    var bills: [StoredBill] = []
+    var investments: [StoredInvestment] = []
 
     static let empty = VaultSnapshot()
+
+    init() {}
+
+    /// Leitura tolerante: um cofre de versão anterior (sem faturas ou
+    /// investimentos) continua abrindo, com as listas novas vazias.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        version = try c.decodeIfPresent(Int.self, forKey: .version) ?? 1
+        lastSyncAt = try c.decodeIfPresent(Date.self, forKey: .lastSyncAt)
+        accounts = try c.decodeIfPresent([StoredAccount].self, forKey: .accounts) ?? []
+        transactions = try c.decodeIfPresent([StoredTransaction].self, forKey: .transactions) ?? []
+        bills = (try? c.decodeIfPresent([StoredBill].self, forKey: .bills)) ?? []
+        investments = (try? c.decodeIfPresent([StoredInvestment].self, forKey: .investments)) ?? []
+    }
 }
 
 // MARK: - Categorias

@@ -8,9 +8,13 @@ struct TransactionsView: View {
     @State private var planned: PlannedEditorTarget?
     @State private var month = Calendar.current.dateInterval(of: .month, for: .now)?.start ?? .now
     @State private var query = ""
+    /// Filtro por origem: nil = tudo; conta ou cartão.
+    @State private var origin: FinanceStore.Origin?
 
     private var monthTransactions: [StoredTransaction] {
-        store.transactions(inMonthOf: month)
+        let items = store.transactions(inMonthOf: month)
+        guard let origin else { return items }
+        return items.filter { store.origin(of: $0) == origin }
     }
 
     /// Busca sem diferenciar maiúsculas e acentos ("cafe" encontra "Café").
@@ -31,6 +35,7 @@ struct TransactionsView: View {
     var body: some View {
         Screen("Transações") {
             searchField
+            if !store.creditCards.isEmpty { originPicker }
             monthSwitcher
             totalsRow
             plannedSection
@@ -112,6 +117,16 @@ struct TransactionsView: View {
         .background(Theme.track, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
+    /// Tudo | Conta | Cartão (só aparece quando há cartão).
+    private var originPicker: some View {
+        Picker("Origem", selection: $origin) {
+            Text("Tudo").tag(FinanceStore.Origin?.none)
+            Text("Conta").tag(FinanceStore.Origin?.some(.account))
+            Text("Cartão").tag(FinanceStore.Origin?.some(.card))
+        }
+        .pickerStyle(.segmented)
+    }
+
     private var monthSwitcher: some View {
         HStack {
             Button {
@@ -142,7 +157,7 @@ struct TransactionsView: View {
     }
 
     private var totalsRow: some View {
-        let totals = store.totals(inMonthOf: month)
+        let totals = origin.map { store.totals(inMonthOf: month, origin: $0) } ?? store.totals(inMonthOf: month)
         return HStack(spacing: 10) {
             totalCard(title: "Saídas", icon: "arrow.up.right", value: totals.spent, color: Theme.ink)
             totalCard(title: "Entradas", icon: "arrow.down.left", value: totals.income, color: Theme.positive)

@@ -2,13 +2,15 @@ import SwiftUI
 import UIKit
 
 enum AppTab: Hashable {
-    case home, transactions, budgets, settings
+    case home, transactions, budgets, investments
 }
 
 /// Estrutura do app desbloqueado: as quatro abas e a barra flutuante.
 struct RootView: View {
     @State private var tab: AppTab = .home
     @State private var showAgent = false
+    /// Ajustes abre pela engrenagem do Início (a aba virou Investir).
+    @State private var showSettings = false
     /// Criado aqui (e não no App) de propósito: quando a sessão expira, o
     /// RootView é recriado e leva junto da memória saldos, transações e o
     /// token do Pluggy. No disco, eles continuam só dentro do cofre cifrado.
@@ -26,15 +28,16 @@ struct RootView: View {
                 case .home:
                     HomeView(
                         openAgent: { showAgent = true },
-                        openSettings: { tab = .settings },
-                        openTransactions: { tab = .transactions }
+                        openSettings: { showSettings = true },
+                        openTransactions: { tab = .transactions },
+                        openInvestments: { tab = .investments }
                     )
                 case .transactions:
                     TransactionsView()
                 case .budgets:
                     BudgetsView()
-                case .settings:
-                    SettingsView()
+                case .investments:
+                    InvestmentsView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -73,9 +76,16 @@ struct RootView: View {
             case .home: tab = .home
             case .transactions: tab = .transactions
             case .budgets: tab = .budgets
-            case .settings: tab = .settings
+            case .settings: showSettings = true
             }
             router.requested = nil
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
+                .environmentObject(finance)
+                .environmentObject(agent)
+                .environmentObject(audit)
+                .environmentObject(lock)
         }
         .fullScreenCover(isPresented: $showAgent) {
             AgentView()
@@ -103,7 +113,7 @@ struct FloatingTabBar: View {
         Item(tab: .home, title: "Início", icon: "house"),
         Item(tab: .transactions, title: "Transações", icon: "list.bullet"),
         Item(tab: .budgets, title: "Orçamentos", icon: "chart.pie"),
-        Item(tab: .settings, title: "Ajustes", icon: "slider.horizontal.3")
+        Item(tab: .investments, title: "Investir", icon: "chart.line.uptrend.xyaxis")
     ]
 
     var body: some View {

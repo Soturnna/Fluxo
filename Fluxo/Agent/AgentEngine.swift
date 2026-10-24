@@ -241,7 +241,10 @@ final class AgentEngine: ObservableObject {
         4. Nomes de pessoas aparecem como "Pessoa N" por privacidade. Use esses rótulos como estão.
         5. Para datas relativas ("dia 26", "sexta que vem"), calcule a partir de hoje. Se o dia citado \
         já passou neste mês, use o mesmo dia do mês seguinte.
-        6. O saldo vem do banco com atraso (o Meu Pluggy busca 1 vez por dia). Ao citar o saldo, diga de \
+        6. Conta e cartão de crédito são separados: compras no cartão vão para a fatura e só saem da conta \
+        no vencimento. O resumo traz cartao_credito, projecao_30_dias (saldo previsto) e recorrentes. Para \
+        investimentos, use carteira_investimentos. Você explica e compara; não recomende comprar um ativo específico.
+        O saldo vem do banco com atraso (o Meu Pluggy busca 1 vez por dia). Ao citar o saldo, diga de \
         quando ele é, usando saldo_buscado_no_banco_em (ex.: "saldo de hoje, 10:14"). \
         Nos dados, valores negativos são saídas e positivos são entradas. Aplicações em investimento \
         e transferências entre contas próprias não são consumo: se aparecerem como gasto, você pode sugerir \

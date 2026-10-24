@@ -89,6 +89,13 @@ struct PluggyAccount: Decodable, Identifiable {
     let bankCode: String?
     let creditLimit: Decimal?
     let availableCreditLimit: Decimal?
+    /// Só para cartão: fechamento e vencimento da fatura atual, pagamento
+    /// mínimo, situação no banco (ACTIVE, BLOCKED…) e bandeira.
+    let billCloseDate: Date?
+    let billDueDate: Date?
+    let minimumPayment: Decimal?
+    let cardStatus: String?
+    let brand: String?
 
     var isCreditCard: Bool { type == "CREDIT" }
 
@@ -96,7 +103,9 @@ struct PluggyAccount: Decodable, Identifiable {
         case id, itemId, type, subtype, name, marketingName, balance, currencyCode, bankData, creditData
     }
     private enum BankDataKeys: String, CodingKey { case transferNumber }
-    private enum CreditDataKeys: String, CodingKey { case creditLimit, availableCreditLimit }
+    private enum CreditDataKeys: String, CodingKey {
+        case creditLimit, availableCreditLimit, balanceCloseDate, balanceDueDate, minimumPayment, status, brand
+    }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -120,12 +129,24 @@ struct PluggyAccount: Decodable, Identifiable {
             bankCode = nil
         }
 
+        // Dados do cartão: cada campo com `try?`, para um formato inesperado
+        // não derrubar a leitura da conta inteira.
         if let credit = try? c.nestedContainer(keyedBy: CreditDataKeys.self, forKey: .creditData) {
-            creditLimit = try credit.decodeMoneyIfPresent(forKey: .creditLimit)
-            availableCreditLimit = try credit.decodeMoneyIfPresent(forKey: .availableCreditLimit)
+            creditLimit = (try? credit.decodeMoneyIfPresent(forKey: .creditLimit)) ?? nil
+            availableCreditLimit = (try? credit.decodeMoneyIfPresent(forKey: .availableCreditLimit)) ?? nil
+            billCloseDate = (try? credit.decodeIfPresent(Date.self, forKey: .balanceCloseDate)) ?? nil
+            billDueDate = (try? credit.decodeIfPresent(Date.self, forKey: .balanceDueDate)) ?? nil
+            minimumPayment = (try? credit.decodeMoneyIfPresent(forKey: .minimumPayment)) ?? nil
+            cardStatus = (try? credit.decodeIfPresent(String.self, forKey: .status)) ?? nil
+            brand = (try? credit.decodeIfPresent(String.self, forKey: .brand)) ?? nil
         } else {
             creditLimit = nil
             availableCreditLimit = nil
+            billCloseDate = nil
+            billDueDate = nil
+            minimumPayment = nil
+            cardStatus = nil
+            brand = nil
         }
     }
 }
@@ -184,6 +205,66 @@ struct PluggyTransaction: Decodable, Identifiable {
 }
 
 /// Página numerada (usada em /accounts).
+/// Fatura FECHADA de um cartão (/bills). Só datas e valores.
+struct PluggyBill: Decodable {
+    let id: String
+    let dueDate: Date
+    let totalAmount: Decimal
+    let minimumPaymentAmount: Decimal?
+
+    private enum CodingKeys: String, CodingKey { case id, dueDate, totalAmount, minimumPaymentAmount }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        dueDate = try c.decode(Date.self, forKey: .dueDate)
+        totalAmount = try c.decodeMoney(forKey: .totalAmount)
+        minimumPaymentAmount = (try? c.decodeMoneyIfPresent(forKey: .minimumPaymentAmount)) ?? nil
+    }
+}
+
+/// Um investimento (/investments). Lista de permissão: sem titular, sem CPF,
+/// sem número de conta e sem CNPJ do emissor (só o nome dele).
+struct PluggyInvestment: Decodable {
+    let id: String
+    let name: String
+    let type: String              // FIXED_INCOME, MUTUAL_FUND, EQUITY, ETF, COE, CRYPTO…
+    let subtype: String?          // CDB, LCI, LCA, TREASURY…
+    let balance: Decimal
+    let profit: Decimal?          // amountProfit: rendimento acumulado
+    let status: String?           // ACTIVE, PENDING, TOTAL_WITHDRAWAL
+    let rate: Double?             // ex.: 100 (do CDI)
+    let rateType: String?         // CDI, SELIC, IPCA…
+    let fixedAnnualRate: Double?  // pré-fixado, % ao ano
+    let dueDate: Date?
+    let issuer: String?
+    let lastMonthRate: Double?    // % no último mês
+    let lastTwelveMonthsRate: Double?
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, type, subtype, balance, amountProfit, status, rate, rateType, fixedAnnualRate
+        case dueDate, issuer, lastMonthRate, lastTwelveMonthsRate
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        name = try c.decodeIfPresent(String.self, forKey: .name) ?? "Investimento"
+        type = try c.decodeIfPresent(String.self, forKey: .type) ?? "OTHER"
+        subtype = (try? c.decodeIfPresent(String.self, forKey: .subtype)) ?? nil
+        balance = (try? c.decodeMoney(forKey: .balance)) ?? 0
+        profit = (try? c.decodeMoneyIfPresent(forKey: .amountProfit)) ?? nil
+        status = (try? c.decodeIfPresent(String.self, forKey: .status)) ?? nil
+        rate = (try? c.decodeIfPresent(Double.self, forKey: .rate)) ?? nil
+        rateType = (try? c.decodeIfPresent(String.self, forKey: .rateType)) ?? nil
+        fixedAnnualRate = (try? c.decodeIfPresent(Double.self, forKey: .fixedAnnualRate)) ?? nil
+        dueDate = (try? c.decodeIfPresent(Date.self, forKey: .dueDate)) ?? nil
+        issuer = (try? c.decodeIfPresent(String.self, forKey: .issuer)) ?? nil
+        lastMonthRate = (try? c.decodeIfPresent(Double.self, forKey: .lastMonthRate)) ?? nil
+        lastTwelveMonthsRate = (try? c.decodeIfPresent(Double.self, forKey: .lastTwelveMonthsRate)) ?? nil
+    }
+}
+
 struct PluggyPage<T: Decodable>: Decodable {
     let results: [T]
 }

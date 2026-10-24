@@ -112,6 +112,9 @@ struct UserData: Codable, Equatable {
     var transactionNotes: [String: String] = [:]
     /// Lançamentos provisórios (ainda não confirmados pelo banco).
     var provisionalEntries: [ProvisionalEntry] = []
+    /// Suas decisões sobre recorrentes: chave do padrão → true (é recorrente)
+    /// ou false (não é; o app para de considerar).
+    var recurringDecisions: [String: Bool] = [:]
 
     static let empty = UserData()
 
@@ -131,6 +134,7 @@ struct UserData: Codable, Equatable {
         plannedExpenses = try c.decodeIfPresent([PlannedExpense].self, forKey: .plannedExpenses) ?? []
         transactionNotes = try c.decodeIfPresent([String: String].self, forKey: .transactionNotes) ?? [:]
         provisionalEntries = (try? c.decodeIfPresent([ProvisionalEntry].self, forKey: .provisionalEntries)) ?? []
+        recurringDecisions = (try? c.decodeIfPresent([String: Bool].self, forKey: .recurringDecisions)) ?? [:]
     }
 
     var effectiveMonthlyLimit: Decimal? {

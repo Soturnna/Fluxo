@@ -7,6 +7,7 @@ import SwiftUI
 /// desbloqueado na mão não consegue desativar a segurança do Fluxo.
 struct SettingsView: View {
     @EnvironmentObject private var lock: AppLock
+    @Environment(\.dismiss) private var dismiss
 
     @AppStorage(SettingsKey.requireAuth) private var requireAuth = true
     @AppStorage(SettingsKey.lockDelay) private var lockDelay = LockDelay.immediately.rawValue
@@ -38,6 +39,12 @@ struct SettingsView: View {
             .scrollContentBackground(.hidden)
             .background(Theme.ground.ignoresSafeArea())
             .navigationTitle("Ajustes")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("OK") { dismiss() }
+                        .fontWeight(.semibold)
+                }
+            }
             .safeAreaInset(edge: .bottom) { Color.clear.frame(height: 84) }
             .onAppear(perform: refreshCredentialStatus)
             .confirmationDialog(

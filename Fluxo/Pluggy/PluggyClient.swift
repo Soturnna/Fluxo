@@ -70,6 +70,18 @@ actor PluggyClient {
         return try await get("accounts", query: query, as: PluggyPage<PluggyAccount>.self).results
     }
 
+    /// Faturas fechadas de um cartão.
+    func bills(accountId: String) async throws -> [PluggyBill] {
+        let query = [URLQueryItem(name: "accountId", value: accountId), URLQueryItem(name: "pageSize", value: "24")]
+        return try await get("bills", query: query, as: PluggyPage<PluggyBill>.self).results
+    }
+
+    /// Investimentos de uma conexão.
+    func investments(itemId: String) async throws -> [PluggyInvestment] {
+        let query = [URLQueryItem(name: "itemId", value: itemId), URLQueryItem(name: "pageSize", value: "100")]
+        return try await get("investments", query: query, as: PluggyPage<PluggyInvestment>.self).results
+    }
+
     /// Transações desde uma data, pela rota com cursor (/v2/transactions).
     /// `maxPages` limita o laço: mesmo que o servidor devolva cursores sem fim,
     /// o app nunca entra em repetição infinita.

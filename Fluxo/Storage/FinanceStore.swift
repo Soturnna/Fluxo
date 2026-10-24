@@ -287,6 +287,8 @@ final class FinanceStore: ObservableObject {
 
     var accounts: [StoredAccount] { snapshot.accounts }
     var transactions: [StoredTransaction] { snapshot.transactions }
+    var bills: [StoredBill] { snapshot.bills }
+    var investments: [StoredInvestment] { snapshot.investments }
     var lastSyncAt: Date? { snapshot.lastSyncAt }
 
     /// Soma dos saldos de conta corrente e poupança (cartões ficam de fora).
@@ -496,11 +498,33 @@ final class FinanceStore: ObservableObject {
                         isCreditCard: account.isCreditCard,
                         isSavings: account.subtype == "SAVINGS_ACCOUNT",
                         balance: account.balance,
-                        bankDataAt: connection.item?.lastUpdatedAt
+                        bankDataAt: connection.item?.lastUpdatedAt,
+                        creditLimit: account.creditLimit,
+                        availableCreditLimit: account.availableCreditLimit,
+                        billCloseDate: account.billCloseDate,
+                        billDueDate: account.billDueDate,
+                        minimumPayment: account.minimumPayment,
+                        cardStatus: account.cardStatus,
+                        brand: account.brand
                     )
                     newSnapshot.accounts.removeAll { $0.id == account.id }
                     newSnapshot.accounts.append(stored)
                     syncedAccountIds.insert(account.id)
+
+                    // Faturas fechadas do cartão. Falhar aqui não derruba a sincronização.
+                    if account.isCreditCard, let bills = try? await client.bills(accountId: account.id) {
+                        newSnapshot.bills.removeAll { $0.accountId == account.id }
+                        newSnapshot.bills += bills.map {
+                            StoredBill(id: $0.id, accountId: account.id, dueDate: $0.dueDate,
+                                       total: $0.totalAmount, minimumPayment: $0.minimumPaymentAmount)
+                        }
+                    }
+                }
+
+                // Investimentos da conexão (opcional: sem eles, o resto segue).
+                if let investments = try? await client.investments(itemId: itemId) {
+                    newSnapshot.investments.removeAll { $0.itemId == itemId }
+                    newSnapshot.investments += investments.map { StoredInvestment(pluggy: $0, itemId: itemId) }
                 }
             } catch PluggyError.invalidCredentials {
                 connections = []
@@ -521,6 +545,8 @@ final class FinanceStore: ObservableObject {
         newSnapshot.accounts.removeAll { !validItems.contains($0.itemId) }
         let validAccounts = Set(newSnapshot.accounts.map(\.id))
         newSnapshot.transactions.removeAll { !validAccounts.contains($0.accountId) }
+        newSnapshot.bills.removeAll { !validAccounts.contains($0.accountId) }
+        newSnapshot.investments.removeAll { !validItems.contains($0.itemId) }
 
         newSnapshot.transactions.sort { $0.date > $1.date }
         if !syncedAccountIds.isEmpty { newSnapshot.lastSyncAt = .now }

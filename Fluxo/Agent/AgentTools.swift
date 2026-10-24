@@ -81,6 +81,11 @@ enum AgentTools {
                 ])
             ],
             [
+                "name": "carteira_investimentos",
+                "description": "Investimentos do usuário vindos do Open Finance: total, divisão por tipo e cada aplicação (tipo, taxa, saldo, vencimento, rendimento no último mês).",
+                "parameters": object([:])
+            ],
+            [
                 "name": "listar_categorias",
                 "description": "Lista as categorias existentes e o tipo de cada uma (gasto, renda ou não conta).",
                 "parameters": object([:])
@@ -160,6 +165,7 @@ enum AgentTools {
         case "resumo_mes": return monthSummary(args, store, privacy)
         case "buscar_transacoes": return search(args, store, privacy)
         case "listar_categorias": return listCategories(store)
+        case "carteira_investimentos": return portfolio(store)
         case "listar_gastos_previstos": return listPlanned(store, privacy)
         case "prever_gasto": return proposePlan(args, store)
         case "remover_gasto_previsto": return proposeRemovePlanned(args, store, privacy)
@@ -234,6 +240,50 @@ enum AgentTools {
             }
         }
         if let estimate = store.estimatedBalance { response["saldo_estimado_agora"] = money(estimate.value) }
+
+        // Cartão de crédito, separado da conta.
+        if let card = store.creditCards.first {
+            let summary = store.cardSummary(card)
+            var cardInfo: [String: Any] = [
+                "fatura_aberta": money(summary.openBill),
+                "gasto_no_cartao_no_mes": money(store.totals(inMonthOf: month, origin: .card).spent),
+                "bloqueado": card.isCardBlocked
+            ]
+            if let due = card.billDueDate { cardInfo["vencimento"] = dayString(due) }
+            if let close = card.billCloseDate { cardInfo["fechamento"] = dayString(close) }
+            if let fraction = summary.usedFraction { cardInfo["limite_usado_percentual"] = Int((fraction * 100).rounded()) }
+            if let available = summary.available { cardInfo["limite_disponivel"] = money(available) }
+            response["cartao_credito"] = cardInfo
+        }
+
+        // Projeção do saldo da conta nos próximos 30 dias.
+        if FinanceStore.isCurrentMonth(month), let projection = store.projectCashFlow() {
+            var info: [String: Any] = [
+                "saldo_minimo": money(projection.minBalance),
+                "dia_do_minimo": dayString(projection.minDate),
+                "saldo_em_30_dias": money(projection.endBalance),
+                "fica_negativo": projection.goesNegative
+            ]
+            if let first = projection.firstNegative { info["primeiro_dia_negativo"] = dayString(first) }
+            if let suggestion = projection.suggestion { info["sugestao_do_app"] = privacy.safeText(suggestion) }
+            response["projecao_30_dias"] = info
+        }
+
+        // Recorrentes confirmados (assinaturas, contas fixas, salário).
+        let recurring = store.detectRecurring().filter { !$0.isCandidate }
+        if !recurring.isEmpty {
+            response["recorrentes"] = recurring.prefix(15).map { item -> [String: Any] in
+                var row: [String: Any] = [
+                    "nome": privacy.safeTitle(for: item.sample),
+                    "valor": money(item.amount),
+                    "proxima_data": dayString(item.nextDate),
+                    "meio": item.origin == .account ? "conta" : "cartao"
+                ]
+                if item.varies { row["valor_varia"] = true }
+                if let before = item.priceIncrease { row["subiu_de"] = money(-before) }
+                return row
+            }
+        }
 
         // Ritmo do mês: média por dia e, no mês atual, projeção linear até o fim.
         let calendar = Calendar.current
@@ -312,6 +362,35 @@ enum AgentTools {
             ],
             activity: "Consultou \(results.count) \(results.count == 1 ? "transação" : "transações")"
         )
+    }
+
+    private static func portfolio(_ store: FinanceStore) -> ToolOutcome {
+        let items: [[String: Any]] = store.activeInvestments.prefix(30).map { item in
+            var row: [String: Any] = [
+                "nome": privacy_safe(item.name),
+                "tipo": item.kindLabel,
+                "saldo": money(item.balance)
+            ]
+            if let rate = item.rateLabel { row["taxa"] = rate }
+            if let due = item.dueDate { row["vencimento"] = dayString(due) }
+            if let month = item.lastMonthRate { row["rendimento_ultimo_mes_percentual"] = (month * 100).rounded() / 100 }
+            if let year = item.lastTwelveMonthsRate { row["rendimento_12_meses_percentual"] = (year * 100).rounded() / 100 }
+            return row
+        }
+        var response: [String: Any] = [
+            "total_investido": money(store.investedTotal),
+            "por_tipo": store.investmentAllocation.map { ["tipo": $0.label, "valor": money($0.value)] },
+            "aplicacoes_ativas": items,
+            "resgatados": store.withdrawnInvestments.count
+        ]
+        if let profit = store.investmentsLastMonthProfit { response["rendimento_aproximado_ultimo_mes"] = money(profit) }
+        return ToolOutcome(response: response, activity: "Consultou seus investimentos")
+    }
+
+    /// Nomes de investimentos não têm dados pessoais, mas passam pela mesma
+    /// limpeza de números longos e marcações.
+    private static func privacy_safe(_ text: String) -> String {
+        PrivacyFilter.neutralizeMarkers(PrivacyFilter.maskNumbers(text))
     }
 
     private static func listCategories(_ store: FinanceStore) -> ToolOutcome {

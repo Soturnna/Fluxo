@@ -16,6 +16,7 @@ pelo GitHub Actions.
 | 4b | Respostas visuais do agente: gráficos calculados no iPhone e sugestões de ação | ✅ |
 | 5 | Notificações locais: orçamentos, ritmo do mês, gasto alto, gastos previstos, resumo semanal e conexão expirando | 🧪 |
 | 6 | Lançamentos provisórios (print, Apple Pay, agente), saldo estimado, conciliação e diagnóstico do cartão | 🧪 |
+| 7 | Cartão separado da conta, fluxo de caixa projetado, recorrentes, filtro Conta/Cartão e aba Investimentos | 🧪 |
 
 ## Modelo de segurança
 
