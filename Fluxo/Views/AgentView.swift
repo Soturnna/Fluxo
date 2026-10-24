@@ -17,6 +17,11 @@ struct AgentView: View {
     @State private var readingBill = false
     @State private var pickingBillFile = false
     @State private var billFileError: String?
+    #if DEBUG
+    /// Só em teste automático: reproduz o seletor do build 27 (fileImporter nesta tela).
+    @State private var legacyImporter = false
+    private let legacyTest = ProcessInfo.processInfo.arguments.contains("-UITestLegacyImporter")
+    #endif
     @FocusState private var inputFocused: Bool
 
     private let suggestions = [
@@ -109,6 +114,17 @@ struct AgentView: View {
             }
             .onDisappear { billFileError = nil }
         }
+        #if DEBUG
+        .fileImporter(isPresented: $legacyImporter, allowedContentTypes: BillFileParser.contentTypes) { outcome in
+            switch outcome {
+            case .success(let url):
+                do { checkBill(try BillFileParser.read(url, deleteAfter: false)) }
+                catch { agent.noteLocal("ERRO legado: \(error.localizedDescription)") }
+            case .failure(let error):
+                agent.noteLocal("ERRO legado: \(error.localizedDescription)")
+            }
+        }
+        #endif
         .onChange(of: billPhotos) { _, items in
             guard !items.isEmpty else { return }
             Task { await sendBill(items) }
@@ -214,6 +230,11 @@ struct AgentView: View {
                     Button { pickingBill = true } label: {
                         Label("Conferir fatura do cartão (prints)", systemImage: "creditcard")
                     }
+                    #if DEBUG
+                    if legacyTest {
+                        Button("Teste: seletor antigo") { legacyImporter = true }
+                    }
+                    #endif
                     Button { pickingBillFile = true } label: {
                         Label("Conferir fatura com arquivo (CSV ou OFX)", systemImage: "doc.badge.arrow.up")
                     }
