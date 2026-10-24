@@ -91,7 +91,8 @@ extension FinanceStore {
     }
 
     /// Monta as faturas do cartão: `past` fechadas, a aberta e `future` futuras.
-    func cardSchedule(_ card: StoredAccount, past: Int = 3, future: Int = 12) -> CardSchedule {
+    /// `corrections: false` ignora suas correções manuais (usado pela importação da fatura).
+    func cardSchedule(_ card: StoredAccount, past: Int = 3, future: Int = 12, corrections: Bool = true) -> CardSchedule {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
         let dueDay = card.billDueDate.map { calendar.component(.day, from: $0) } ?? 10
@@ -165,7 +166,7 @@ extension FinanceStore {
         }
         /// Sua correção manual vale por cima de tudo.
         func placement(of item: StoredTransaction) -> (month: Date, byBank: Bool)? {
-            let shift = userData.cardBillShift[item.id] ?? 0
+            let shift = corrections ? (userData.cardBillShift[item.id] ?? 0) : 0
             if shift == UserData.billExcluded { return nil }
             let place = automaticPlacement(of: item)
             return (month(place.month, plus: shift), place.byBank)
@@ -228,6 +229,13 @@ extension FinanceStore {
     func cardBillDue(for item: StoredTransaction) -> Date? {
         guard let card = account(withId: item.accountId), card.isCreditCard else { return nil }
         return cardSchedule(card).cycles.first { cycle in cycle.transactions.contains { $0.id == item.id } }?.due
+    }
+
+    /// Grava várias correções de uma vez (importação da fatura). 0 apaga a correção.
+    func applyCardBillShifts(_ shifts: [String: Int]) {
+        var data = userData
+        for (id, shift) in shifts { data.cardBillShift[id] = shift == 0 ? nil : shift }
+        saveUserData(data)
     }
 
     func setCardBillShift(_ shift: Int, for transactionId: String) {

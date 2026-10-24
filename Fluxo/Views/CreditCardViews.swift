@@ -161,6 +161,7 @@ struct CreditCardView: View {
     @EnvironmentObject private var lock: AppLock
     @State private var tab: BillTab = .current
     @State private var selected: StoredTransaction?
+    @State private var importing: StoredAccount?
 
     enum BillTab: String, CaseIterable, Identifiable {
         case current = "Fatura atual"
@@ -192,6 +193,11 @@ struct CreditCardView: View {
                 .environmentObject(store)
                 .environmentObject(lock)
         }
+        .sheet(item: $importing) { card in
+            BillImportSheet(card: card)
+                .environmentObject(store)
+                .environmentObject(lock)
+        }
     }
 
     // MARK: Com cartão
@@ -219,6 +225,13 @@ struct CreditCardView: View {
         if summary.limit != nil { limitCard(summary) }
         closeDayCard(summary.schedule)
         checkCard(summary)
+        Button { importing = summary.account } label: {
+            Label("Importar fatura do banco (CSV ou OFX)", systemImage: "doc.badge.arrow.up")
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity, minHeight: 44)
+        }
+        .buttonStyle(.bordered)
+        .tint(Theme.forest)
         upcomingChart(summary.schedule)
 
         Picker("Faturas", selection: $tab) {

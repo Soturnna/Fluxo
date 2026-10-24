@@ -84,6 +84,10 @@ pelo GitHub Actions.
    lê nada do app nem devolve dados. Com o iPhone bloqueado, grava numa caixa de
    entrada com proteção `CompleteUnlessOpen` (dá para criar, não para ler) e o
    conteúdo passa para o cofre cifrado no próximo desbloqueio.
+18. **Fatura importada só na memória.** O CSV/OFX da fatura é lido no iPhone
+   (limite de 2 MB, só data, descrição, valor e parcela), cruzado com as compras e
+   descartado. Nada vai para a internet nem para o agente; só as correções
+   (compra → fatura) ficam no cofre.
 
 ## Estrutura
 
