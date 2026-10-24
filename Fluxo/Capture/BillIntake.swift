@@ -14,7 +14,9 @@ enum BillIntake {
     static let ofxType = "com.soturnna.fluxo.ofx"
 
     /// Tipos que nunca são o conteúdo do arquivo (são links para ele).
-    private static let skipped: Set<String> = ["public.file-url", "public.url", "com.apple.finder.node"]
+    /// ("com.apple.DocumentManager.FINode.File" é o que o app Arquivos põe junto ao conteúdo.)
+    private static let skipped: Set<String> = ["public.file-url", "public.url", "com.apple.finder.node",
+                                              "com.apple.DocumentManager.FINode.File"]
 
     /// Ordem de preferência dos tipos oferecidos por um item colado.
     static func preferredType(in identifiers: [String]) -> String? {

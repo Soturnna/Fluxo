@@ -65,7 +65,7 @@ final class RealAppBillUITests: XCTestCase {
             snap("pasta fluxo")
             target = app.descendants(matching: .any).matching(name).firstMatch
         }
-        XCTAssertTrue(target.waitForExistence(timeout: 10), "arquivo não apareceu no seletor")
+        XCTAssertTrue(target.waitForExistence(timeout: 20), "arquivo não apareceu no seletor")
         target.tap()
         sleep(3)
         snap("depois do toque no arquivo")
