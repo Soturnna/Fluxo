@@ -63,27 +63,8 @@ final class BillIntakeUITests: XCTestCase {
 
     private func pick(_ id: String) {
         app.buttons[id].tap()
-        sleep(3)
         snap("seletor aberto")
-        let name = NSPredicate(format: "label CONTAINS 'Teste_2026-11-08'")
-        var target = app.descendants(matching: .any).matching(name).firstMatch
-        if !target.waitForExistence(timeout: 5) {
-            let tab = app.tabBars.buttons.matching(NSPredicate(format: "label IN %@", ["Browse", "Explorar"])).firstMatch
-            if tab.exists { tab.tap(); sleep(2) }
-            snap("explorar")
-            let place = app.cells.matching(NSPredicate(format: "label CONTAINS %@ OR label CONTAINS %@", "On My", "No Meu")).firstMatch
-            if place.exists && place.isHittable { place.tap(); sleep(2) }
-            snap("no meu iphone")
-            // Pasta do app (compartilhamento ligado só na compilação de teste).
-            let folder = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Fluxo'")).firstMatch
-            if folder.exists && folder.isHittable { folder.tap(); sleep(2) }
-            snap("pasta fluxo")
-            target = app.descendants(matching: .any).matching(name).firstMatch
-        }
-        XCTAssertTrue(target.waitForExistence(timeout: 20), "arquivo não apareceu no seletor")
-        target.tap()
-        sleep(2)
-        snap("depois do toque no arquivo")
+        XCTAssertTrue(PickerNavigation.tapTestFile(in: app, snap: snap), "arquivo não apareceu no seletor")
     }
 
     func testPickerUIKit() {
