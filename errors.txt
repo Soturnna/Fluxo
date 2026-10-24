@@ -1,0 +1,5 @@
+** BUILD FAILED **
+/Users/runner/work/Fluxo/Fluxo/Fluxo/Capture/BillImport.swift:158:32: error: call to main actor-isolated static method 'ruleKey' in a synchronous nonisolated context
+/Users/runner/work/Fluxo/Fluxo/Fluxo/Capture/BillImport.swift:61:68: error: call to main actor-isolated static method 'ruleKey' in a synchronous nonisolated context
+Failed frontend command:
+The following build commands failed:
