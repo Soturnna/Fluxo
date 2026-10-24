@@ -147,6 +147,11 @@ struct UserData: Codable, Equatable {
     var recurringDecisions: [String: Bool] = [:]
     /// Dia de fechamento da fatura ajustado por você: id do cartão → dia.
     var cardCloseDays: [String: Int] = [:]
+    /// Correções suas na fatura de uma compra do cartão: id da transação →
+    /// meses de deslocamento (−1 = fatura anterior, +1 = próxima).
+    /// `UserData.billExcluded` = não entra em fatura nenhuma (ex.: repetida).
+    var cardBillShift: [String: Int] = [:]
+    static let billExcluded = 99
     /// Suas respostas do questionário de perfil de investidor.
     var investorProfile: InvestorProfile?
 
@@ -170,6 +175,7 @@ struct UserData: Codable, Equatable {
         provisionalEntries = (try? c.decodeIfPresent([ProvisionalEntry].self, forKey: .provisionalEntries)) ?? []
         recurringDecisions = (try? c.decodeIfPresent([String: Bool].self, forKey: .recurringDecisions)) ?? [:]
         cardCloseDays = (try? c.decodeIfPresent([String: Int].self, forKey: .cardCloseDays)) ?? [:]
+        cardBillShift = (try? c.decodeIfPresent([String: Int].self, forKey: .cardBillShift)) ?? [:]
         investorProfile = try? c.decodeIfPresent(InvestorProfile.self, forKey: .investorProfile)
     }
 

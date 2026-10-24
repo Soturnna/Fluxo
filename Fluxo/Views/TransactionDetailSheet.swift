@@ -48,6 +48,10 @@ struct TransactionDetailSheet: View {
                     }
                 }
 
+                if store.account(withId: transaction.accountId)?.isCreditCard == true {
+                    billSection
+                }
+
                 Section {
                     NavigationLink {
                         CategoryChoiceList(selection: $selectedId)
@@ -116,6 +120,34 @@ struct TransactionDetailSheet: View {
             }
         }
         .tint(Theme.link)
+    }
+
+    /// Corrigir em que fatura a compra entra (quando o banco ou a estimativa erram).
+    @ViewBuilder
+    private var billSection: some View {
+        let shift = store.userData.cardBillShift[transaction.id] ?? 0
+        let due = store.cardBillDue(for: transaction)
+        Section {
+            if shift == UserData.billExcluded {
+                detailRow("Fatura", "Fora das faturas")
+            } else if let due {
+                detailRow("Fatura", "de " + due.formatted(.dateTime.month(.wide).year().locale(.ptBR)) + (shift != 0 ? " (corrigida)" : ""))
+            }
+            if shift != UserData.billExcluded {
+                Button("Mover para a fatura anterior") { store.setCardBillShift(shift - 1, for: transaction.id) }
+                Button("Mover para a próxima fatura") { store.setCardBillShift(shift + 1, for: transaction.id) }
+                Button("Tirar das faturas (repetida)", role: .destructive) {
+                    store.setCardBillShift(UserData.billExcluded, for: transaction.id)
+                }
+            }
+            if shift != 0 {
+                Button("Desfazer correção") { store.setCardBillShift(0, for: transaction.id) }
+            }
+        } header: {
+            Text("Fatura do cartão")
+        } footer: {
+            Text("Use se esta compra aparece numa fatura diferente da do app do banco.")
+        }
     }
 
     private func detailRow(_ title: String, _ value: String) -> some View {

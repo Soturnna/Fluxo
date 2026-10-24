@@ -577,6 +577,8 @@ struct CreditCardView: View {
 /// Lançamentos de uma fatura: compras (por dia) e parcelas previstas pelo app.
 struct BillItemsList: View {
     @EnvironmentObject private var store: FinanceStore
+    /// Mostra, em cada compra, o que o banco informou (para conferir a fatura).
+    @AppStorage("card.bankDetails") private var bankDetails = false
     let cycle: FinanceStore.BillCycle
     var query = ""
     let onSelect: (StoredTransaction) -> Void
@@ -589,8 +591,34 @@ struct BillItemsList: View {
         }
     }
 
+    /// Compras repetidas na mesma fatura (mesmo nome, valor e parcela).
+    private var duplicates: Set<String> {
+        var seen: [String: String] = [:]
+        var result = Set<String>()
+        for item in cycle.transactions {
+            let key = "\(item.title.lowercased())|\(item.amount)|\(item.installment ?? "-")"
+            if let first = seen[key] { result.insert(first); result.insert(item.id) } else { seen[key] = item.id }
+        }
+        return result
+    }
+
+    /// "data 12/10 · parcela 2/3 · banco: fatura 2026-12 · pendente"
+    static func bankLine(_ item: StoredTransaction, duplicated: Bool) -> String {
+        var parts = ["data " + item.date.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year(.twoDigits).locale(.ptBR))]
+        if let installment = item.installment { parts.append("parcela \(installment)") }
+        parts.append("banco: " + (item.billMonth.map { "fatura \($0)" } ?? "sem previsão"))
+        if item.billId != nil { parts.append("já lançada") }
+        parts.append(item.isPending ? "pendente" : "confirmada")
+        if duplicated { parts.append("REPETIDA?") }
+        return parts.joined(separator: " · ")
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            Toggle("Mostrar o que o banco informou", isOn: $bankDetails)
+                .font(.footnote)
+                .tint(Theme.forest)
+                .padding(.horizontal, 4)
             if !items.isEmpty {
                 ForEach(DaySection.make(from: items)) { section in
                     VStack(alignment: .leading, spacing: 6) {
@@ -602,7 +630,15 @@ struct BillItemsList: View {
                             ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
                                 if index > 0 { Divider().overlay(Theme.line) }
                                 Button { onSelect(item) } label: {
-                                    TransactionRow(transaction: item, category: store.category(for: item), accountName: nil)
+                                    VStack(alignment: .leading, spacing: 0) {
+                                        TransactionRow(transaction: item, category: store.category(for: item), accountName: nil)
+                                        if bankDetails {
+                                            Text(Self.bankLine(item, duplicated: duplicates.contains(item.id)))
+                                                .font(.caption2.monospacedDigit())
+                                                .foregroundStyle(duplicates.contains(item.id) ? Theme.danger : Theme.inkTertiary)
+                                                .padding(.bottom, 8)
+                                        }
+                                    }
                                 }
                                 .buttonStyle(.plain)
                             }

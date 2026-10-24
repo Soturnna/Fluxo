@@ -158,10 +158,17 @@ extension FinanceStore {
         /// 1. a fatura vencida em que o banco já o lançou;
         /// 2. a fatura que o banco prevê (vale para a aberta e as futuras);
         /// 3. a conta pela data e o dia de fechamento.
-        func placement(of item: StoredTransaction) -> (month: Date, byBank: Bool) {
+        func automaticPlacement(of item: StoredTransaction) -> (month: Date, byBank: Bool) {
             if let id = item.billId, let due = billMonthById[id] { return (due, true) }
             if let forecast = forecastMonth(item.billMonth) { return (forecast, true) }
             return (dueMonthByDate(item.date), false)
+        }
+        /// Sua correção manual vale por cima de tudo.
+        func placement(of item: StoredTransaction) -> (month: Date, byBank: Bool)? {
+            let shift = userData.cardBillShift[item.id] ?? 0
+            if shift == UserData.billExcluded { return nil }
+            let place = automaticPlacement(of: item)
+            return (month(place.month, plus: shift), place.byBank)
         }
 
         // Compras e estornos do cartão. Pagamentos da fatura ficam de fora:
@@ -174,7 +181,7 @@ extension FinanceStore {
         var monthById: [String: Date] = [:]
         var placedByBank = 0, placedByDate = 0
         for item in items {
-            let place = placement(of: item)
+            guard let place = placement(of: item) else { continue }
             monthById[item.id] = place.month
             guard let position = positionByDueMonth[place.month] else { continue }
             cycles[position].transactions.append(item)
@@ -215,6 +222,18 @@ extension FinanceStore {
     static func estimatedCloseDay(dueDay: Int) -> Int {
         let day = dueDay - 6
         return day >= 1 ? day : day + 30
+    }
+
+    /// Fatura (vencimento) em que a compra do cartão está agora.
+    func cardBillDue(for item: StoredTransaction) -> Date? {
+        guard let card = account(withId: item.accountId), card.isCreditCard else { return nil }
+        return cardSchedule(card).cycles.first { cycle in cycle.transactions.contains { $0.id == item.id } }?.due
+    }
+
+    func setCardBillShift(_ shift: Int, for transactionId: String) {
+        var data = userData
+        data.cardBillShift[transactionId] = shift == 0 ? nil : shift
+        saveUserData(data)
     }
 
     func setCardCloseDay(_ day: Int?, for cardId: String) {
