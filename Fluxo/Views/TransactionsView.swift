@@ -186,13 +186,26 @@ struct TransactionsView: View {
     }
 
     private func billTotal(_ cycle: FinanceStore.BillCycle) -> some View {
-        HStack(spacing: 10) {
+        // Fatura aberta: valor do banco (inclui juros e saldo que não aparecem como compra).
+        let summary = cycle.index == 0 ? store.creditCards.first.map(store.cardSummary) : nil
+        let total = summary?.openBill ?? cycle.total
+        let extra = summary?.unitemized ?? 0
+        return HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
-                Label(cycle.total < 0 ? "Saldo a favor" : "Total da fatura", systemImage: "creditcard")
+                Label(total < 0 ? "Saldo a favor" : "Total da fatura", systemImage: "creditcard")
                     .font(.caption.weight(.medium))
                     .foregroundStyle(Theme.inkSecondary)
-                MoneyText(value: abs(cycle.total), font: .rounded(.title3, weight: .semibold))
+                MoneyText(value: abs(total), font: .rounded(.title3, weight: .semibold))
                     .foregroundStyle(Theme.ink)
+                if extra >= 1 {
+                    HStack(spacing: 3) {
+                        Text("inclui")
+                        MoneyText(value: extra, font: .caption2.weight(.semibold))
+                        Text("de juros/saldo")
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(Theme.inkSecondary)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .card(padding: 14)

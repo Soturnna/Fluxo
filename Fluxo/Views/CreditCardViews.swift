@@ -362,20 +362,24 @@ struct CreditCardView: View {
 
     /// Conferência: a soma das faturas montadas no app bate com o total do banco?
     private func checkCard(_ summary: FinanceStore.CardSummary) -> some View {
-        let gap = summary.unmatched
+        // Fatura atual = total do banco − próximas. O que as compras não explicam
+        // é juros, encargos ou saldo anterior (o banco cobra sem detalhar como compra).
+        let gap = summary.unitemized
         let matches = abs(gap) < 1
         let money = { (value: Decimal) in lock.valuesHidden ? "R$ ••••" : AgentTools.brl(value) }
         return HStack(alignment: .top, spacing: 12) {
-            IconTile(systemName: matches ? "checkmark.seal" : "exclamationmark.triangle", style: .neutral, size: 36)
+            IconTile(systemName: matches ? "checkmark.seal" : (gap > 0 ? "info.circle" : "exclamationmark.triangle"),
+                     style: .neutral, size: 36)
             VStack(alignment: .leading, spacing: 3) {
-                Text(matches ? "Faturas conferidas com o banco" : "Faturas não batem com o banco")
+                Text(matches ? "Fatura atual conferida com as compras"
+                     : (gap > 0 ? "Parte da fatura não é compra" : "Compras a mais na fatura atual"))
                     .font(.subheadline.weight(.medium))
                 if !matches {
                     Text(gap > 0
-                         ? "\(money(gap)) do total do banco (\(money(summary.totalUsed))) não entrou em nenhuma fatura."
-                         : "As faturas somam \(money(-gap)) a mais que o total do banco (\(money(summary.totalUsed))).")
+                         ? "Compras: \(money(summary.itemizedOpenBill)). Os outros \(money(gap)) são juros, encargos ou saldo anterior que o banco cobra sem detalhar."
+                         : "As compras somam \(money(-gap)) a mais do que o banco cobra. Alguma compra pode estar no mês errado: confira as próximas faturas.")
                         .font(.caption)
-                        .foregroundStyle(Theme.warning)
+                        .foregroundStyle(gap > 0 ? Theme.inkSecondary : Theme.warning)
                 }
                 Text(sourceLine(summary.schedule))
                     .font(.caption)
@@ -412,7 +416,13 @@ struct CreditCardView: View {
                     get: { schedule.closeDay },
                     set: { store.setCardCloseDay($0, for: schedule.card.id) }
                 )) {
-                    ForEach(1...31, id: \.self) { Text("Dia \($0)").tag($0) }
+                    ForEach(1...31, id: \.self) { Text("Fecha dia \($0)").tag($0) }
+                }
+                Picker("Dia do vencimento", selection: Binding(
+                    get: { schedule.dueDay },
+                    set: { store.setCardDueDay($0, for: schedule.card.id) }
+                )) {
+                    ForEach(1...31, id: \.self) { Text("Vence dia \($0)").tag($0) }
                 }
             } label: {
                 Text("Ajustar")

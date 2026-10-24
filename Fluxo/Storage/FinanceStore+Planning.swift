@@ -95,7 +95,7 @@ extension FinanceStore {
     func cardSchedule(_ card: StoredAccount, past: Int = 3, future: Int = 12, corrections: Bool = true) -> CardSchedule {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
-        let dueDay = card.billDueDate.map { calendar.component(.day, from: $0) } ?? 10
+        let dueDay = userData.cardDueDays[card.id] ?? card.billDueDate.map { calendar.component(.day, from: $0) } ?? 10
         let userClose = userData.cardCloseDays[card.id]
         let bankClose = card.billCloseDate.map { calendar.component(.day, from: $0) }
         let closeDay = userClose ?? bankClose ?? Self.estimatedCloseDay(dueDay: dueDay)
@@ -244,6 +244,12 @@ extension FinanceStore {
         saveUserData(data)
     }
 
+    func setCardDueDay(_ day: Int?, for cardId: String) {
+        var data = userData
+        data.cardDueDays[cardId] = day.map { min(max($0, 1), 31) }
+        saveUserData(data)
+    }
+
     func setCardCloseDay(_ day: Int?, for cardId: String) {
         var data = userData
         data.cardCloseDays[cardId] = day.map { min(max($0, 1), 31) }
@@ -253,18 +259,26 @@ extension FinanceStore {
     struct CardSummary {
         let account: StoredAccount
         let schedule: CardSchedule
-        /// Fatura aberta (ciclo atual).
-        var openBill: Decimal { schedule.open?.total ?? 0 }
+        /// Soma das compras da fatura aberta que o banco detalha.
+        var itemizedOpenBill: Decimal { schedule.open?.total ?? 0 }
+        /// Total comprometido − próximas − fechada a pagar: a fatura aberta pela conta do banco.
+        var anchoredOpenBill: Decimal { totalUsed - futureBills - (schedule.closedUnpaid?.total ?? 0) }
+        /// Fatura aberta. Usa a conta do banco: juros, encargos e saldo anterior entram
+        /// mesmo quando o banco não os detalha como compra. Sem total do banco (ou se a
+        /// conta der negativa), vale a soma das compras.
+        var openBill: Decimal {
+            totalUsed > 0 && anchoredOpenBill >= 0 ? anchoredOpenBill : itemizedOpenBill
+        }
+        /// Parte da fatura aberta que não aparece como compra (juros, saldo anterior…).
+        /// Negativa = as compras passam do que o banco cobra: alguma está no mês errado.
+        var unitemized: Decimal { totalUsed > 0 ? anchoredOpenBill - itemizedOpenBill : 0 }
         /// Soma das próximas faturas (parcelas já compradas).
         var futureBills: Decimal { schedule.futureTotal }
         /// Tudo o que está comprometido no cartão, segundo o banco.
         var totalUsed: Decimal { abs(account.balance) }
         var limit: Decimal? { account.creditLimit }
         var available: Decimal? { account.availableCreditLimit }
-        /// Total do banco − soma das faturas montadas no app. Perto de zero = conferido.
-        var unmatched: Decimal {
-            totalUsed - openBill - futureBills - (schedule.closedUnpaid?.total ?? 0)
-        }
+
         var nextClose: Date? { schedule.open?.close }
         var nextDue: Date? { schedule.closedUnpaid?.due ?? schedule.open?.due }
 
@@ -454,11 +468,15 @@ extension FinanceStore {
         }
         for card in creditCards {
             let schedule = cardSchedule(card, past: 1, future: 2)
-            for cycle in schedule.cycles where cycle.due >= today && cycle.due <= horizon && cycle.total > 0 {
+            let openAmount = cardSummary(card).openBill
+            for cycle in schedule.cycles where cycle.due >= today && cycle.due <= horizon
+                && (cycle.index == 0 ? openAmount : cycle.total) > 0 {
                 // Fechada e já paga não entra: só a fechada que ainda vai vencer e as abertas.
                 if cycle.status == .closed && schedule.closedUnpaid?.index != cycle.index { continue }
+                // A aberta usa o valor ancorado no banco (com juros e saldo não detalhados).
+                let amount = cycle.index == 0 ? openAmount : cycle.total
                 events.append(CashFlowEvent(date: cycle.due, title: "Fatura do cartão (\(cycle.monthName))",
-                                            kind: .cardBill, amount: -cycle.total))
+                                            kind: .cardBill, amount: -amount))
             }
         }
         events.sort { $0.date < $1.date }

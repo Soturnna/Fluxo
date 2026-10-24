@@ -290,7 +290,8 @@ enum AgentTools {
             if let percent = summary.usedPercent { cardInfo["limite_usado_percentual"] = percent }
             if let available = summary.available { cardInfo["limite_disponivel"] = money(available) }
             // Diferença entre o total do banco e a soma das faturas montadas no app.
-            if abs(summary.unmatched) >= 1 { cardInfo["diferenca_nao_explicada_nas_faturas"] = money(summary.unmatched) }
+            // Juros, encargos ou saldo anterior que o banco cobra sem detalhar como compra.
+            if abs(summary.unitemized) >= 1 { cardInfo["fatura_atual_valor_nao_detalhado"] = money(summary.unitemized) }
             response["cartao_credito"] = cardInfo
         }
 
@@ -615,16 +616,10 @@ enum AgentTools {
     /// Fatura do banco (de prints ou texto) × faturas do app. O cruzamento é feito
     /// no iPhone, por regra fixa: a IA só organiza a lista; quem decide é o código.
     private static func proposeBillCheck(_ args: [String: Any], _ store: FinanceStore) -> ToolOutcome {
-        guard let card = store.creditCards.first else { return failure("Nenhum cartão de crédito conectado.") }
         guard let dueMonth = parseMonth(args["vencimento"] as? String) else { return failure("Vencimento inválido. Use AAAA-MM.") }
         guard let rows = args["compras"] as? [[String: Any]], !rows.isEmpty, rows.count <= 300 else {
             return failure("Envie a lista de compras da fatura (de 1 a 300).")
         }
-        let schedule = store.cardSchedule(card)
-        guard let target = schedule.cycles.first(where: {
-            Calendar.current.isDate($0.due, equalTo: dueMonth, toGranularity: .month) && (-3...3).contains($0.index)
-        }) else { return failure("Essa fatura está fora do período que o app acompanha (3 meses para trás ou para a frente).") }
-
         var lines: [BillFileLine] = []
         for row in rows {
             let raw: Double? = (row["valor"] as? Double) ?? (row["valor"] as? Int).map(Double.init)
@@ -634,37 +629,59 @@ enum AgentTools {
                 let parts = text.split(separator: "/").compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
                 return parts.count == 2 && parts[0] >= 1 && parts[0] <= parts[1] && parts[1] > 1 ? "\(parts[0])/\(parts[1])" : nil
             }
-            let date = parseDay(row["data"] as? String).map { $0.addingTimeInterval(12 * 3600) } ?? target.due
+            let date = parseDay(row["data"] as? String).map { $0.addingTimeInterval(12 * 3600) } ?? dueMonth
             lines.append(BillFileLine(id: lines.count, date: date, title: title,
                                       amount: -Money.decimal(from: raw), installment: installment))
         }
         guard !lines.isEmpty else { return failure("Nenhuma compra válida na lista.") }
-        let file = BillFile(lines: lines, nameDate: nil)
-
-        // Se o banco mostrou o total, a lista tem que bater com ele (sem prints faltando).
-        var complete = false
-        if let informed = parseAmount(args["total_informado"]) {
-            let gap = abs(file.total - informed)
-            guard gap < 1 else {
-                return failure("A soma das compras enviadas (\(brl(file.total))) não bate com o total informado (\(brl(informed))). Faltam compras ou há valores lidos errado: peça os prints que faltam antes de conferir.")
-            }
-            complete = true
+        let file = BillFile(lines: lines, nameDate: nil, bankTotal: parseAmount(args["total_informado"]))
+        switch billCheck(file, dueMonth: dueMonth, store: store) {
+        case .failure(let error):
+            return failure(error.message)
+        case .success(let check):
+            var outcome = proposal(check.action)
+            outcome.response["resultado"] = check.summary
+            outcome.activity = "Conferiu a fatura de \(check.monthName)"
+            return outcome
         }
+    }
 
+    struct BillCheckError: Error { let message: String }
+    struct BillCheck {
+        let action: PendingAction
+        let summary: [String: Any]
+        let monthName: String
+    }
+
+    /// Monta a proposta de correção a partir de uma fatura (arquivo, prints ou texto).
+    /// Usado pelo agente e pelo anexo de arquivo na conversa.
+    static func billCheck(_ file: BillFile, dueMonth: Date, store: FinanceStore) -> Result<BillCheck, BillCheckError> {
+        guard let card = store.creditCards.first else { return .failure(.init(message: "Nenhum cartão de crédito conectado.")) }
+        let schedule = store.cardSchedule(card)
+        guard let target = schedule.cycles.first(where: {
+            Calendar.current.isDate($0.due, equalTo: dueMonth, toGranularity: .month) && (-3...3).contains($0.index)
+        }) else { return .failure(.init(message: "Essa fatura está fora do período que o app acompanha (3 meses para trás ou para a frente).")) }
         guard let result = store.reconcile(file, card: card, targetIndex: target.index) else {
-            return failure("Não consegui montar a conferência.")
+            return .failure(.init(message: "Não consegui montar a conferência."))
         }
+
+        // O total do banco pode ter valores que não são compra (juros, saldo anterior):
+        // a diferença é mostrada, mas não impede a correção das compras encontradas.
+        let notItemized = file.bankTotal.map { $0 - file.total } ?? 0
+        let complete = file.bankTotal != nil && abs(notItemized) < 1
 
         // Repetidas saem. As outras que sobram nesta fatura só vão para a próxima
-        // se a lista estiver completa (total conferido); senão, ficam onde estão.
+        // se a lista bateu com o total do banco; senão, ficam onde estão.
         var shifts = result.baseShifts
         var removed = Set<String>(), excluded = 0, toNext = 0
+        func inTarget(_ extra: BillReconciliation.Extra) -> Bool {
+            extra.from.map { Calendar.current.isDate($0, equalTo: target.due, toGranularity: .month) } ?? false
+        }
         for extra in result.extras {
-            let inTarget = extra.from.map { Calendar.current.isDate($0, equalTo: target.due, toGranularity: .month) } ?? false
             if extra.looksDuplicated {
                 shifts[extra.id] = UserData.billExcluded
                 removed.insert(extra.id); excluded += 1
-            } else if inTarget && complete, let next = result.nextShifts[extra.id] {
+            } else if inTarget(extra) && complete, let next = result.nextShifts[extra.id] {
                 shifts[extra.id] = next
                 removed.insert(extra.id); toNext += 1
             }
@@ -673,7 +690,7 @@ enum AgentTools {
         let monthName = target.monthName
         var details = [
             "Fatura de \(monthName) · vence \(FinanceStore.dayLabel(target.due))",
-            "\(result.matchedCount) de \(lines.count) compras encontradas no app",
+            "\(result.matchedCount) de \(file.lines.count) lançamentos encontrados no app",
         ]
         if !result.moves.isEmpty {
             let names = result.moves.prefix(4).map(\.transaction.title).joined(separator: ", ")
@@ -681,26 +698,34 @@ enum AgentTools {
         }
         if excluded > 0 { details.append("\(excluded) repetida(s) saem das faturas") }
         if toNext > 0 { details.append("\(toNext) vão para a próxima fatura") }
-        let keptExtras = result.extras.filter { !removed.contains($0.id) && ($0.from.map { Calendar.current.isDate($0, equalTo: target.due, toGranularity: .month) } ?? false) }.count
-        if keptExtras > 0 { details.append("\(keptExtras) do app não estão na lista e ficam onde estão") }
+        let kept = result.extras.filter { !removed.contains($0.id) && inTarget($0) }.count
+        if kept > 0 { details.append("\(kept) do app não estão na lista e ficam onde estão") }
         if !result.missing.isEmpty { details.append("\(result.missing.count) ainda não chegaram pelo Open Finance") }
-        details.append("Fatura no app depois: \(brl(after)) · no banco: \(brl(file.total))")
+        details.append("Compras desta fatura no app depois: \(brl(after))")
+        if let bankTotal = file.bankTotal {
+            details.append("Total da fatura no banco: \(brl(bankTotal))")
+            if abs(notItemized) >= 1 {
+                details.append("\(brl(abs(notItemized))) \(notItemized > 0 ? "da fatura não aparece como compra (juros, encargos ou saldo anterior)" : "a mais nas compras do que no total")")
+            }
+        }
 
-        var outcome = proposal(PendingAction(kind: .billCorrections(shifts), title: "Corrigir fatura do cartão", details: details))
-        outcome.response["resultado"] = [
-            "compras_enviadas": lines.count,
-            "encontradas_no_app": result.matchedCount,
+        let summary: [String: Any] = [
+            "lancamentos_enviados": file.lines.count,
+            "encontrados_no_app": result.matchedCount,
             "mudam_para_esta_fatura": result.moves.count,
             "repetidas_removidas": excluded,
             "vao_para_a_proxima": toNext,
-            "ficam_onde_estao": keptExtras,
+            "ficam_onde_estao": kept,
             "nao_chegaram_pelo_open_finance": result.missing.prefix(10).map { ["descricao": PrivacyFilter.neutralizeMarkers($0.title), "valor": money(-$0.amount)] },
-            "total_no_app_depois": money(after),
-            "total_da_lista": money(file.total),
-            "lista_completa_conferida_pelo_total": complete
-        ] as [String: Any]
-        outcome.activity = "Conferiu a fatura de \(monthName)"
-        return outcome
+            "compras_no_app_depois": money(after),
+            "soma_da_lista": money(file.total),
+            "valor_nao_detalhado_como_compra": money(notItemized)
+        ]
+        var fullSummary = summary
+        if let bankTotal = file.bankTotal { fullSummary["total_da_fatura_no_banco"] = money(bankTotal) }
+        return .success(BillCheck(
+            action: PendingAction(kind: .billCorrections(shifts), title: "Corrigir fatura do cartão", details: details),
+            summary: fullSummary, monthName: monthName))
     }
 
     static func parseDateTime(_ text: String) -> Date? {

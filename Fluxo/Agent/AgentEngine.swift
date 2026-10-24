@@ -141,6 +141,14 @@ final class AgentEngine: ObservableObject {
         }
     }
 
+    /// Proposta montada no próprio iPhone (ex.: fatura de um arquivo): aparece na
+    /// conversa como as do agente, mas nada é enviado para a IA.
+    func proposeLocal(display: String, action: PendingAction, note: String? = nil) {
+        entries.append(.user(id: UUID(), text: display))
+        if let note { entries.append(.activity(id: UUID(), text: note)) }
+        entries.append(.action(action))
+    }
+
     /// Aviso local na conversa (não vai para a IA): ex., um print registrado.
     func noteLocal(_ text: String) {
         entries.append(.activity(id: UUID(), text: text))

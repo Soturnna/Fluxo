@@ -87,9 +87,12 @@ struct BillImportSheet: View {
             }
             .onChange(of: targetIndex) { _, _ in compute() }
             LabeledContent("Compras no arquivo", value: "\(file.lines.count)")
-            LabeledContent("Total do arquivo") { MoneyText(value: file.total, font: .body.weight(.semibold)) }
+            LabeledContent("Soma das compras") { MoneyText(value: file.total, font: .body.weight(.semibold)) }
+            if let bankTotal = file.bankTotal {
+                LabeledContent("Total da fatura (banco)") { MoneyText(value: bankTotal, font: .body.weight(.semibold)) }
+            }
         } footer: {
-            Text("Confira se o total bate com o da fatura no app do banco.")
+            Text("Juros, encargos e saldo anterior entram no total do banco, mas não aparecem como compra.")
         }
 
         if let result {

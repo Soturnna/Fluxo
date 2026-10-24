@@ -17,6 +17,8 @@ struct BillFile {
     let lines: [BillFileLine]
     /// Data encontrada no nome do arquivo (o Nubank usa o vencimento: "Nubank_2026-11-07.csv").
     let nameDate: Date?
+    /// Total da fatura informado pelo banco no arquivo (OFX: LEDGERBAL), se houver.
+    var bankTotal: Decimal? = nil
     /// Soma das compras e estornos (sem pagamentos). Positiva = valor a pagar.
     var total: Decimal { -lines.reduce(Decimal(0)) { $0 + $1.amount } }
 }
@@ -73,7 +75,7 @@ enum BillFileParser {
         guard !lines.isEmpty else { throw BillImportError.noLines }
         return BillFile(lines: lines.enumerated().map { index, line in
             BillFileLine(id: index, date: line.date, title: line.title, amount: line.amount, installment: line.installment)
-        }, nameDate: dateInName(fileName))
+        }, nameDate: dateInName(fileName), bankTotal: ofxBalance(text))
     }
 
     private typealias Raw = (date: Date, title: String, amount: Decimal, installment: String?)
@@ -199,6 +201,15 @@ enum BillFileParser {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// OFX de cartão: <LEDGERBAL><BALAMT>-561.46 = total da fatura.
+    private static func ofxBalance(_ text: String) -> Decimal? {
+        guard let ledger = text.range(of: "<LEDGERBAL>"),
+              let tag = text.range(of: "<BALAMT>", range: ledger.upperBound..<text.endIndex) else { return nil }
+        let rest = text[tag.upperBound...]
+        let value = rest.prefix { $0 != "<" && !$0.isNewline }
+        return parseAmount(String(value)).map { abs($0) }
+    }
+
     private static func dateInName(_ name: String) -> Date? {
         guard let range = name.range(of: #"\d{4}-\d{2}-\d{2}"#, options: .regularExpression) else { return nil }
         return parseDate(String(name[range]))
@@ -273,8 +284,9 @@ extension FinanceStore {
         var pairs: [(score: Double, line: Int, id: String)] = []
         for line in file.lines {
             let lineTokens = tokens(line.title)
-            for item in candidates where abs(item.amount - line.amount) < Decimal(string: "0.005")! {
-                var score = 1.0
+            // Até 1 centavo de diferença: o CSV do Nubank corta o centavo (351,41 vira 351,40).
+            for item in candidates where abs(item.amount - line.amount) < Decimal(string: "0.015")! {
+                var score = item.amount == line.amount ? 1.5 : 1.0
                 if line.installment == item.installment { score += 3 } else if line.installment != nil && item.installment != nil { continue }
                 let itemTokens = tokens(item.title).union(tokens(item.description))
                 if !lineTokens.isEmpty { score += 2 * Double(lineTokens.intersection(itemTokens).count) / Double(lineTokens.count) }

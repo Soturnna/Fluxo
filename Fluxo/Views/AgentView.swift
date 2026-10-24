@@ -15,6 +15,7 @@ struct AgentView: View {
     @State private var pickingBill = false
     @State private var billPhotos: [PhotosPickerItem] = []
     @State private var readingBill = false
+    @State private var pickingBillFile = false
     @FocusState private var inputFocused: Bool
 
     private let suggestions = [
@@ -88,6 +89,13 @@ struct AgentView: View {
         .photosPicker(isPresented: $pickingReceipt, selection: $receiptPhoto, matching: .images)
         .photosPicker(isPresented: $pickingBill, selection: $billPhotos, maxSelectionCount: 10,
                       selectionBehavior: .ordered, matching: .images)
+        .fileImporter(isPresented: $pickingBillFile, allowedContentTypes: BillFileParser.contentTypes) { outcome in
+            guard case .success(let url) = outcome else {
+                agent.noteLocal("Não consegui abrir o arquivo.")
+                return
+            }
+            checkBillFile(url)
+        }
         .onChange(of: billPhotos) { _, items in
             guard !items.isEmpty else { return }
             Task { await sendBill(items) }
@@ -193,6 +201,9 @@ struct AgentView: View {
                     Button { pickingBill = true } label: {
                         Label("Conferir fatura do cartão (prints)", systemImage: "creditcard")
                     }
+                    Button { pickingBillFile = true } label: {
+                        Label("Conferir fatura com arquivo (CSV ou OFX)", systemImage: "doc.badge.arrow.up")
+                    }
                 } label: {
                     Image(systemName: readingBill ? "hourglass" : "photo.badge.plus")
                         .font(.system(size: 18, weight: .medium))
@@ -267,6 +278,29 @@ struct AgentView: View {
         """
         Task { await agent.send(message, display: "Conferir a fatura do cartão (\(pages.count) print\(pages.count == 1 ? "" : "s"))",
                                 long: true, store: store, audit: audit) }
+    }
+
+    /// Arquivo da fatura: lido e cruzado no iPhone. Nada vai para a IA.
+    private func checkBillFile(_ url: URL) {
+        let name = url.lastPathComponent
+        do {
+            let file = try BillFileParser.read(url)
+            guard let card = store.creditCards.first else {
+                agent.noteLocal("Nenhum cartão de crédito conectado.")
+                return
+            }
+            let schedule = store.cardSchedule(card)
+            let dueMonth = file.nameDate ?? schedule.open?.due ?? .now
+            switch AgentTools.billCheck(file, dueMonth: dueMonth, store: store) {
+            case .success(let check):
+                agent.proposeLocal(display: "Conferir a fatura com o arquivo \(name)", action: check.action,
+                                   note: "Arquivo lido e cruzado neste iPhone (nada foi enviado para a IA).")
+            case .failure(let error):
+                agent.noteLocal(error.message)
+            }
+        } catch {
+            agent.noteLocal((error as? LocalizedError)?.errorDescription ?? "Não consegui ler o arquivo.")
+        }
     }
 
     /// Tira CPF, número de cartão e outras sequências longas; mantém datas e valores.
