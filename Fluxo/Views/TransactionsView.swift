@@ -188,10 +188,10 @@ struct TransactionsView: View {
     private func billTotal(_ cycle: FinanceStore.BillCycle) -> some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
-                Label("Total da fatura", systemImage: "creditcard")
+                Label(cycle.total < 0 ? "Saldo a favor" : "Total da fatura", systemImage: "creditcard")
                     .font(.caption.weight(.medium))
                     .foregroundStyle(Theme.inkSecondary)
-                MoneyText(value: cycle.total, font: .rounded(.title3, weight: .semibold))
+                MoneyText(value: abs(cycle.total), font: .rounded(.title3, weight: .semibold))
                     .foregroundStyle(Theme.ink)
             }
             .frame(maxWidth: .infinity, alignment: .leading)

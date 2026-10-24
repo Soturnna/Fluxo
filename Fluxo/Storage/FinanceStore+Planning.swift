@@ -118,35 +118,53 @@ extension FinanceStore {
             BillCycle(index: k, close: closeDate(k), due: dueDate(k),
                       status: k < 0 ? .closed : (k == 0 ? .open : .upcoming))
         }
-        func cycleIndex(for date: Date) -> Int? {
-            for (position, k) in (-past...future).enumerated() where date > endOfDay(closeDate(k - 1)) && date <= endOfDay(closeDate(k)) {
-                return position
-            }
-            return nil
+
+        // Cada fatura é identificada pelo MÊS do vencimento.
+        func monthStart(_ date: Date) -> Date { calendar.dateInterval(of: .month, for: date)?.start ?? date }
+        var positionByDueMonth: [Date: Int] = [:]
+        for (position, cycle) in cycles.enumerated() { positionByDueMonth[monthStart(cycle.due)] = position }
+
+        func installmentParts(_ item: StoredTransaction) -> (number: Int, total: Int)? {
+            guard let parts = item.installment?.split(separator: "/").compactMap({ Int($0) }),
+                  parts.count == 2, parts[0] >= 1, parts[0] <= parts[1] else { return nil }
+            return (parts[0], parts[1])
+        }
+
+        /// Mês do vencimento da fatura em que o lançamento cai.
+        /// - Compra à vista ou 1ª parcela: a data é a da compra → vale o
+        ///   fechamento (entra na fatura que fecha logo depois).
+        /// - 2ª parcela em diante: a data já é a do lançamento na fatura,
+        ///   no mês do vencimento (regra descrita na documentação do Pluggy).
+        func dueMonth(of item: StoredTransaction) -> Date {
+            if let parts = installmentParts(item), parts.number >= 2 { return monthStart(item.date) }
+            let base = monthStart(item.date)
+            var close = make(base, day: closeDay)
+            if endOfDay(close) < item.date { close = make(month(base, plus: 1), day: closeDay) }
+            return month(monthStart(close), plus: dueDay > closeDay ? 0 : 1)
         }
 
         // Compras e estornos do cartão (pagamentos da fatura ficam de fora).
         let items = transactions.filter { $0.accountId == card.id && category(for: $0).kind != .transfer }
         for item in items {
-            if let position = cycleIndex(for: item.date) { cycles[position].transactions.append(item) }
+            if let position = positionByDueMonth[dueMonth(of: item)] { cycles[position].transactions.append(item) }
         }
 
-        // Parcelas que o banco ainda não mandou: a partir da mais alta vista.
+        // Parcelas que o banco ainda não mandou: a partir da mais alta vista,
+        // uma por fatura seguinte.
         var latest: [String: (number: Int, total: Int, item: StoredTransaction)] = [:]
         for item in items where item.amount < 0 {
-            guard let parts = item.installment?.split(separator: "/").compactMap({ Int($0) }),
-                  parts.count == 2, parts[0] <= parts[1] else { continue }
-            let key = "\(Self.ruleKey(item.title))|\(item.amount)|\(parts[1])"
-            if let current = latest[key], current.number >= parts[0] { continue }
-            latest[key] = (parts[0], parts[1], item)
+            guard let parts = installmentParts(item) else { continue }
+            let key = "\(Self.ruleKey(item.title))|\(item.amount)|\(parts.total)"
+            if let current = latest[key], current.number >= parts.number { continue }
+            latest[key] = (parts.number, parts.total, item)
         }
         for entry in latest.values where entry.number < entry.total {
+            let firstMonth = dueMonth(of: entry.item)
             for step in 1...(entry.total - entry.number) {
-                guard let date = calendar.date(byAdding: .month, value: step, to: entry.item.date),
-                      let position = cycleIndex(for: date) else { continue }
+                guard let position = positionByDueMonth[month(firstMonth, plus: step)] else { continue }
                 cycles[position].projected.append(ProjectedInstallment(
                     title: entry.item.title, installment: "\(entry.number + step)/\(entry.total)",
-                    amount: entry.item.amount, date: date))
+                    amount: entry.item.amount, date: cycles[position].due))
             }
         }
 

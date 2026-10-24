@@ -72,10 +72,10 @@ struct CreditCardHomeCard: View {
 
                 HStack(alignment: .bottom) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Fatura atual")
+                        Text(summary.openBill < 0 ? "Saldo a favor" : "Fatura atual")
                             .font(.footnote)
                             .foregroundStyle(Theme.inkSecondary)
-                        MoneyText(value: summary.openBill, font: .rounded(.title2, weight: .bold))
+                        MoneyText(value: abs(summary.openBill), font: .rounded(.title2, weight: .bold))
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
@@ -250,12 +250,13 @@ struct CreditCardView: View {
                 RoundedRectangle(cornerRadius: 5).fill(Theme.lime).frame(width: 34, height: 26)
                     .accessibilityHidden(true)
                 Spacer()
-                Text("Fatura atual")
+                Text(summary.openBill < 0 ? "Saldo a favor" : "Fatura atual")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(Theme.onForestSecondary)
             }
             Spacer(minLength: 18)
-            MoneyText(value: summary.openBill, font: .rounded(.largeTitle, weight: .bold))
+            // Estornos maiores que as compras deixam crédito na fatura: mostra sem o "−".
+            MoneyText(value: abs(summary.openBill), font: .rounded(.largeTitle, weight: .bold))
                 .foregroundStyle(.white)
             Text(billDatesLine(summary))
                 .font(.subheadline)
