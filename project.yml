@@ -18,7 +18,10 @@ targets:
     platform: iOS
     sources:
       - path: Fluxo
-    scheme: {}
+    scheme:
+      testTargets:
+        - FluxoTests
+        - FluxoUITests
     info:
       path: Fluxo/Info.plist
       properties:
@@ -81,3 +84,36 @@ targets:
         CODE_SIGNING_ALLOWED: "NO"
         CODE_SIGNING_REQUIRED: "NO"
         CODE_SIGN_IDENTITY: ""
+
+  # Testes (só rodam no simulador do GitHub; não entram na .ipa).
+  # Dados de teste são SINTÉTICOS (FluxoTests/Fixtures), nunca dados reais.
+  FluxoTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: FluxoTests
+        excludes:
+          - "Fixtures/**"
+      - path: FluxoTests/Fixtures
+        buildPhase: resources
+    dependencies:
+      - target: Fluxo
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.soturnna.fluxo.tests
+
+  FluxoUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: FluxoUITests
+      - path: FluxoTests/Fixtures
+        buildPhase: resources
+    dependencies:
+      - target: Fluxo
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.soturnna.fluxo.uitests
+        TEST_TARGET_NAME: Fluxo

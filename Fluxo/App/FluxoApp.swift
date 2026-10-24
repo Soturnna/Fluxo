@@ -17,10 +17,21 @@ struct FluxoApp: App {
 
     var body: some Scene {
         WindowGroup {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("-UITestHarness") {
+                UITestHarnessView()   // só em testes automáticos (Debug); não existe na .ipa
+            } else {
+                AppRoot()
+                    .environmentObject(lock)
+                    .preferredColorScheme(.light)
+                    .tint(Theme.link)
+            }
+            #else
             AppRoot()
                 .environmentObject(lock)
                 .preferredColorScheme(.light)
                 .tint(Theme.link)
+            #endif
         }
     }
 }

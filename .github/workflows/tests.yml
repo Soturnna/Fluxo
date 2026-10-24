@@ -1,0 +1,103 @@
+name: Testar no simulador
+
+# Roda os testes num iPhone simulado: leitura da fatura (CSV/OFX), Colar e o
+# seletor de arquivos (tocando no arquivo de verdade, com prints de cada passo).
+# Os dados de teste são SINTÉTICOS. Os resultados vão para o branch ci-tests.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  testes:
+    name: Testes no simulador
+    runs-on: macos-latest
+    timeout-minutes: 50
+    permissions:
+      contents: write # só para publicar os resultados no branch ci-tests
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Escolher o Xcode estável mais recente
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: latest-stable
+
+      - name: Instalar o XcodeGen e gerar o projeto
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Escolher e ligar um iPhone simulado
+        id: sim
+        run: |
+          xcrun simctl list devices available -j > devices.json
+          UDID=$(python3 - <<'PY'
+          import json, sys
+          devices = json.load(open("devices.json"))["devices"]
+          best = None
+          for runtime, items in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              version = tuple(int(x) for x in runtime.split("iOS-")[1].split("-") if x.isdigit())
+              for d in items:
+                  if d["name"].startswith("iPhone") and d.get("isAvailable", True):
+                      if best is None or version > best[0]:
+                          best = (version, d["udid"], d["name"], runtime)
+          print(best[1])
+          print("Simulador:", best[2], best[3], file=sys.stderr)
+          PY
+          )
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+
+      - name: Colocar o arquivo de teste em "No meu iPhone"
+        run: |
+          UDID=${{ steps.sim.outputs.udid }}
+          xcrun simctl launch "$UDID" com.apple.DocumentsApp || true
+          sleep 20
+          xcrun simctl terminate "$UDID" com.apple.DocumentsApp || true
+          BASE=~/Library/Developer/CoreSimulator/Devices/$UDID/data/Containers/Shared/AppGroup
+          DIR=$(find "$BASE" -maxdepth 2 -type d -name "File Provider Storage" | head -1)
+          echo "Pasta: $DIR"
+          test -n "$DIR"
+          cp FluxoTests/Fixtures/Teste_2026-11-08.ofx "$DIR/"
+          ls -la "$DIR"
+
+      - name: Rodar os testes
+        run: |
+          UDID=${{ steps.sim.outputs.udid }}
+          xcodebuild test \
+            -project Fluxo.xcodeproj \
+            -scheme Fluxo \
+            -configuration Debug \
+            -destination "id=$UDID" \
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=- \
+            > test.log 2>&1 || echo "falhou" > failed.txt
+          grep -E "error:|Test Case .*(passed|failed)|\*\* TEST" test.log | tail -60 || true
+
+      - name: Publicar resultados e prints no branch ci-tests
+        if: always()
+        run: |
+          mkdir -p out/anexos
+          touch test.log
+          xcrun xcresulttool get test-results tests --path TestResults.xcresult > out/testes.json 2>&1 || true
+          xcrun xcresulttool export attachments --path TestResults.xcresult --output-path out/anexos > /dev/null 2>&1 || true
+          grep -E "error:|Test Case|\*\* TEST|XCTAssert" test.log | tail -300 > out/log.txt || true
+          tail -200 test.log > out/tail.txt
+          git config user.name "fluxo-ci"
+          git config user.email "fluxo-ci@users.noreply.github.com"
+          git checkout --orphan ci-tests
+          git rm -rqf --cached . || true
+          git add -f out
+          git commit -qm "testes run ${{ github.run_number }}"
+          git push -qf origin ci-tests
+
+      - name: Falhar se algum teste falhou
+        run: test ! -f failed.txt
