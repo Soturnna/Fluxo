@@ -56,19 +56,6 @@ jobs:
           xcrun simctl boot "$UDID" || true
           xcrun simctl bootstatus "$UDID" -b
 
-      - name: Colocar o arquivo de teste em "No meu iPhone"
-        run: |
-          UDID=${{ steps.sim.outputs.udid }}
-          xcrun simctl launch "$UDID" com.apple.DocumentsApp || true
-          sleep 20
-          xcrun simctl terminate "$UDID" com.apple.DocumentsApp || true
-          BASE=~/Library/Developer/CoreSimulator/Devices/$UDID/data/Containers/Shared/AppGroup
-          DIR=$(find "$BASE" -maxdepth 2 -type d -name "File Provider Storage" | head -1)
-          echo "Pasta: $DIR"
-          test -n "$DIR"
-          cp FluxoTests/Fixtures/Teste_2026-11-08.ofx "$DIR/"
-          ls -la "$DIR"
-
       - name: Rodar os testes
         run: |
           UDID=${{ steps.sim.outputs.udid }}

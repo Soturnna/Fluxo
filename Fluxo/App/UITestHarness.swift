@@ -1,5 +1,6 @@
 #if DEBUG
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
 
 /// Tela SÓ PARA TESTES AUTOMÁTICOS no simulador (compilada apenas em Debug; a .ipa
@@ -33,6 +34,12 @@ struct UITestHarnessView: View {
                     }
                     .accessibilityIdentifier("paste")
                 }
+                Section("Preparação do teste") {
+                    // Salva um arquivo SINTÉTICO em "No meu iPhone" pelo próprio iOS
+                    // (copiar direto para a pasta do simulador não aparece no seletor).
+                    Button("Salvar arquivo de teste") { exportFixture() }
+                        .accessibilityIdentifier("prep.export")
+                }
                 Section("Resultado") {
                     Text(result).accessibilityIdentifier("result")
                 }
@@ -49,6 +56,20 @@ struct UITestHarnessView: View {
             DocumentPicker(isPresented: $sheetPicker) { url in show(url) }
                 .ignoresSafeArea()
         }
+    }
+
+    private func exportFixture() {
+        let lines = ["OFXHEADER:100", "<OFX>", "<CREDITCARDMSGSRSV1><CCSTMTTRNRS><CCSTMTRS><BANKTRANLIST>",
+                     "<STMTTRN>", "<TRNTYPE>DEBIT", "<DTPOSTED>20261001000000[-3:BRT]", "<TRNAMT>-200.50", "<MEMO>Loja Exemplo", "</STMTTRN>",
+                     "<STMTTRN>", "<TRNTYPE>DEBIT", "<DTPOSTED>20261002000000[-3:BRT]", "<TRNAMT>-50.00", "<MEMO>Mercado Exemplo - Parcela 2/3", "</STMTTRN>",
+                     "<STMTTRN>", "<TRNTYPE>CREDIT", "<DTPOSTED>20261003000000[-3:BRT]", "<TRNAMT>182.50", "<MEMO>Estorno Exemplo", "</STMTTRN>",
+                     "</BANKTRANLIST><LEDGERBAL><BALAMT>-150.00</BALAMT></LEDGERBAL></CCSTMTRS></CCSTMTTRNRS></CREDITCARDMSGSRSV1></OFX>"]
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Teste_2026-11-08.ofx")
+        try? lines.joined(separator: "\n").data(using: .utf8)?.write(to: url)
+        guard let top = DocumentPickerPresenter.topViewController() else { return }
+        let picker = UIDocumentPickerViewController(forExporting: [url], asCopy: true)
+        top.present(picker, animated: true)
+        result = "exportando"
     }
 
     private func show(_ url: URL) {

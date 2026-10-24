@@ -59,7 +59,34 @@ final class BillIntakeUITests: XCTestCase {
         expectResult("OK linhas=7 soma=68")
     }
 
-    // MARK: Seletor de arquivos (o workflow põe o arquivo em "No meu iPhone")
+    // MARK: Preparação: salva o arquivo de teste em "No meu iPhone" pelo próprio iOS
+
+    private func tapFirst(_ labels: [String]) -> Bool {
+        for label in labels {
+            let button = app.buttons.matching(NSPredicate(format: "label == %@ OR identifier == %@", label, label)).firstMatch
+            if button.exists && button.isHittable { button.tap(); return true }
+        }
+        return false
+    }
+
+    /// Roda primeiro (ordem alfabética): deixa o arquivo pronto para os testes do seletor.
+    func testA_PrepareFileInFiles() {
+        app.buttons["prep.export"].tap()
+        sleep(3)
+        snap("exportar aberto")
+        let onMyPhone = app.descendants(matching: .any).matching(NSPredicate(format: "label IN %@", ["On My iPhone", "No Meu iPhone"])).firstMatch
+        if !app.navigationBars["On My iPhone"].exists && onMyPhone.exists && onMyPhone.isHittable {
+            onMyPhone.tap(); sleep(2)
+        }
+        snap("exportar destino")
+        XCTAssertTrue(tapFirst(["Save", "Move", "Done", "Salvar", "Mover", "OK"]), "botão de salvar não encontrado")
+        sleep(2)
+        _ = tapFirst(["Replace", "Substituir", "Keep Both", "Manter Ambos"])
+        sleep(2)
+        snap("exportado")
+    }
+
+    // MARK: Seletor de arquivos
 
     private func pick(_ id: String) {
         app.buttons[id].tap()
@@ -67,15 +94,12 @@ final class BillIntakeUITests: XCTestCase {
         snap("seletor aberto")
         let name = NSPredicate(format: "label CONTAINS 'Teste_2026-11-08'")
         var target = app.descendants(matching: .any).matching(name).firstMatch
-        if !target.waitForExistence(timeout: 3) {
-            for label in ["Browse", "Explorar"] where app.buttons[label].exists { app.buttons[label].tap(); break }
-            sleep(2)
+        if !target.waitForExistence(timeout: 5) {
+            let tab = app.tabBars.buttons.matching(NSPredicate(format: "label IN %@", ["Browse", "Explorar"])).firstMatch
+            if tab.exists { tab.tap(); sleep(2) }
             snap("explorar")
-            for label in ["On My iPhone", "No Meu iPhone", "On My iPad"] {
-                let place = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", label)).firstMatch
-                if place.exists { place.tap(); break }
-            }
-            sleep(2)
+            let place = app.cells.matching(NSPredicate(format: "label CONTAINS %@ OR label CONTAINS %@", "On My", "No Meu")).firstMatch
+            if place.exists && place.isHittable { place.tap(); sleep(2) }
             snap("no meu iphone")
             target = app.descendants(matching: .any).matching(name).firstMatch
         }
@@ -87,16 +111,16 @@ final class BillIntakeUITests: XCTestCase {
 
     func testPickerUIKit() {
         pick("pick.uikit")
-        expectResult("OK linhas=7 soma=68 banco=150")
+        expectResult("OK linhas=3 soma=68 banco=150")
     }
 
     func testPickerSwiftUI() {
         pick("pick.swiftui")
-        expectResult("OK linhas=7 soma=68 banco=150")
+        expectResult("OK linhas=3 soma=68 banco=150")
     }
 
     func testPickerInSheet() {
         pick("pick.sheet")
-        expectResult("OK linhas=7 soma=68 banco=150")
+        expectResult("OK linhas=3 soma=68 banco=150")
     }
 }
