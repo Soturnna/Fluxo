@@ -59,33 +59,6 @@ final class BillIntakeUITests: XCTestCase {
         expectResult("OK linhas=7 soma=68")
     }
 
-    // MARK: Preparação: salva o arquivo de teste em "No meu iPhone" pelo próprio iOS
-
-    private func tapFirst(_ labels: [String]) -> Bool {
-        for label in labels {
-            let button = app.buttons.matching(NSPredicate(format: "label == %@ OR identifier == %@", label, label)).firstMatch
-            if button.exists && button.isHittable { button.tap(); return true }
-        }
-        return false
-    }
-
-    /// Roda primeiro (ordem alfabética): deixa o arquivo pronto para os testes do seletor.
-    func testA_PrepareFileInFiles() {
-        app.buttons["prep.export"].tap()
-        sleep(3)
-        snap("exportar aberto")
-        let onMyPhone = app.descendants(matching: .any).matching(NSPredicate(format: "label IN %@", ["On My iPhone", "No Meu iPhone"])).firstMatch
-        if !app.navigationBars["On My iPhone"].exists && onMyPhone.exists && onMyPhone.isHittable {
-            onMyPhone.tap(); sleep(2)
-        }
-        snap("exportar destino")
-        XCTAssertTrue(tapFirst(["Save", "Move", "Done", "Salvar", "Mover", "OK"]), "botão de salvar não encontrado")
-        sleep(2)
-        _ = tapFirst(["Replace", "Substituir", "Keep Both", "Manter Ambos"])
-        sleep(2)
-        snap("exportado")
-    }
-
     // MARK: Seletor de arquivos
 
     private func pick(_ id: String) {
@@ -101,6 +74,10 @@ final class BillIntakeUITests: XCTestCase {
             let place = app.cells.matching(NSPredicate(format: "label CONTAINS %@ OR label CONTAINS %@", "On My", "No Meu")).firstMatch
             if place.exists && place.isHittable { place.tap(); sleep(2) }
             snap("no meu iphone")
+            // Pasta do app (compartilhamento ligado só na compilação de teste).
+            let folder = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Fluxo'")).firstMatch
+            if folder.exists && folder.isHittable { folder.tap(); sleep(2) }
+            snap("pasta fluxo")
             target = app.descendants(matching: .any).matching(name).firstMatch
         }
         XCTAssertTrue(target.waitForExistence(timeout: 10), "arquivo não apareceu no seletor")

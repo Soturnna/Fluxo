@@ -162,8 +162,6 @@ struct CreditCardView: View {
     @State private var tab: BillTab = .current
     @State private var selected: StoredTransaction?
     @State private var importing: ImportRequest?
-    @State private var pickingFile = false
-    @State private var pickedFile: ImportRequest?
     @State private var importError: String?
 
     struct ImportRequest: Identifiable {
@@ -207,21 +205,6 @@ struct CreditCardView: View {
                 .environmentObject(store)
                 .environmentObject(lock)
         }
-        .sheet(isPresented: $pickingFile, onDismiss: {
-            // Abre a conferência só depois que o seletor fechou (duas folhas ao mesmo tempo falham).
-            if let picked = pickedFile { importing = picked; pickedFile = nil }
-        }) {
-            DocumentPicker(isPresented: $pickingFile) { url in
-                guard let card = store.creditCards.first else { return }
-                do {
-                    pickedFile = ImportRequest(card: card, file: try BillFileParser.read(url, deleteAfter: true))
-                    importError = nil
-                } catch {
-                    importError = (error as? LocalizedError)?.errorDescription ?? BillImportError.unreadable.errorDescription
-                }
-            }
-            .ignoresSafeArea()
-        }
     }
 
     // MARK: Com cartão
@@ -249,7 +232,7 @@ struct CreditCardView: View {
         if summary.limit != nil { limitCard(summary) }
         closeDayCard(summary.schedule)
         checkCard(summary)
-        Button { pickingFile = true } label: {
+        Button { importing = ImportRequest(card: summary.account, file: nil) } label: {
             Label("Importar fatura do banco (CSV ou OFX)", systemImage: "doc.badge.arrow.up")
                 .font(.subheadline.weight(.semibold))
                 .frame(maxWidth: .infinity, minHeight: 44)

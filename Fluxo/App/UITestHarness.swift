@@ -34,18 +34,13 @@ struct UITestHarnessView: View {
                     }
                     .accessibilityIdentifier("paste")
                 }
-                Section("Preparação do teste") {
-                    // Salva um arquivo SINTÉTICO em "No meu iPhone" pelo próprio iOS
-                    // (copiar direto para a pasta do simulador não aparece no seletor).
-                    Button("Salvar arquivo de teste") { exportFixture() }
-                        .accessibilityIdentifier("prep.export")
-                }
                 Section("Resultado") {
                     Text(result).accessibilityIdentifier("result")
                 }
             }
             .navigationTitle("Teste de fatura")
         }
+        .onAppear { Self.writeFixture() }
         .fileImporter(isPresented: $swiftUIPicker, allowedContentTypes: BillFileParser.contentTypes) { outcome in
             switch outcome {
             case .success(let url): show(url)
@@ -58,18 +53,17 @@ struct UITestHarnessView: View {
         }
     }
 
-    private func exportFixture() {
+    /// Arquivo SINTÉTICO na pasta Documentos do app. O workflow de testes liga o
+    /// compartilhamento de arquivos só na compilação de teste, então a pasta aparece
+    /// em "No meu iPhone › Fluxo" no seletor (a .ipa não expõe a pasta).
+    static func writeFixture() {
         let lines = ["OFXHEADER:100", "<OFX>", "<CREDITCARDMSGSRSV1><CCSTMTTRNRS><CCSTMTRS><BANKTRANLIST>",
                      "<STMTTRN>", "<TRNTYPE>DEBIT", "<DTPOSTED>20261001000000[-3:BRT]", "<TRNAMT>-200.50", "<MEMO>Loja Exemplo", "</STMTTRN>",
                      "<STMTTRN>", "<TRNTYPE>DEBIT", "<DTPOSTED>20261002000000[-3:BRT]", "<TRNAMT>-50.00", "<MEMO>Mercado Exemplo - Parcela 2/3", "</STMTTRN>",
                      "<STMTTRN>", "<TRNTYPE>CREDIT", "<DTPOSTED>20261003000000[-3:BRT]", "<TRNAMT>182.50", "<MEMO>Estorno Exemplo", "</STMTTRN>",
                      "</BANKTRANLIST><LEDGERBAL><BALAMT>-150.00</BALAMT></LEDGERBAL></CCSTMTRS></CCSTMTTRNRS></CREDITCARDMSGSRSV1></OFX>"]
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Teste_2026-11-08.ofx")
-        try? lines.joined(separator: "\n").data(using: .utf8)?.write(to: url)
-        guard let top = DocumentPickerPresenter.topViewController() else { return }
-        let picker = UIDocumentPickerViewController(forExporting: [url], asCopy: true)
-        top.present(picker, animated: true)
-        result = "exportando"
+        guard let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        try? lines.joined(separator: "\n").data(using: .utf8)?.write(to: docs.appendingPathComponent("Teste_2026-11-08.ofx"))
     }
 
     private func show(_ url: URL) {

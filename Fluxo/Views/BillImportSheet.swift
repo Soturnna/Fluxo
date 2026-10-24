@@ -16,7 +16,6 @@ struct BillImportSheet: View {
         var id: String { rawValue }
     }
 
-    @State private var picking = false
     @State private var file: BillFile?
     @State private var targetIndex = 0
     @State private var result: BillReconciliation?
@@ -40,10 +39,6 @@ struct BillImportSheet: View {
                     ToolbarItem(placement: .confirmationAction) { Button("Aplicar") { apply() }.bold() }
                 }
             }
-            .sheet(isPresented: $picking) {
-                DocumentPicker(isPresented: $picking) { url in load(url) }
-                    .ignoresSafeArea()
-            }
             .onAppear {
                 if file == nil, let initialFile {
                     file = initialFile
@@ -59,21 +54,14 @@ struct BillImportSheet: View {
     private var intro: some View {
         Group {
             Section {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Use a fatura exportada pelo banco para conferir e corrigir as faturas do app.")
-                    Text("No Nubank: abra a fatura e procure a opção de exportar (CSV ou OFX). Salve o arquivo no app Arquivos.")
-                        .foregroundStyle(Theme.inkSecondary)
-                }
-                .font(.subheadline)
-                .padding(.vertical, 4)
-                Button("Escolher arquivo") { picking = true }
-                    .bold()
-            } footer: {
-                Text("O arquivo é lido só neste iPhone e descartado em seguida. Nada vai para a internet nem para o agente.")
+                Text("Use a fatura exportada pelo banco (OFX ou CSV) para conferir e corrigir as faturas do app.")
+                    .font(.subheadline)
+                    .padding(.vertical, 4)
             }
             if let error {
                 Section { Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(Theme.danger) }
             }
+            BillIntakeSection(onFile: { use($0) }, onError: { error = $0 })
         }
     }
 
@@ -194,16 +182,11 @@ struct BillImportSheet: View {
         date.formatted(.dateTime.month(.wide).locale(.ptBR))
     }
 
-    private func load(_ url: URL) {
+    private func use(_ parsed: BillFile) {
         error = nil
-        do {
-            let parsed = try BillFileParser.read(url, deleteAfter: true)
-            file = parsed
-            targetIndex = suggestedIndex(for: parsed)
-            compute()
-        } catch {
-            self.error = (error as? LocalizedError)?.errorDescription ?? BillImportError.unreadable.errorDescription
-        }
+        file = parsed
+        targetIndex = suggestedIndex(for: parsed)
+        compute()
     }
 
     /// Pelo vencimento no nome do arquivo; sem ele, a fatura aberta.

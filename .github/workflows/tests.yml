@@ -30,6 +30,16 @@ jobs:
       - name: Instalar o XcodeGen e gerar o projeto
         run: |
           brew install xcodegen
+          # SÓ NO TESTE: mostra a pasta Documentos do app no "No meu iPhone", para o
+          # teste achar o arquivo sintético no seletor. A .ipa não tem isso.
+          python3 - <<'PY'
+          p = "project.yml"
+          s = open(p).read()
+          old = "        LSSupportsOpeningDocumentsInPlace: false\n"
+          assert old in s
+          s = s.replace(old, "        LSSupportsOpeningDocumentsInPlace: true\n        UIFileSharingEnabled: true\n")
+          open(p, "w").write(s)
+          PY
           xcodegen generate
 
       - name: Escolher e ligar um iPhone simulado

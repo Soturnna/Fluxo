@@ -16,6 +16,7 @@ struct AgentView: View {
     @State private var billPhotos: [PhotosPickerItem] = []
     @State private var readingBill = false
     @State private var pickingBillFile = false
+    @State private var billFileError: String?
     @FocusState private var inputFocused: Bool
 
     private let suggestions = [
@@ -90,8 +91,23 @@ struct AgentView: View {
         .photosPicker(isPresented: $pickingBill, selection: $billPhotos, maxSelectionCount: 10,
                       selectionBehavior: .ordered, matching: .images)
         .sheet(isPresented: $pickingBillFile) {
-            DocumentPicker(isPresented: $pickingBillFile) { url in checkBillFile(url) }
-                .ignoresSafeArea()
+            NavigationStack {
+                Form {
+                    if let billFileError {
+                        Section { Label(billFileError, systemImage: "exclamationmark.triangle").foregroundStyle(Theme.danger) }
+                    }
+                    BillIntakeSection(onFile: { file in
+                        pickingBillFile = false
+                        checkBill(file)
+                    }, onError: { billFileError = $0 })
+                }
+                .navigationTitle("Fatura do cartão")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button("Cancelar") { pickingBillFile = false } }
+                }
+            }
+            .onDisappear { billFileError = nil }
         }
         .onChange(of: billPhotos) { _, items in
             guard !items.isEmpty else { return }
@@ -278,25 +294,19 @@ struct AgentView: View {
     }
 
     /// Arquivo da fatura: lido e cruzado no iPhone. Nada vai para a IA.
-    private func checkBillFile(_ url: URL) {
-        let name = url.lastPathComponent
-        do {
-            let file = try BillFileParser.read(url, deleteAfter: true)
-            guard let card = store.creditCards.first else {
-                agent.noteLocal("Nenhum cartão de crédito conectado.")
-                return
-            }
-            let schedule = store.cardSchedule(card)
-            let dueMonth = file.nameDate ?? schedule.open?.due ?? .now
-            switch AgentTools.billCheck(file, dueMonth: dueMonth, store: store) {
-            case .success(let check):
-                agent.proposeLocal(display: "Conferir a fatura com o arquivo \(name)", action: check.action,
-                                   note: "Arquivo lido e cruzado neste iPhone (nada foi enviado para a IA).")
-            case .failure(let error):
-                agent.noteLocal(error.message)
-            }
-        } catch {
-            agent.noteLocal((error as? LocalizedError)?.errorDescription ?? "Não consegui ler o arquivo.")
+    /// Fatura de um arquivo (colado ou escolhido): cruzada no iPhone. Nada vai para a IA.
+    private func checkBill(_ file: BillFile) {
+        guard let card = store.creditCards.first else {
+            agent.noteLocal("Nenhum cartão de crédito conectado.")
+            return
+        }
+        let dueMonth = file.nameDate ?? store.cardSchedule(card).open?.due ?? .now
+        switch AgentTools.billCheck(file, dueMonth: dueMonth, store: store) {
+        case .success(let check):
+            agent.proposeLocal(display: "Conferir a fatura com o arquivo (\(file.lines.count) lançamentos)", action: check.action,
+                               note: "Arquivo lido e cruzado neste iPhone (nada foi enviado para a IA).")
+        case .failure(let error):
+            agent.noteLocal(error.message)
         }
     }
 
