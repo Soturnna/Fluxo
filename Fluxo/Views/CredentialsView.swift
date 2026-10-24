@@ -1,12 +1,13 @@
 import SwiftUI
 
 enum CredentialKind {
-    case pluggy, gemini
+    case pluggy, gemini, brapi
 
     var title: String {
         switch self {
         case .pluggy: return "Pluggy"
         case .gemini: return "Chave do Gemini"
+        case .brapi: return "Chave do brapi"
         }
     }
 
@@ -15,6 +16,7 @@ enum CredentialKind {
         switch self {
         case .pluggy: return [.pluggyClientId, .pluggyClientSecret, .pluggyItemIds]
         case .gemini: return [.geminiApiKey]
+        case .brapi: return [.brapiToken]
         }
     }
 }
@@ -150,6 +152,14 @@ struct CredentialsView: View {
             } footer: {
                 Text("Crie a chave em aistudio.google.com. Ela só será usada quando o agente for ativado.")
             }
+        case .brapi:
+            Section {
+                SecureField("Token do brapi", text: $apiKey)
+            } header: {
+                Text("brapi.dev (cotações da B3)")
+            } footer: {
+                Text("Crie grátis em brapi.dev, no plano Free. O app só envia códigos de ativos (ex.: listas de mais negociados); nenhum dado seu sai do iPhone.")
+            }
         }
     }
 
@@ -176,7 +186,7 @@ struct CredentialsView: View {
             return !trimmed(clientId).isEmpty
                 && !trimmed(clientSecret).isEmpty
                 && !validItemIds.isEmpty
-        case .gemini:
+        case .gemini, .brapi:
             return !trimmed(apiKey).isEmpty
         }
     }
@@ -199,6 +209,8 @@ struct CredentialsView: View {
                 try KeychainStore.save(validItemIds.joined(separator: ","), for: .pluggyItemIds)
             case .gemini:
                 try KeychainStore.save(trimmed(apiKey), for: .geminiApiKey)
+            case .brapi:
+                try KeychainStore.save(trimmed(apiKey), for: .brapiToken)
             }
             clearFields()
             configured = true

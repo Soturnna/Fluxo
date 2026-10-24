@@ -7,6 +7,7 @@ enum KeychainKey: String, CaseIterable {
     case pluggyClientSecret = "pluggy.clientSecret"
     case pluggyItemIds = "pluggy.itemIds"
     case geminiApiKey = "gemini.apiKey"
+    case brapiToken = "brapi.token"         // cotações (só códigos de ativos saem do iPhone)
     case vaultKey = "vault.key"          // chave que cifra o cofre local
 }
 

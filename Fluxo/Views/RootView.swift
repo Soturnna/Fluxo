@@ -37,7 +37,13 @@ struct RootView: View {
                 case .budgets:
                     BudgetsView()
                 case .investments:
-                    InvestmentsView()
+                    InvestmentsView(
+                        askAgent: { prompt in
+                            showAgent = true
+                            Task { await agent.send(prompt, store: finance, audit: audit) }
+                        },
+                        openSettings: { showSettings = true }
+                    )
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

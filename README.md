@@ -16,7 +16,8 @@ pelo GitHub Actions.
 | 4b | Respostas visuais do agente: gráficos calculados no iPhone e sugestões de ação | ✅ |
 | 5 | Notificações locais: orçamentos, ritmo do mês, gasto alto, gastos previstos, resumo semanal e conexão expirando | 🧪 |
 | 6 | Lançamentos provisórios (print, Apple Pay, agente), saldo estimado, conciliação e diagnóstico do cartão | 🧪 |
-| 7 | Cartão separado da conta, fluxo de caixa projetado, recorrentes, filtro Conta/Cartão e aba Investimentos | 🧪 |
+| 7 | Cartão separado da conta (faturas por ciclo), fluxo de caixa projetado, recorrentes, filtro Conta/Cartão e aba Investimentos | 🧪 |
+| 8 | Investimentos › Explorar: antes de investir, perfil, plano em ordem, mercado (brapi) e simulador | 🧪 |
 
 ## Modelo de segurança
 
@@ -93,6 +94,7 @@ pelo GitHub Actions.
 - `Fluxo/Storage`: cofre cifrado, modelos guardados, categorias e sincronização
 - `Fluxo/Agent`: cliente do Gemini, ferramentas, filtro de privacidade, registro e respostas visuais
 - `Fluxo/Capture`: leitura de prints (Vision), caixa de entrada e ação do app Atalhos
+- `Fluxo/Market`: cliente do brapi.dev (cotações da B3, só leitura, lista de permissão)
 - `Fluxo/Notifications`: alertas locais, checagem em segundo plano e abertura na aba certa
 - `Fluxo/Design`: tema e componentes visuais
 - `Fluxo/Views`: telas

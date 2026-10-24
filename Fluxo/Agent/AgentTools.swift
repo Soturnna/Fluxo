@@ -86,6 +86,11 @@ enum AgentTools {
                 "parameters": object([:])
             ],
             [
+                "name": "perfil_investidor",
+                "description": "Situação para investir: perfil do questionário, cartão em dia, reserva de emergência (atual e meta de 6 meses de gastos), sobra média mensal e o plano em ordem calculado pelo app. Só totais.",
+                "parameters": object([:])
+            ],
+            [
                 "name": "listar_categorias",
                 "description": "Lista as categorias existentes e o tipo de cada uma (gasto, renda ou não conta).",
                 "parameters": object([:])
@@ -166,6 +171,7 @@ enum AgentTools {
         case "buscar_transacoes": return search(args, store, privacy)
         case "listar_categorias": return listCategories(store)
         case "carteira_investimentos": return portfolio(store)
+        case "perfil_investidor": return investorProfile(store)
         case "listar_gastos_previstos": return listPlanned(store, privacy)
         case "prever_gasto": return proposePlan(args, store)
         case "remover_gasto_previsto": return proposeRemovePlanned(args, store, privacy)
@@ -245,13 +251,22 @@ enum AgentTools {
         if let card = store.creditCards.first {
             let summary = store.cardSummary(card)
             var cardInfo: [String: Any] = [
-                "fatura_aberta": money(summary.openBill),
+                "fatura_atual": money(summary.openBill),
+                "proximas_faturas": money(summary.futureBills),
+                "total_no_cartao": money(summary.totalUsed),
                 "gasto_no_cartao_no_mes": money(store.totals(inMonthOf: month, origin: .card).spent),
-                "bloqueado": card.isCardBlocked
+                "bloqueado": card.isCardBlocked,
+                "dia_de_fechamento": summary.schedule.closeDay
             ]
-            if let due = card.billDueDate { cardInfo["vencimento"] = dayString(due) }
-            if let close = card.billCloseDate { cardInfo["fechamento"] = dayString(close) }
-            if let fraction = summary.usedFraction { cardInfo["limite_usado_percentual"] = Int((fraction * 100).rounded()) }
+            if let due = summary.schedule.open?.due { cardInfo["vencimento_fatura_atual"] = dayString(due) }
+            if let close = summary.nextClose { cardInfo["fechamento_fatura_atual"] = dayString(close) }
+            if let unpaid = summary.schedule.closedUnpaid {
+                cardInfo["fatura_fechada_a_pagar"] = ["valor": money(unpaid.total), "vencimento": dayString(unpaid.due)]
+            }
+            cardInfo["proximas_por_mes"] = summary.schedule.upcoming.prefix(6).map {
+                ["vencimento": dayString($0.due), "valor": money($0.total)]
+            }
+            if let percent = summary.usedPercent { cardInfo["limite_usado_percentual"] = percent }
             if let available = summary.available { cardInfo["limite_disponivel"] = money(available) }
             response["cartao_credito"] = cardInfo
         }
@@ -362,6 +377,41 @@ enum AgentTools {
             ],
             activity: "Consultou \(results.count) \(results.count == 1 ? "transação" : "transações")"
         )
+    }
+
+    private static func investorProfile(_ store: FinanceStore) -> ToolOutcome {
+        let readiness = store.investReadiness()
+        var response: [String: Any] = [
+            "cartao": [
+                "situacao": { () -> String in
+                    switch readiness.cardState {
+                    case .ok: return "em_dia"
+                    case .warning: return "fatura_a_pagar"
+                    case .pending: return "pendente"
+                    case .unknown: return "sem_dados"
+                    }
+                }(),
+                "detalhe": readiness.cardDetail
+            ],
+            "reserva_atual_renda_fixa": money(readiness.reserveCurrent),
+            "reserva_meta_6_meses": money(readiness.reserveTarget),
+            "gasto_medio_mensal": money(readiness.averageSpending),
+            "carteira_total": money(store.investedTotal),
+            "plano_do_app": store.investmentPlan().map { ["passo": $0.title, "detalhe": $0.detail] }
+        ]
+        if let surplus = readiness.monthlySurplus { response["sobra_media_mensal"] = money(surplus) }
+        if let profile = store.userData.investorProfile {
+            response["perfil"] = [
+                "tipo": profile.label,
+                "objetivo": profile.objectiveLabel,
+                "prazo": profile.horizonLabel,
+                "reacao_a_queda_de_20": InvestorProfile.questions[2].options[min(max(profile.reaction, 0), 2)],
+                "experiencia": InvestorProfile.questions[3].options[min(max(profile.experience, 0), 2)]
+            ]
+        } else {
+            response["perfil"] = "nao_respondido"
+        }
+        return ToolOutcome(response: response, activity: "Consultou sua situação para investir")
     }
 
     private static func portfolio(_ store: FinanceStore) -> ToolOutcome {

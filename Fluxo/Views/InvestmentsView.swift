@@ -5,9 +5,30 @@ struct InvestmentsView: View {
     @EnvironmentObject private var store: FinanceStore
     @EnvironmentObject private var lock: AppLock
     @State private var showWithdrawn = false
+    @State private var exploring = false
+    let askAgent: (String) -> Void
+    let openSettings: () -> Void
 
     var body: some View {
         Screen("Investimentos") {
+            Picker("Seção", selection: $exploring) {
+                Text("Minha carteira").tag(false)
+                Text("Explorar").tag(true)
+            }
+            .pickerStyle(.segmented)
+
+            if exploring {
+                InvestExploreView(askAgent: askAgent, openSettings: openSettings)
+            } else {
+                portfolio
+            }
+        }
+        .refreshable { await store.sync() }
+        .task { await store.syncIfStale() }
+    }
+
+    @ViewBuilder
+    private var portfolio: some View {
             if let bankAt = store.bankDataAt {
                 Text("Dados do banco de \(FinanceStore.bankTimeLabel(bankAt))")
                     .font(.footnote)
@@ -47,9 +68,6 @@ struct InvestmentsView: View {
                     .foregroundStyle(Theme.inkTertiary)
                     .padding(.horizontal, 4)
             }
-        }
-        .refreshable { await store.sync() }
-        .task { await store.syncIfStale() }
     }
 
     private var hero: some View {

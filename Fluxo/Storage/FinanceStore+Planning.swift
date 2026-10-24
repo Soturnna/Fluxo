@@ -25,83 +25,191 @@ extension FinanceStore {
 }
 
 // MARK: - Cartão de crédito
+//
+// O "saldo" de um cartão no Pluggy é TUDO o que está comprometido (fatura
+// atual + próximas), não a fatura atual. E a data de vencimento que chega
+// pode ser a da fatura que já passou. Por isso o app monta os CICLOS da
+// fatura como o banco faz: cada compra entra na fatura cujo fechamento vem
+// logo depois da data dela. Alguns bancos mandam todas as parcelas futuras
+// de uma vez, cada uma datada no mês da sua fatura; outros mandam uma por
+// mês. No segundo caso, as que faltam são PREVISTAS pelo app.
 
 extension FinanceStore {
+    /// Uma parcela que o banco ainda não mandou, prevista pelo app.
+    struct ProjectedInstallment: Identifiable {
+        let id = UUID()
+        let title: String
+        let installment: String      // "4/10"
+        let amount: Decimal          // negativo
+        let date: Date
+    }
+
+    /// Uma fatura (ciclo): do fechamento anterior até o fechamento dela.
+    struct BillCycle: Identifiable {
+        enum Status { case closed, open, upcoming }
+        let index: Int               // 0 = aberta; negativos = fechadas; positivos = futuras
+        let close: Date
+        let due: Date
+        let status: Status
+        var transactions: [StoredTransaction] = []
+        var projected: [ProjectedInstallment] = []
+
+        var id: Int { index }
+
+        /// Valor da fatura (positivo = a pagar).
+        var total: Decimal {
+            -(transactions.reduce(Decimal(0)) { $0 + $1.amount } + projected.reduce(Decimal(0)) { $0 + $1.amount })
+        }
+
+        /// "novembro" (mês do vencimento).
+        var monthName: String {
+            due.formatted(.dateTime.month(.wide).locale(.ptBR))
+        }
+    }
+
+    struct CardSchedule {
+        let card: StoredAccount
+        let closeDay: Int
+        let dueDay: Int
+        /// Dia de fechamento calculado (o banco não informou e você não ajustou).
+        let closeDayIsEstimate: Bool
+        let cycles: [BillCycle]
+
+        var open: BillCycle? { cycles.first { $0.index == 0 } }
+        var upcoming: [BillCycle] { cycles.filter { $0.index > 0 } }
+        var closed: [BillCycle] { cycles.filter { $0.index < 0 }.sorted { $0.index > $1.index } }
+        /// Fatura que já fechou mas ainda não venceu (a pagar).
+        var closedUnpaid: BillCycle? {
+            let today = Calendar.current.startOfDay(for: .now)
+            return cycles.first { $0.index == -1 && $0.due >= today }
+        }
+        var futureTotal: Decimal { upcoming.reduce(Decimal(0)) { $0 + $1.total } }
+    }
+
+    /// Monta as faturas do cartão: `past` fechadas, a aberta e `future` futuras.
+    func cardSchedule(_ card: StoredAccount, past: Int = 3, future: Int = 6) -> CardSchedule {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+        let dueDay = card.billDueDate.map { calendar.component(.day, from: $0) } ?? 10
+        let userClose = userData.cardCloseDays[card.id]
+        let bankClose = card.billCloseDate.map { calendar.component(.day, from: $0) }
+        let closeDay = userClose ?? bankClose ?? Self.estimatedCloseDay(dueDay: dueDay)
+
+        func make(_ monthStart: Date, day: Int) -> Date {
+            let length = calendar.range(of: .day, in: .month, for: monthStart)?.count ?? 28
+            return calendar.date(byAdding: .day, value: min(day, length) - 1, to: monthStart) ?? monthStart
+        }
+        func month(_ base: Date, plus value: Int) -> Date {
+            calendar.date(byAdding: .month, value: value, to: base) ?? base
+        }
+
+        // Fatura aberta: a primeira cujo fechamento é hoje ou depois.
+        var openMonth = calendar.dateInterval(of: .month, for: today)?.start ?? today
+        if make(openMonth, day: closeDay) < today { openMonth = month(openMonth, plus: 1) }
+
+        func closeDate(_ k: Int) -> Date { make(month(openMonth, plus: k), day: closeDay) }
+        func dueDate(_ k: Int) -> Date {
+            // Vence no mesmo mês do fechamento se o dia vier depois; senão, no mês seguinte.
+            make(month(openMonth, plus: dueDay > closeDay ? k : k + 1), day: dueDay)
+        }
+        func endOfDay(_ date: Date) -> Date { date.addingTimeInterval(86_399) }
+
+        var cycles = (-past...future).map { k in
+            BillCycle(index: k, close: closeDate(k), due: dueDate(k),
+                      status: k < 0 ? .closed : (k == 0 ? .open : .upcoming))
+        }
+        func cycleIndex(for date: Date) -> Int? {
+            for (position, k) in (-past...future).enumerated() where date > endOfDay(closeDate(k - 1)) && date <= endOfDay(closeDate(k)) {
+                return position
+            }
+            return nil
+        }
+
+        // Compras e estornos do cartão (pagamentos da fatura ficam de fora).
+        let items = transactions.filter { $0.accountId == card.id && category(for: $0).kind != .transfer }
+        for item in items {
+            if let position = cycleIndex(for: item.date) { cycles[position].transactions.append(item) }
+        }
+
+        // Parcelas que o banco ainda não mandou: a partir da mais alta vista.
+        var latest: [String: (number: Int, total: Int, item: StoredTransaction)] = [:]
+        for item in items where item.amount < 0 {
+            guard let parts = item.installment?.split(separator: "/").compactMap({ Int($0) }),
+                  parts.count == 2, parts[0] <= parts[1] else { continue }
+            let key = "\(Self.ruleKey(item.title))|\(item.amount)|\(parts[1])"
+            if let current = latest[key], current.number >= parts[0] { continue }
+            latest[key] = (parts[0], parts[1], item)
+        }
+        for entry in latest.values where entry.number < entry.total {
+            for step in 1...(entry.total - entry.number) {
+                guard let date = calendar.date(byAdding: .month, value: step, to: entry.item.date),
+                      let position = cycleIndex(for: date) else { continue }
+                cycles[position].projected.append(ProjectedInstallment(
+                    title: entry.item.title, installment: "\(entry.number + step)/\(entry.total)",
+                    amount: entry.item.amount, date: date))
+            }
+        }
+
+        for position in cycles.indices {
+            cycles[position].transactions.sort { $0.date > $1.date }
+        }
+        return CardSchedule(card: card, closeDay: closeDay, dueDay: dueDay,
+                            closeDayIsEstimate: userClose == nil && bankClose == nil, cycles: cycles)
+    }
+
+    /// Sem informação do banco: fecha 7 dias antes do vencimento.
+    static func estimatedCloseDay(dueDay: Int) -> Int {
+        let day = dueDay - 7
+        return day >= 1 ? day : day + 30
+    }
+
+    func setCardCloseDay(_ day: Int?, for cardId: String) {
+        var data = userData
+        data.cardCloseDays[cardId] = day.map { min(max($0, 1), 31) }
+        saveUserData(data)
+    }
+
     struct CardSummary {
         let account: StoredAccount
-        /// Fatura em aberto (o que já está lançado no ciclo atual).
-        let openBill: Decimal
-        let limit: Decimal?
-        let available: Decimal?
-        /// Limite comprometido = limite − disponível (inclui parcelas futuras).
+        let schedule: CardSchedule
+        /// Fatura aberta (ciclo atual).
+        var openBill: Decimal { schedule.open?.total ?? 0 }
+        /// Soma das próximas faturas (parcelas já compradas).
+        var futureBills: Decimal { schedule.futureTotal }
+        /// Tudo o que está comprometido no cartão, segundo o banco.
+        var totalUsed: Decimal { abs(account.balance) }
+        var limit: Decimal? { account.creditLimit }
+        var available: Decimal? { account.availableCreditLimit }
+        var nextClose: Date? { schedule.open?.close }
+        var nextDue: Date? { schedule.closedUnpaid?.due ?? schedule.open?.due }
+
+        /// Limite comprometido = limite − disponível.
         var used: Decimal? {
             guard let limit, let available else { return nil }
             return limit - available
         }
+        /// Para a barra (vai até 100%).
         var usedFraction: Double? {
+            guard let ratio = usedRatio else { return nil }
+            return min(max(ratio, 0), 1)
+        }
+        /// Sem teto: 149% quando passou do limite.
+        var usedPercent: Int? { usedRatio.map { Int(($0 * 100).rounded()) } }
+        var isOverLimit: Bool { (usedRatio ?? 0) > 1 }
+
+        private var usedRatio: Double? {
             guard let used, let limit, limit > 0 else { return nil }
-            return min(max((used as NSDecimalNumber).doubleValue / (limit as NSDecimalNumber).doubleValue, 0), 1)
+            return (used as NSDecimalNumber).doubleValue / (limit as NSDecimalNumber).doubleValue
         }
     }
 
     func cardSummary(_ card: StoredAccount) -> CardSummary {
-        CardSummary(account: card, openBill: abs(card.balance), limit: card.creditLimit, available: card.availableCreditLimit)
+        CardSummary(account: card, schedule: cardSchedule(card))
     }
 
-    /// Compras do ciclo atual: do fechamento anterior até o próximo.
-    /// Sem data de fechamento, usa o mês corrente.
-    func currentBillTransactions(_ card: StoredAccount) -> [StoredTransaction] {
-        let calendar = Calendar.current
-        // Pagamentos da fatura ("não conta") ficam fora da lista de compras.
-        let cardItems = transactions.filter {
-            $0.accountId == card.id && category(for: $0).kind != .transfer
-        }
-        if let close = card.billCloseDate, let previous = calendar.date(byAdding: .month, value: -1, to: close) {
-            return cardItems.filter { $0.date > previous && $0.date <= close.addingTimeInterval(86_399) }
-        }
-        return cardItems.filter { calendar.isDate($0.date, equalTo: .now, toGranularity: .month) }
-    }
-
-    /// Faturas fechadas, da mais recente para a mais antiga.
+    /// Faturas fechadas informadas pelo banco, da mais recente para a mais antiga.
     func closedBills(_ card: StoredAccount) -> [StoredBill] {
         bills.filter { $0.accountId == card.id }.sorted { $0.dueDate > $1.dueDate }
-    }
-
-    struct InstallmentMonth: Identifiable {
-        let month: Date
-        let total: Decimal
-        var id: Date { month }
-    }
-
-    /// Quanto das próximas faturas já está decidido por compras parceladas.
-    /// Para cada compra parcelada, vale a parcela mais recente vista ("3/10"):
-    /// as 7 que faltam caem, uma por mês, nos meses seguintes.
-    func upcomingInstallments(_ card: StoredAccount, months: Int = 6) -> [InstallmentMonth] {
-        let calendar = Calendar.current
-        guard let thisMonth = calendar.dateInterval(of: .month, for: .now)?.start else { return [] }
-
-        var latest: [String: (number: Int, total: Int, amount: Decimal, date: Date)] = [:]
-        for item in transactions where item.accountId == card.id && item.amount < 0 {
-            guard let installment = item.installment else { continue }
-            let parts = installment.split(separator: "/").compactMap { Int($0) }
-            guard parts.count == 2, parts[0] < parts[1] else { continue }
-            let key = "\(Self.ruleKey(item.title))|\(item.amount)|\(parts[1])"
-            if let current = latest[key], current.number >= parts[0] { continue }
-            latest[key] = (parts[0], parts[1], -item.amount, item.date)
-        }
-
-        var byMonth: [Date: Decimal] = [:]
-        for entry in latest.values {
-            guard let postedMonth = calendar.dateInterval(of: .month, for: entry.date)?.start else { continue }
-            for step in 1...(entry.total - entry.number) {
-                guard let month = calendar.date(byAdding: .month, value: step, to: postedMonth), month > thisMonth else { continue }
-                byMonth[month, default: 0] += entry.amount
-            }
-        }
-        return (1...months).compactMap { offset in
-            guard let month = calendar.date(byAdding: .month, value: offset, to: thisMonth) else { return nil }
-            return InstallmentMonth(month: month, total: byMonth[month] ?? 0)
-        }
     }
 }
 
@@ -260,10 +368,12 @@ extension FinanceStore {
             events.append(CashFlowEvent(date: planned.date, title: planned.title, kind: .planned, amount: -planned.amount))
         }
         for card in creditCards {
-            guard let due = card.billDueDate, due >= today, due <= horizon else { continue }
-            let open = cardSummary(card).openBill
-            if open > 0 {
-                events.append(CashFlowEvent(date: due, title: "Fatura do cartão", kind: .cardBill, amount: -open))
+            let schedule = cardSchedule(card, past: 1, future: 2)
+            for cycle in schedule.cycles where cycle.due >= today && cycle.due <= horizon && cycle.total > 0 {
+                // Fechada e já paga não entra: só a fechada que ainda vai vencer e as abertas.
+                if cycle.status == .closed && schedule.closedUnpaid?.index != cycle.index { continue }
+                events.append(CashFlowEvent(date: cycle.due, title: "Fatura do cartão (\(cycle.monthName))",
+                                            kind: .cardBill, amount: -cycle.total))
             }
         }
         events.sort { $0.date < $1.date }
@@ -398,5 +508,127 @@ extension StoredInvestment {
         }
         if let fixedAnnualRate { return "\(number(fixedAnnualRate))% a.a." }
         return nil
+    }
+}
+
+// MARK: - Antes de investir
+
+extension FinanceStore {
+    struct InvestReadiness {
+        enum State { case ok, warning, pending, unknown }
+
+        let cardState: State
+        let cardDetail: String
+        let reserveCurrent: Decimal
+        let reserveTarget: Decimal
+        let averageSpending: Decimal
+        /// Média de (entradas − gastos) nos últimos 3 meses completos.
+        let monthlySurplus: Decimal?
+
+        var reserveFraction: Double {
+            guard reserveTarget > 0 else { return 0 }
+            return min((reserveCurrent as NSDecimalNumber).doubleValue / (reserveTarget as NSDecimalNumber).doubleValue, 1)
+        }
+        var reserveDone: Bool { reserveTarget > 0 && reserveCurrent >= reserveTarget }
+    }
+
+    struct PlanStep: Identifiable {
+        let id = UUID()
+        let title: String
+        let detail: String
+    }
+
+    /// Checagens feitas só com dados do iPhone: cartão, reserva e sobra.
+    func investReadiness() -> InvestReadiness {
+        let calendar = Calendar.current
+        let thisMonth = calendar.dateInterval(of: .month, for: .now)?.start ?? .now
+        let months = (1...3).compactMap { calendar.date(byAdding: .month, value: -$0, to: thisMonth) }
+        let totals = months.map { totals(inMonthOf: $0) }
+        let withData = totals.filter { $0.spent > 0 || $0.income > 0 }
+        let count = Decimal(max(withData.count, 1))
+        let averageSpending = withData.reduce(Decimal(0)) { $0 + $1.spent } / count
+        let surplus: Decimal? = withData.isEmpty ? nil : withData.reduce(Decimal(0)) { $0 + $1.income - $1.spent } / count
+
+        // Reserva: o que está em renda fixa (onde costuma ficar a reserva).
+        let reserve = activeInvestments.filter { $0.type == "FIXED_INCOME" }.reduce(Decimal(0)) { $0 + $1.balance }
+
+        var state = InvestReadiness.State.unknown
+        var detail = "Cartão de crédito não aparece no Open Finance."
+        if let card = creditCards.first {
+            let summary = cardSummary(card)
+            if summary.isOverLimit {
+                state = .pending
+                detail = "Fatura acima do limite. Quitar vem primeiro: o juro do cartão é maior que o rendimento de qualquer investimento."
+            } else if card.isCardBlocked {
+                state = .pending
+                detail = "Cartão bloqueado no banco. Vale entender o motivo e regularizar antes de investir."
+            } else if let unpaid = summary.schedule.closedUnpaid, unpaid.total > 0 {
+                state = .warning
+                detail = "Fatura de \(unpaid.monthName) fechada, vence \(Self.dayLabel(unpaid.due)). Garanta o pagamento integral."
+            } else {
+                state = .ok
+                detail = "Sem fatura atrasada nem limite estourado."
+            }
+        }
+
+        return InvestReadiness(
+            cardState: state, cardDetail: detail,
+            reserveCurrent: reserve,
+            reserveTarget: Money.decimal(from: (averageSpending as NSDecimalNumber).doubleValue * 6),
+            averageSpending: averageSpending,
+            monthlySurplus: surplus.map { Money.decimal(from: ($0 as NSDecimalNumber).doubleValue) }
+        )
+    }
+
+    /// Plano em ordem de prioridade (como um CASE WHEN): cartão → sobra →
+    /// reserva → investir conforme o perfil. Educativo, sem indicar ativo.
+    func investmentPlan() -> [PlanStep] {
+        let readiness = investReadiness()
+        let profile = userData.investorProfile
+        var steps: [PlanStep] = []
+
+        if readiness.cardState == .pending {
+            steps.append(PlanStep(title: "Quitar o cartão",
+                                  detail: "Antes de qualquer aplicação. Cada real aqui \"rende\" o juro que você deixa de pagar."))
+        }
+
+        guard let surplus = readiness.monthlySurplus, surplus > 0 else {
+            steps.append(PlanStep(title: "Fazer sobrar dinheiro no mês",
+                                  detail: "Nos últimos meses, saiu mais do que entrou. Os recorrentes e os orçamentos ajudam a achar onde cortar."))
+            return steps
+        }
+
+        let surplusText = AgentTools.brl(surplus)
+        if !readiness.reserveDone {
+            let missing = readiness.reserveTarget - readiness.reserveCurrent
+            let monthly = Money.decimal(from: (surplus as NSDecimalNumber).doubleValue * 0.6)
+            let monthsNeeded = monthly > 0 ? Int(ceil((missing as NSDecimalNumber).doubleValue / (monthly as NSDecimalNumber).doubleValue)) : 0
+            steps.append(PlanStep(
+                title: "Completar a reserva de emergência",
+                detail: "Faltam \(AgentTools.brl(missing)) para 6 meses de gastos. Com \(AgentTools.brl(monthly)) por mês (60% da sua sobra de \(surplusText)), leva cerca de \(monthsNeeded) \(monthsNeeded == 1 ? "mês" : "meses"). Prefira resgate diário, como Caixinha ou Tesouro Selic."
+            ))
+        }
+
+        let share = readiness.reserveDone ? surplus : Money.decimal(from: (surplus as NSDecimalNumber).doubleValue * 0.4)
+        let amount = AgentTools.brl(share)
+        switch profile?.label {
+        case "Conservador":
+            steps.append(PlanStep(title: "Investir com segurança", detail: "\(amount) por mês em renda fixa: CDB, LCI/LCA e Tesouro, de bancos e prazos diferentes."))
+        case "Arrojado":
+            steps.append(PlanStep(title: "Diversificar para crescer", detail: "\(amount) por mês divididos entre renda fixa, FIIs (renda mensal) e ações ou ETFs, de setores diferentes."))
+        case "Moderado":
+            steps.append(PlanStep(title: "Renda extra com FIIs", detail: "\(amount) por mês: a maior parte em renda fixa e uma parte em 3 a 5 FIIs de setores diferentes, que costumam pagar todo mês."))
+        default:
+            steps.append(PlanStep(title: "Descobrir o seu perfil", detail: "Responda as 4 perguntas abaixo para o plano indicar como dividir \(amount) por mês."))
+        }
+        return steps
+    }
+}
+
+extension FinanceStore {
+    func saveInvestorProfile(_ profile: InvestorProfile) {
+        var data = userData
+        data.investorProfile = profile
+        saveUserData(data)
     }
 }

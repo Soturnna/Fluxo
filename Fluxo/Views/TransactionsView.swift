@@ -10,6 +10,14 @@ struct TransactionsView: View {
     @State private var query = ""
     /// Filtro por origem: nil = tudo; conta ou cartão.
     @State private var origin: FinanceStore.Origin?
+    /// No modo Cartão, a navegação é por fatura: 0 = aberta, negativos = fechadas, positivos = futuras.
+    @State private var billIndex = 0
+
+    /// Faturas do cartão (só no filtro Cartão).
+    private var schedule: FinanceStore.CardSchedule? {
+        guard origin == .card, let card = store.creditCards.first else { return nil }
+        return store.cardSchedule(card)
+    }
 
     private var monthTransactions: [StoredTransaction] {
         let items = store.transactions(inMonthOf: month)
@@ -36,10 +44,21 @@ struct TransactionsView: View {
         Screen("Transações") {
             searchField
             if !store.creditCards.isEmpty { originPicker }
-            monthSwitcher
-            totalsRow
-            plannedSection
-            content
+            if let schedule, let cycle = schedule.cycles.first(where: { $0.index == billIndex }) {
+                billSwitcher(schedule, cycle)
+                billTotal(cycle)
+                if cycle.transactions.isEmpty && cycle.projected.isEmpty {
+                    EmptyStateView(systemName: "creditcard", title: "Fatura sem lançamentos",
+                                   message: "Nenhuma compra ou parcela cai nesta fatura.")
+                } else {
+                    BillItemsList(cycle: cycle, query: query) { selected = $0 }
+                }
+            } else {
+                monthSwitcher
+                totalsRow
+                plannedSection
+                content
+            }
         }
         .refreshable { await store.sync() }
         .task { await store.syncIfStale() }
@@ -125,6 +144,70 @@ struct TransactionsView: View {
             Text("Cartão").tag(FinanceStore.Origin?.some(.card))
         }
         .pickerStyle(.segmented)
+    }
+
+    /// ‹ Fatura de novembro › com a situação e as datas.
+    private func billSwitcher(_ schedule: FinanceStore.CardSchedule, _ cycle: FinanceStore.BillCycle) -> some View {
+        let indices = schedule.cycles.map(\.index)
+        let status: String
+        switch cycle.status {
+        case .open: status = "Aberta · fecha \(FinanceStore.dayLabel(cycle.close)) · vence \(FinanceStore.dayLabel(cycle.due))"
+        case .closed: status = cycle.due >= Calendar.current.startOfDay(for: .now)
+            ? "Fechada · vence \(FinanceStore.dayLabel(cycle.due))"
+            : "Fechada · venceu \(FinanceStore.dayLabel(cycle.due))"
+        case .upcoming: status = "Futura · vence \(FinanceStore.dayLabel(cycle.due))"
+        }
+        return HStack {
+            Button { billIndex -= 1 } label: {
+                Image(systemName: "chevron.left").frame(width: 44, height: 44)
+            }
+            .disabled(billIndex <= (indices.min() ?? 0))
+            .accessibilityLabel("Fatura anterior")
+
+            Spacer()
+            VStack(spacing: 2) {
+                Text("Fatura de \(cycle.monthName)")
+                    .font(.headline)
+                    .foregroundStyle(Theme.ink)
+                Text(status)
+                    .font(.caption)
+                    .foregroundStyle(cycle.status == .open ? Theme.link : Theme.inkSecondary)
+            }
+            Spacer()
+
+            Button { billIndex += 1 } label: {
+                Image(systemName: "chevron.right").frame(width: 44, height: 44)
+            }
+            .disabled(billIndex >= (indices.max() ?? 0))
+            .accessibilityLabel("Próxima fatura")
+        }
+        .font(.body.weight(.medium))
+        .foregroundStyle(Theme.ink)
+    }
+
+    private func billTotal(_ cycle: FinanceStore.BillCycle) -> some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 4) {
+                Label("Total da fatura", systemImage: "creditcard")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(Theme.inkSecondary)
+                MoneyText(value: cycle.total, font: .rounded(.title3, weight: .semibold))
+                    .foregroundStyle(Theme.ink)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .card(padding: 14)
+            if !cycle.projected.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Parcelas previstas", systemImage: "calendar.badge.clock")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(Theme.inkSecondary)
+                    Text("\(cycle.projected.count)")
+                        .font(.rounded(.title3, weight: .semibold))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .card(padding: 14)
+            }
+        }
     }
 
     private var monthSwitcher: some View {

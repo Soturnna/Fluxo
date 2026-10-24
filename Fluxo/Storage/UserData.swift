@@ -95,6 +95,36 @@ struct ProvisionalEntry: Codable, Identifiable, Equatable {
     }
 }
 
+/// Questionário curto de perfil de investidor (4 perguntas, 0 a 2 pontos cada).
+struct InvestorProfile: Codable, Equatable {
+    var objective: Int     // 0 proteger · 1 renda extra · 2 crescer
+    var horizon: Int       // 0 menos de 1 ano · 1 de 1 a 3 anos · 2 mais de 3 anos
+    var reaction: Int      // queda de 20%: 0 resgata · 1 espera · 2 compra mais
+    var experience: Int    // 0 nunca · 1 só renda fixa · 2 ações ou FIIs
+
+    static let questions: [(title: String, options: [String])] = [
+        ("Qual é o principal objetivo?", ["Proteger o dinheiro", "Ter renda extra", "Fazer o dinheiro crescer"]),
+        ("Por quanto tempo pode deixar o dinheiro aplicado?", ["Menos de 1 ano", "De 1 a 3 anos", "Mais de 3 anos"]),
+        ("Se o investimento caísse 20% em um mês, você…", ["Resgataria tudo", "Esperaria voltar", "Aproveitaria para comprar mais"]),
+        ("Qual a sua experiência com investimentos?", ["Nunca investi", "Só renda fixa", "Já investi em ações ou FIIs"])
+    ]
+
+    var answers: [Int] { [objective, horizon, reaction, experience] }
+    var score: Int { answers.map { min(max($0, 0), 2) }.reduce(0, +) }
+
+    /// 0–2 conservador · 3–5 moderado · 6–8 arrojado
+    var label: String {
+        switch score {
+        case ...2: return "Conservador"
+        case 3...5: return "Moderado"
+        default: return "Arrojado"
+        }
+    }
+
+    var objectiveLabel: String { Self.questions[0].options[min(max(objective, 0), 2)] }
+    var horizonLabel: String { Self.questions[1].options[min(max(horizon, 0), 2)] }
+}
+
 struct UserData: Codable, Equatable {
     var version = 1
     var customCategories: [Category] = []
@@ -115,6 +145,10 @@ struct UserData: Codable, Equatable {
     /// Suas decisões sobre recorrentes: chave do padrão → true (é recorrente)
     /// ou false (não é; o app para de considerar).
     var recurringDecisions: [String: Bool] = [:]
+    /// Dia de fechamento da fatura ajustado por você: id do cartão → dia.
+    var cardCloseDays: [String: Int] = [:]
+    /// Suas respostas do questionário de perfil de investidor.
+    var investorProfile: InvestorProfile?
 
     static let empty = UserData()
 
@@ -135,6 +169,8 @@ struct UserData: Codable, Equatable {
         transactionNotes = try c.decodeIfPresent([String: String].self, forKey: .transactionNotes) ?? [:]
         provisionalEntries = (try? c.decodeIfPresent([ProvisionalEntry].self, forKey: .provisionalEntries)) ?? []
         recurringDecisions = (try? c.decodeIfPresent([String: Bool].self, forKey: .recurringDecisions)) ?? [:]
+        cardCloseDays = (try? c.decodeIfPresent([String: Int].self, forKey: .cardCloseDays)) ?? [:]
+        investorProfile = try? c.decodeIfPresent(InvestorProfile.self, forKey: .investorProfile)
     }
 
     var effectiveMonthlyLimit: Decimal? {

@@ -243,7 +243,9 @@ final class AgentEngine: ObservableObject {
         já passou neste mês, use o mesmo dia do mês seguinte.
         6. Conta e cartão de crédito são separados: compras no cartão vão para a fatura e só saem da conta \
         no vencimento. O resumo traz cartao_credito, projecao_30_dias (saldo previsto) e recorrentes. Para \
-        investimentos, use carteira_investimentos. Você explica e compara; não recomende comprar um ativo específico.
+        investimentos, use carteira_investimentos e perfil_investidor. Siga a ordem de prioridade: cartão em dia → \
+        sobra no mês → reserva de emergência → investir conforme o perfil. Você explica, compara e simula, mas não \
+        recomenda comprar um ativo específico; deixe claro que é informação educativa e que a decisão é do usuário.
         O saldo vem do banco com atraso (o Meu Pluggy busca 1 vez por dia). Ao citar o saldo, diga de \
         quando ele é, usando saldo_buscado_no_banco_em (ex.: "saldo de hoje, 10:14"). \
         Nos dados, valores negativos são saídas e positivos são entradas. Aplicações em investimento \

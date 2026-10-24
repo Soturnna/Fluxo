@@ -32,6 +32,14 @@ struct BlockedBadge: View {
     }
 }
 
+/// "Fecha 1 nov · vence 7 nov"
+func billDatesLine(_ summary: FinanceStore.CardSummary) -> String {
+    var parts: [String] = []
+    if let close = summary.nextClose { parts.append("Fecha \(FinanceStore.dayLabel(close))") }
+    if let due = summary.schedule.open?.due { parts.append("vence \(FinanceStore.dayLabel(due))") }
+    return parts.joined(separator: " · ")
+}
+
 /// Início: o cartão de crédito como parte separada da conta.
 struct CreditCardHomeCard: View {
     @EnvironmentObject private var store: FinanceStore
@@ -63,32 +71,37 @@ struct CreditCardHomeCard: View {
 
                 HStack(alignment: .bottom) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Fatura aberta")
+                        Text("Fatura atual")
                             .font(.footnote)
                             .foregroundStyle(Theme.inkSecondary)
                         MoneyText(value: summary.openBill, font: .rounded(.title2, weight: .bold))
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
-                        if let close = card.billCloseDate {
-                            Text("Fecha \(FinanceStore.dayLabel(close))")
-                                .font(.footnote)
-                                .foregroundStyle(Theme.inkSecondary)
-                        }
-                        if let due = card.billDueDate {
-                            Text("Vence \(FinanceStore.dayLabel(due))")
-                                .font(.footnote.weight(.semibold))
+                        Text(billDatesLine(summary))
+                            .font(.footnote)
+                            .foregroundStyle(Theme.inkSecondary)
+                        if summary.futureBills > 0 {
+                            HStack(spacing: 4) {
+                                Text("Próximas")
+                                MoneyText(value: summary.futureBills, font: .footnote.weight(.semibold))
+                            }
+                            .font(.footnote)
                         }
                     }
                 }
 
                 if let fraction = summary.usedFraction {
                     VStack(spacing: 6) {
-                        ProgressBar(fraction: fraction, fill: ChartPalette.spending, track: Theme.track, height: 8)
+                        ProgressBar(fraction: fraction, fill: summary.isOverLimit ? Theme.danger : ChartPalette.spending,
+                                    track: Theme.track, height: 8)
                         HStack {
                             HStack(spacing: 4) {
-                                Text("Limite usado").foregroundStyle(Theme.inkSecondary)
-                                MoneyText(value: summary.used, font: .caption.weight(.semibold))
+                                Text(summary.isOverLimit ? "Acima do limite" : "Limite usado")
+                                    .foregroundStyle(summary.isOverLimit ? Theme.danger : Theme.inkSecondary)
+                                if let percent = summary.usedPercent {
+                                    Text("\(percent)%").fontWeight(.semibold)
+                                }
                             }
                             Spacer()
                             HStack(spacing: 4) {
@@ -102,7 +115,7 @@ struct CreditCardHomeCard: View {
 
                 Divider().overlay(Theme.line)
                 HStack {
-                    Text("Ver fatura e parcelas")
+                    Text("Ver faturas e parcelas")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Theme.link)
                     Spacer()
@@ -141,11 +154,11 @@ struct CreditCardHomeCard: View {
     }
 }
 
-/// Tela do cartão: fatura aberta, limite, parcelas futuras e faturas.
+/// Tela do cartão: fatura atual, próximas, limite e faturas fechadas.
 struct CreditCardView: View {
     @EnvironmentObject private var store: FinanceStore
     @EnvironmentObject private var lock: AppLock
-    @State private var section: BillTab = .current
+    @State private var tab: BillTab = .current
     @State private var selected: StoredTransaction?
 
     enum BillTab: String, CaseIterable, Identifiable {
@@ -193,54 +206,74 @@ struct CreditCardView: View {
         }
 
         if card.isCardBlocked {
-            Label {
-                Text("**Cartão bloqueado no banco.** Compras novas não passam, mas a fatura e as parcelas continuam.")
-                    .font(.footnote)
-            } icon: {
-                Image(systemName: "lock.fill")
-            }
-            .foregroundStyle(Theme.warning)
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.warning.opacity(0.10), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            banner("**Cartão bloqueado no banco.** Compras novas não passam, mas a fatura e as parcelas continuam.",
+                   icon: "lock.fill", color: Theme.warning)
+        }
+        if let unpaid = summary.schedule.closedUnpaid, unpaid.total > 0 {
+            banner("**Fatura de \(unpaid.monthName) fechada:** \(lock.valuesHidden ? "R$ ••••" : AgentTools.brl(unpaid.total)), vence \(FinanceStore.dayLabel(unpaid.due)).",
+                   icon: "calendar.badge.exclamationmark", color: Theme.ink)
         }
 
         hero(summary)
         if summary.limit != nil { limitCard(summary) }
-        installmentsCard(card)
+        closeDayCard(summary.schedule)
+        upcomingChart(summary.schedule)
 
-        Picker("Faturas", selection: $section) {
+        Picker("Faturas", selection: $tab) {
             ForEach(BillTab.allCases) { Text($0.rawValue).tag($0) }
         }
         .pickerStyle(.segmented)
 
-        switch section {
-        case .current: currentList(card)
-        case .upcoming: upcomingList(card)
-        case .closed: closedList(card)
+        switch tab {
+        case .current: cycleList(summary.schedule.open)
+        case .upcoming: upcomingList(summary.schedule)
+        case .closed: closedList(summary)
         }
     }
 
+    private func banner(_ text: LocalizedStringKey, icon: String, color: Color) -> some View {
+        Label {
+            Text(text).font(.footnote)
+        } icon: {
+            Image(systemName: icon)
+        }
+        .foregroundStyle(color)
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(color.opacity(0.10), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
     private func hero(_ summary: FinanceStore.CardSummary) -> some View {
-        let card = summary.account
-        return VStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 4) {
             HStack {
                 RoundedRectangle(cornerRadius: 5).fill(Theme.lime).frame(width: 34, height: 26)
                     .accessibilityHidden(true)
                 Spacer()
-                Text("Fatura aberta")
+                Text("Fatura atual")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(Theme.onForestSecondary)
             }
-            Spacer()
+            Spacer(minLength: 18)
             MoneyText(value: summary.openBill, font: .rounded(.largeTitle, weight: .bold))
                 .foregroundStyle(.white)
-            Text(datesLine(card))
+            Text(billDatesLine(summary))
                 .font(.subheadline)
                 .foregroundStyle(Theme.onForestSecondary)
+            HStack(spacing: 14) {
+                HStack(spacing: 4) {
+                    Text("Próximas faturas").foregroundStyle(Theme.onForestSecondary)
+                    MoneyText(value: summary.futureBills, font: .footnote.weight(.semibold)).foregroundStyle(.white)
+                }
+                HStack(spacing: 4) {
+                    Text("Total").foregroundStyle(Theme.onForestSecondary)
+                    MoneyText(value: summary.totalUsed, font: .footnote.weight(.semibold)).foregroundStyle(.white)
+                }
+            }
+            .font(.footnote)
+            .padding(.top, 6)
         }
         .padding(20)
-        .frame(maxWidth: .infinity, minHeight: 190, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 200, alignment: .leading)
         .background(
             ZStack(alignment: .topTrailing) {
                 Theme.ink
@@ -254,29 +287,25 @@ struct CreditCardView: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func datesLine(_ card: StoredAccount) -> String {
-        var parts: [String] = []
-        if let close = card.billCloseDate { parts.append("Fecha em \(FinanceStore.dayLabel(close))") }
-        if let due = card.billDueDate { parts.append("vence em \(FinanceStore.dayLabel(due))") }
-        return parts.isEmpty ? "Datas da fatura não informadas pelo banco" : parts.joined(separator: " · ")
-    }
-
     private func limitCard(_ summary: FinanceStore.CardSummary) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Limite usado").foregroundStyle(Theme.inkSecondary)
+                Text(summary.isOverLimit ? "Acima do limite" : "Limite usado")
+                    .foregroundStyle(summary.isOverLimit ? Theme.danger : Theme.inkSecondary)
                 Spacer()
                 Text("Limite total").foregroundStyle(Theme.inkSecondary)
                 MoneyText(value: summary.limit, font: .footnote.weight(.semibold))
             }
             .font(.footnote)
-            ProgressBar(fraction: summary.usedFraction ?? 0, fill: ChartPalette.spending, track: Theme.track, height: 10)
+            ProgressBar(fraction: summary.usedFraction ?? 0,
+                        fill: summary.isOverLimit ? Theme.danger : ChartPalette.spending,
+                        track: Theme.track, height: 10)
             HStack {
                 MoneyText(value: summary.used, font: .subheadline.weight(.semibold))
-                if let fraction = summary.usedFraction {
-                    Text("(\(Int((fraction * 100).rounded()))%)")
+                if let percent = summary.usedPercent {
+                    Text("(\(percent)%)")
                         .font(.subheadline)
-                        .foregroundStyle(Theme.inkSecondary)
+                        .foregroundStyle(summary.isOverLimit ? Theme.danger : Theme.inkSecondary)
                 }
                 Spacer()
                 Text("Disponível").font(.subheadline).foregroundStyle(Theme.inkSecondary)
@@ -286,29 +315,57 @@ struct CreditCardView: View {
         .card(padding: 16)
     }
 
-    private func installmentsCard(_ card: StoredAccount) -> some View {
-        let months = store.upcomingInstallments(card)
-        let hasAny = months.contains { $0.total > 0 }
+    /// O banco nem sempre informa o dia de fechamento: dá para ajustar.
+    private func closeDayCard(_ schedule: FinanceStore.CardSchedule) -> some View {
+        HStack(spacing: 12) {
+            IconTile(systemName: "calendar", style: .neutral, size: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Fecha todo dia \(schedule.closeDay) · vence dia \(schedule.dueDay)")
+                    .font(.subheadline.weight(.medium))
+                Text(schedule.closeDayIsEstimate ? "Fechamento estimado. Ajuste se for outro dia." : "Usado para separar as faturas.")
+                    .font(.caption)
+                    .foregroundStyle(schedule.closeDayIsEstimate ? Theme.warning : Theme.inkSecondary)
+            }
+            Spacer(minLength: 4)
+            Menu {
+                Picker("Dia do fechamento", selection: Binding(
+                    get: { schedule.closeDay },
+                    set: { store.setCardCloseDay($0, for: schedule.card.id) }
+                )) {
+                    ForEach(1...31, id: \.self) { Text("Dia \($0)").tag($0) }
+                }
+            } label: {
+                Text("Ajustar")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(minHeight: 44)
+            }
+        }
+        .card(padding: 14)
+    }
+
+    private func upcomingChart(_ schedule: FinanceStore.CardSchedule) -> some View {
+        let upcoming = schedule.upcoming
+        let hasAny = upcoming.contains { $0.total > 0 }
         return VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Já comprometido em parcelas")
+                Text("Próximas faturas")
                     .font(.subheadline.weight(.semibold))
-                Text("Quanto das próximas faturas já está decidido")
+                Text("O que já está comprometido, por mês de vencimento")
                     .font(.caption)
                     .foregroundStyle(Theme.inkSecondary)
             }
             if hasAny {
-                Chart(months) { entry in
+                Chart(upcoming) { cycle in
                     BarMark(
-                        x: .value("Mês", Self.monthShort(entry.month)),
-                        y: .value("Valor", (entry.total as NSDecimalNumber).doubleValue),
+                        x: .value("Mês", Self.monthShort(cycle.due)),
+                        y: .value("Valor", (cycle.total as NSDecimalNumber).doubleValue),
                         width: .fixed(22)
                     )
                     .foregroundStyle(ChartPalette.spending)
                     .cornerRadius(4)
                     .annotation(position: .top, spacing: 4) {
-                        if entry.total > 0 && !lock.valuesHidden {
-                            Text(ChartFormat.compact((entry.total as NSDecimalNumber).doubleValue))
+                        if cycle.total > 0 && !lock.valuesHidden {
+                            Text(ChartFormat.compact((cycle.total as NSDecimalNumber).doubleValue))
                                 .font(.caption2.weight(.semibold))
                                 .foregroundStyle(Theme.ink)
                         }
@@ -317,11 +374,8 @@ struct CreditCardView: View {
                 .chartYAxis(.hidden)
                 .frame(height: 140)
                 .accessibilityHidden(true)
-                Text("Valores em reais, só parcelas de compras já feitas.")
-                    .font(.caption)
-                    .foregroundStyle(Theme.inkSecondary)
             } else {
-                Text("Nenhuma compra parcelada pela frente.")
+                Text("Nenhuma parcela pela frente.")
                     .font(.footnote)
                     .foregroundStyle(Theme.inkSecondary)
             }
@@ -332,53 +386,48 @@ struct CreditCardView: View {
     // MARK: Listas
 
     @ViewBuilder
-    private func currentList(_ card: StoredAccount) -> some View {
-        let items = store.currentBillTransactions(card).sorted { $0.date > $1.date }
-        if items.isEmpty {
+    private func cycleList(_ cycle: FinanceStore.BillCycle?) -> some View {
+        if let cycle, !(cycle.transactions.isEmpty && cycle.projected.isEmpty) {
+            BillItemsList(cycle: cycle) { selected = $0 }
+        } else {
             Text("Nenhuma compra nesta fatura ainda.")
                 .font(.subheadline)
                 .foregroundStyle(Theme.inkSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .card()
-        } else {
-            listCard {
-                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                    if index > 0 { Divider().overlay(Theme.line) }
-                    Button { selected = item } label: {
-                        TransactionRow(transaction: item, category: store.category(for: item), accountName: nil)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
         }
     }
 
-    private func upcomingList(_ card: StoredAccount) -> some View {
-        let months = store.upcomingInstallments(card)
-        return listCard {
-            ForEach(Array(months.enumerated()), id: \.element.id) { index, entry in
-                if index > 0 { Divider().overlay(Theme.line) }
-                HStack {
-                    Text(entry.month.formatted(.dateTime.month(.wide).year().locale(.ptBR)).capitalized)
-                        .font(.subheadline)
-                    Spacer()
-                    MoneyText(value: entry.total, font: .subheadline.weight(.semibold))
+    private func upcomingList(_ schedule: FinanceStore.CardSchedule) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            listCard {
+                ForEach(Array(schedule.upcoming.enumerated()), id: \.element.id) { index, cycle in
+                    if index > 0 { Divider().overlay(Theme.line) }
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Fatura de \(cycle.monthName)")
+                                .font(.subheadline)
+                            Text("vence \(FinanceStore.dayLabel(cycle.due)) · \(cycle.transactions.count + cycle.projected.count) lançamentos")
+                                .font(.caption)
+                                .foregroundStyle(Theme.inkSecondary)
+                        }
+                        Spacer()
+                        MoneyText(value: cycle.total, font: .subheadline.weight(.semibold))
+                    }
+                    .padding(.vertical, 12)
                 }
-                .padding(.vertical, 12)
             }
+            Text("Os lançamentos de cada fatura estão em Transações › Cartão.")
+                .font(.caption)
+                .foregroundStyle(Theme.inkTertiary)
+                .padding(.horizontal, 4)
         }
     }
 
     @ViewBuilder
-    private func closedList(_ card: StoredAccount) -> some View {
-        let bills = store.closedBills(card)
-        if bills.isEmpty {
-            Text("O banco ainda não enviou faturas fechadas.")
-                .font(.subheadline)
-                .foregroundStyle(Theme.inkSecondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .card()
-        } else {
+    private func closedList(_ summary: FinanceStore.CardSummary) -> some View {
+        let bills = store.closedBills(summary.account)
+        if !bills.isEmpty {
             listCard {
                 ForEach(Array(bills.enumerated()), id: \.element.id) { index, bill in
                     if index > 0 { Divider().overlay(Theme.line) }
@@ -397,6 +446,25 @@ struct CreditCardView: View {
                         }
                         Spacer()
                         MoneyText(value: bill.total, font: .subheadline.weight(.semibold))
+                    }
+                    .padding(.vertical, 12)
+                }
+            }
+        } else {
+            // Sem faturas do banco: as fechadas montadas pelo app.
+            listCard {
+                ForEach(Array(summary.schedule.closed.enumerated()), id: \.element.id) { index, cycle in
+                    if index > 0 { Divider().overlay(Theme.line) }
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Fatura de \(cycle.monthName)")
+                                .font(.subheadline)
+                            Text("venceu \(FinanceStore.dayLabel(cycle.due)) · calculada pelo app")
+                                .font(.caption)
+                                .foregroundStyle(Theme.inkSecondary)
+                        }
+                        Spacer()
+                        MoneyText(value: cycle.total, font: .subheadline.weight(.semibold))
                     }
                     .padding(.vertical, 12)
                 }
@@ -463,5 +531,84 @@ struct CreditCardView: View {
 
     static func monthShort(_ date: Date) -> String {
         date.formatted(.dateTime.month(.abbreviated).locale(.ptBR)).replacingOccurrences(of: ".", with: "")
+    }
+}
+
+/// Lançamentos de uma fatura: compras (por dia) e parcelas previstas pelo app.
+struct BillItemsList: View {
+    @EnvironmentObject private var store: FinanceStore
+    let cycle: FinanceStore.BillCycle
+    var query = ""
+    let onSelect: (StoredTransaction) -> Void
+
+    private var items: [StoredTransaction] {
+        let text = query.trimmingCharacters(in: .whitespaces)
+        guard !text.isEmpty else { return cycle.transactions }
+        return cycle.transactions.filter {
+            $0.title.localizedStandardContains(text) || store.category(for: $0).name.localizedStandardContains(text)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if !items.isEmpty {
+                ForEach(DaySection.make(from: items)) { section in
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(section.title)
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Theme.inkTertiary)
+                            .padding(.horizontal, 4)
+                        VStack(spacing: 0) {
+                            ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
+                                if index > 0 { Divider().overlay(Theme.line) }
+                                Button { onSelect(item) } label: {
+                                    TransactionRow(transaction: item, category: store.category(for: item), accountName: nil)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal, 14)
+                        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                                .strokeBorder(Theme.line, lineWidth: Theme.hairline)
+                        )
+                    }
+                }
+            }
+            if !cycle.projected.isEmpty && query.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Parcelas previstas (o banco ainda não mandou)")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Theme.inkTertiary)
+                        .padding(.horizontal, 4)
+                    VStack(spacing: 0) {
+                        ForEach(Array(cycle.projected.enumerated()), id: \.element.id) { index, item in
+                            if index > 0 { Divider().overlay(Theme.line) }
+                            HStack(spacing: 12) {
+                                IconTile(systemName: "calendar.badge.clock", style: .neutral, size: 36)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.title)
+                                        .font(.subheadline.weight(.medium))
+                                        .lineLimit(1)
+                                    Text("Parcela \(item.installment) · prevista")
+                                        .font(.caption)
+                                        .foregroundStyle(Theme.inkSecondary)
+                                }
+                                Spacer(minLength: 6)
+                                SignedMoneyText(amount: item.amount)
+                            }
+                            .padding(.vertical, 12)
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .background(Theme.surface.opacity(0.6), in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                            .strokeBorder(Theme.line, style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                    )
+                }
+            }
+        }
     }
 }

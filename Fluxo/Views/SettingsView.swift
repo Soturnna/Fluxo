@@ -19,6 +19,7 @@ struct SettingsView: View {
 
     @State private var pluggyConfigured = false
     @State private var geminiConfigured = false
+    @State private var brapiConfigured = false
     @State private var confirmWipe = false
 
     var body: some View {
@@ -167,6 +168,11 @@ struct SettingsView: View {
             } label: {
                 credentialRow("Chave do Gemini", configured: geminiConfigured)
             }
+            NavigationLink {
+                CredentialsView(kind: .brapi)
+            } label: {
+                credentialRow("Chave do brapi (cotações)", configured: brapiConfigured)
+            }
         } header: {
             Text("Conexões e chaves")
         } footer: {
@@ -231,6 +237,7 @@ struct SettingsView: View {
     private func refreshCredentialStatus() {
         pluggyConfigured = CredentialKind.pluggy.keys.allSatisfy { KeychainStore.exists($0) }
         geminiConfigured = CredentialKind.gemini.keys.allSatisfy { KeychainStore.exists($0) }
+        brapiConfigured = CredentialKind.brapi.keys.allSatisfy { KeychainStore.exists($0) }
     }
 
     private var versionLabel: String {
