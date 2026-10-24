@@ -20,6 +20,15 @@ struct RootView: View {
     @StateObject private var audit = AuditLog()
     @EnvironmentObject private var lock: AppLock
     @ObservedObject private var router = NotificationRouter.shared
+    @ObservedObject private var incoming = IncomingBill.shared
+    @State private var sharedBill: SharedBill?
+    @State private var sharedBillError: String?
+
+    struct SharedBill: Identifiable {
+        let card: StoredAccount
+        let file: BillFile
+        let id = UUID()
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -85,6 +94,33 @@ struct RootView: View {
             case .settings: showSettings = true
             }
             router.requested = nil
+        }
+        // Fatura recebida pelo "Compartilhar": lê no iPhone, apaga a cópia e abre a conferência.
+        .onChange(of: incoming.pending, initial: true) { _, url in
+            guard let url else { return }
+            incoming.pending = nil
+            do {
+                let file = try BillFileParser.read(url, deleteAfter: true)
+                guard let card = finance.creditCards.first else {
+                    sharedBillError = "Nenhum cartão de crédito conectado."
+                    return
+                }
+                showAgent = false
+                showSettings = false
+                sharedBill = SharedBill(card: card, file: file)
+            } catch {
+                sharedBillError = (error as? LocalizedError)?.errorDescription ?? BillImportError.unreadable.errorDescription
+            }
+        }
+        .sheet(item: $sharedBill) { bill in
+            BillImportSheet(card: bill.card, initialFile: bill.file)
+                .environmentObject(finance)
+                .environmentObject(lock)
+        }
+        .alert("Fatura", isPresented: Binding(get: { sharedBillError != nil }, set: { if !$0 { sharedBillError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(sharedBillError ?? "")
         }
         .sheet(isPresented: $showSettings) {
             SettingsView()

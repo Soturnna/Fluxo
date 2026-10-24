@@ -41,7 +41,7 @@ struct BillImportSheet: View {
                 }
             }
             .sheet(isPresented: $picking) {
-                DocumentPicker { url in load(url) }
+                DocumentPicker(isPresented: $picking) { url in load(url) }
                     .ignoresSafeArea()
             }
             .onAppear {

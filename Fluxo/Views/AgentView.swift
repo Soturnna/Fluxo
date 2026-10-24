@@ -90,7 +90,7 @@ struct AgentView: View {
         .photosPicker(isPresented: $pickingBill, selection: $billPhotos, maxSelectionCount: 10,
                       selectionBehavior: .ordered, matching: .images)
         .sheet(isPresented: $pickingBillFile) {
-            DocumentPicker { url in checkBillFile(url) }
+            DocumentPicker(isPresented: $pickingBillFile) { url in checkBillFile(url) }
                 .ignoresSafeArea()
         }
         .onChange(of: billPhotos) { _, items in

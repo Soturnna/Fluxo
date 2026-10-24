@@ -42,6 +42,32 @@ targets:
           - fetch
         BGTaskSchedulerPermittedIdentifiers:
           - com.soturnna.fluxo.refresh
+        # Faturas exportadas pelo banco: "Compartilhar → Fluxo" no Nubank ou no Arquivos.
+        # O iOS entrega uma CÓPIA (não abre no lugar); o app lê e apaga a cópia.
+        LSSupportsOpeningDocumentsInPlace: false
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Fatura do cartão (OFX)
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - com.soturnna.fluxo.ofx
+          - CFBundleTypeName: Fatura do cartão (CSV)
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.comma-separated-values-text
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: com.soturnna.fluxo.ofx
+            UTTypeDescription: Extrato OFX
+            UTTypeConformsTo:
+              - public.data
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - ofx
+                - OFX
+              public.mime-type:
+                - application/x-ofx
+                - application/ofx
         # Segurança de rede: nenhuma exceção ao App Transport Security.
         # Sem NSAppTransportSecurity aqui, o iOS só permite conexões HTTPS.
     settings:

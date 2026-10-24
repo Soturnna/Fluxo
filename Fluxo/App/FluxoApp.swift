@@ -48,6 +48,8 @@ struct AppRoot: View {
                 Theme.forest.ignoresSafeArea()
             }
         }
+        // Fatura compartilhada com o Fluxo: fica na fila até o app ser desbloqueado.
+        .onOpenURL { url in IncomingBill.shared.receive(url) }
         .onChange(of: scenePhase, initial: true) { _, phase in
             if phase != .active { Self.dismissKeyboard() }
             lock.handleScenePhase(phase)

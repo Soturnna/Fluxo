@@ -211,7 +211,7 @@ struct CreditCardView: View {
             // Abre a conferência só depois que o seletor fechou (duas folhas ao mesmo tempo falham).
             if let picked = pickedFile { importing = picked; pickedFile = nil }
         }) {
-            DocumentPicker { url in
+            DocumentPicker(isPresented: $pickingFile) { url in
                 guard let card = store.creditCards.first else { return }
                 do {
                     pickedFile = ImportRequest(card: card, file: try BillFileParser.read(url, deleteAfter: true))
