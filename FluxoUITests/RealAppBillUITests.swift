@@ -104,6 +104,46 @@ final class RealAppBillUITests: XCTestCase {
         XCTAssertTrue(ok, "o agente não recebeu o conteúdo colado")
     }
 
+    /// Os passos exatos do Marcos: app Arquivos › segurar o arquivo › Copiar ›
+    /// Fluxo › agente › Conferir fatura com arquivo › Colar.
+    func testAgentPasteCopiedInFilesApp() {
+        let files = XCUIApplication(bundleIdentifier: "com.apple.DocumentsApp")
+        files.launch()
+        sleep(3)
+        let browse = files.tabBars.buttons.matching(NSPredicate(format: "label IN %@", ["Browse", "Explorar"])).firstMatch
+        if browse.waitForExistence(timeout: 10) { browse.tap(); sleep(1); browse.tap(); sleep(2) }
+        let place = files.cells.matching(NSPredicate(format: "label CONTAINS %@ OR label CONTAINS %@", "On My", "No Meu")).firstMatch
+        if place.waitForExistence(timeout: 5) && place.isHittable { place.tap(); sleep(2) }
+        let folder = files.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Fluxo'")).firstMatch
+        if folder.waitForExistence(timeout: 5) && folder.isHittable { folder.tap(); sleep(2) }
+        let shotFiles = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shotFiles.name = "app Arquivos"; shotFiles.lifetime = .keepAlways; add(shotFiles)
+        let treeFiles = XCTAttachment(string: files.debugDescription)
+        treeFiles.name = "app Arquivos (árvore)"; treeFiles.lifetime = .keepAlways; add(treeFiles)
+
+        let file = files.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Teste_2026-11-08'")).firstMatch
+        XCTAssertTrue(file.waitForExistence(timeout: 10), "arquivo não apareceu no app Arquivos")
+        file.press(forDuration: 1.5)
+        sleep(1)
+        let copy = files.buttons.matching(NSPredicate(format: "label IN %@", ["Copy", "Copiar"])).firstMatch
+        let shotMenu = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shotMenu.name = "menu do arquivo"; shotMenu.lifetime = .keepAlways; add(shotMenu)
+        XCTAssertTrue(copy.waitForExistence(timeout: 5), "opção Copiar não apareceu")
+        copy.tap()
+        sleep(1)
+        print("INVESTIGACAO tipos na area de transferencia: \(UIPasteboard.general.types)")
+
+        app.activate()
+        openAgentMenu()
+        app.buttons["Conferir fatura com arquivo (CSV ou OFX)"].tap()
+        let paste = app.buttons["bill.paste"]
+        XCTAssertTrue(paste.waitForExistence(timeout: 10))
+        paste.tap()
+        let ok = agentReceivedFile.waitForExistence(timeout: 15)
+        snap("resultado")
+        XCTAssertTrue(ok, "o agente não recebeu o arquivo copiado no app Arquivos")
+    }
+
     /// Investigação: o seletor como estava no build 27 (fileImporter nesta tela).
     /// Não reprova a suíte; registra no log se funciona ou não.
     func testZLegacyImporterInvestigation() {

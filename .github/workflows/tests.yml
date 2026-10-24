@@ -86,7 +86,7 @@ jobs:
           touch test.log
           xcrun xcresulttool get test-results tests --path TestResults.xcresult > out/testes.json 2>&1 || true
           xcrun xcresulttool export attachments --path TestResults.xcresult --output-path out/anexos > /dev/null 2>&1 || true
-          grep -E "error:|Test Case|\*\* TEST|XCTAssert" test.log | tail -300 > out/log.txt || true
+          grep -E "error:|Test Case|\*\* TEST|XCTAssert|INVESTIGACAO" test.log | tail -300 > out/log.txt || true
           tail -200 test.log > out/tail.txt
           git config user.name "fluxo-ci"
           git config user.email "fluxo-ci@users.noreply.github.com"
