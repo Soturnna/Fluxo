@@ -58,7 +58,7 @@ enum BillFileParser {
         let rows = text.split(whereSeparator: \.isNewline).map(String.init).filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
         guard let header = rows.first else { return [] }
         let separator: Character = header.filter { $0 == ";" }.count > header.filter { $0 == "," }.count ? ";" : ","
-        let names = splitCSV(header, separator).map { FinanceStore.ruleKey($0).lowercased() }
+        let names = splitCSV(header, separator).map { fold($0).lowercased() }
 
         func column(_ options: [String]) -> Int? { names.firstIndex { name in options.contains { name.contains($0) } } }
         guard let dateColumn = column(["date", "data"]),
@@ -155,7 +155,7 @@ enum BillFileParser {
     }
 
     private static func isPayment(_ title: String) -> Bool {
-        let key = FinanceStore.ruleKey(title).lowercased()
+        let key = fold(title).lowercased()
         return key.contains("pagamento recebido") || key.contains("pagamento de fatura") || key.hasPrefix("pagamento em ")
     }
 
@@ -165,6 +165,12 @@ enum BillFileParser {
         let positives = lines.filter { $0.amount > 0 }.count
         guard positives * 2 > lines.count else { return lines }
         return lines.map { ($0.date, $0.title, -$0.amount, $0.installment) }
+    }
+
+    /// Minúsculas, sem acento, sem espaços nas pontas.
+    private static func fold(_ text: String) -> String {
+        text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "pt_BR"))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private static func dateInName(_ name: String) -> Date? {
