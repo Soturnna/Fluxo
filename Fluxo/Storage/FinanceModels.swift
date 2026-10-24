@@ -51,6 +51,10 @@ struct StoredTransaction: Codable, Identifiable, Equatable {
     let isPending: Bool
     let installment: String?     // "3/10"
     let merchantName: String?
+    /// Só cartão: fatura vencida em que o banco lançou a compra.
+    let billId: String?
+    /// Só cartão: mês da fatura previsto pelo banco ("2026-11").
+    let billMonth: String?
 
     /// Converte a transação do Pluggy aplicando a regra de sinal.
     ///
@@ -72,6 +76,8 @@ struct StoredTransaction: Codable, Identifiable, Equatable {
             installment = nil
         }
         merchantName = source.merchantName
+        billId = source.billId
+        billMonth = source.billForecastMonth
     }
 
     /// Nome mostrado na lista: o estabelecimento, se houver; senão, a descrição.

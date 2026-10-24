@@ -268,6 +268,8 @@ enum AgentTools {
             }
             if let percent = summary.usedPercent { cardInfo["limite_usado_percentual"] = percent }
             if let available = summary.available { cardInfo["limite_disponivel"] = money(available) }
+            // Diferença entre o total do banco e a soma das faturas montadas no app.
+            if abs(summary.unmatched) >= 1 { cardInfo["diferenca_nao_explicada_nas_faturas"] = money(summary.unmatched) }
             response["cartao_credito"] = cardInfo
         }
 

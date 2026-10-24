@@ -50,6 +50,9 @@ final class FinanceStore: ObservableObject {
     /// Sincronizações seguintes: refaz os últimos 10 dias. Transações pendentes
     /// mudam de id quando são confirmadas; refazer a janela evita duplicatas.
     private static let overlapDays = 10
+    /// Cartão: busca de novo ~4 meses. As parcelas e a fatura prevista mudam
+    /// depois da compra, e o banco às vezes manda lançamentos com data antiga.
+    private static let cardOverlapDays = 120
 
     init() {
         snapshot = Vault.load(VaultSnapshot.self, from: .finance) ?? .empty
@@ -481,7 +484,9 @@ final class FinanceStore: ObservableObject {
 
                 for account in pluggyAccounts {
                     let hasHistory = newSnapshot.transactions.contains { $0.accountId == account.id }
-                    let days = hasHistory ? Self.overlapDays : Self.initialHistoryDays
+                    let days = hasHistory
+                        ? (account.isCreditCard ? Self.cardOverlapDays : Self.overlapDays)
+                        : Self.initialHistoryDays
                     let since = Calendar.current.date(byAdding: .day, value: -days, to: .now) ?? .now
                     let fresh = try await client.transactions(accountId: account.id, since: since)
 

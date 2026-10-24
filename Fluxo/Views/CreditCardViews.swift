@@ -218,6 +218,7 @@ struct CreditCardView: View {
         hero(summary)
         if summary.limit != nil { limitCard(summary) }
         closeDayCard(summary.schedule)
+        checkCard(summary)
         upcomingChart(summary.schedule)
 
         Picker("Faturas", selection: $tab) {
@@ -317,6 +318,41 @@ struct CreditCardView: View {
         .card(padding: 16)
     }
 
+    /// Conferência: a soma das faturas montadas no app bate com o total do banco?
+    private func checkCard(_ summary: FinanceStore.CardSummary) -> some View {
+        let gap = summary.unmatched
+        let matches = abs(gap) < 1
+        let money = { (value: Decimal) in lock.valuesHidden ? "R$ ••••" : AgentTools.brl(value) }
+        return HStack(alignment: .top, spacing: 12) {
+            IconTile(systemName: matches ? "checkmark.seal" : "exclamationmark.triangle", style: .neutral, size: 36)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(matches ? "Faturas conferidas com o banco" : "Faturas não batem com o banco")
+                    .font(.subheadline.weight(.medium))
+                if !matches {
+                    Text(gap > 0
+                         ? "\(money(gap)) do total do banco (\(money(summary.totalUsed))) não entrou em nenhuma fatura."
+                         : "As faturas somam \(money(-gap)) a mais que o total do banco (\(money(summary.totalUsed))).")
+                        .font(.caption)
+                        .foregroundStyle(Theme.warning)
+                }
+                Text(sourceLine(summary.schedule))
+                    .font(.caption)
+                    .foregroundStyle(Theme.inkSecondary)
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .card(padding: 14)
+    }
+
+    private func sourceLine(_ schedule: FinanceStore.CardSchedule) -> String {
+        let bank = schedule.placedByBank, byDate = schedule.placedByDate
+        if bank + byDate == 0 { return "Nenhum lançamento no período." }
+        if byDate == 0 { return "A fatura de cada compra veio do banco." }
+        if bank == 0 { return "O banco não informou a fatura de cada compra: separadas pelo dia de fechamento." }
+        return "\(bank) lançamentos com a fatura informada pelo banco e \(byDate) separados pelo dia de fechamento."
+    }
+
     /// O banco nem sempre informa o dia de fechamento: dá para ajustar.
     private func closeDayCard(_ schedule: FinanceStore.CardSchedule) -> some View {
         HStack(spacing: 12) {
@@ -346,7 +382,7 @@ struct CreditCardView: View {
     }
 
     private func upcomingChart(_ schedule: FinanceStore.CardSchedule) -> some View {
-        let upcoming = schedule.upcoming
+        let upcoming = Array(schedule.upcoming.prefix(6))
         let hasAny = upcoming.contains { $0.total > 0 }
         return VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
@@ -403,7 +439,9 @@ struct CreditCardView: View {
     private func upcomingList(_ schedule: FinanceStore.CardSchedule) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             listCard {
-                ForEach(Array(schedule.upcoming.enumerated()), id: \.element.id) { index, cycle in
+                // Até 6 meses sempre; depois disso, só os meses que têm parcela.
+                let shown = schedule.upcoming.enumerated().filter { $0.offset < 6 || $0.element.total != 0 }.map(\.element)
+                ForEach(Array(shown.enumerated()), id: \.element.id) { index, cycle in
                     if index > 0 { Divider().overlay(Theme.line) }
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {

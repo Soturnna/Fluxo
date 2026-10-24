@@ -74,6 +74,10 @@ extension FinanceStore {
         /// Dia de fechamento calculado (o banco não informou e você não ajustou).
         let closeDayIsEstimate: Bool
         let cycles: [BillCycle]
+        /// Lançamentos postos na fatura pela informação do próprio banco
+        /// (fatura prevista ou fatura vencida) × pela data e o dia de fechamento.
+        var placedByBank = 0
+        var placedByDate = 0
 
         var open: BillCycle? { cycles.first { $0.index == 0 } }
         var upcoming: [BillCycle] { cycles.filter { $0.index > 0 } }
@@ -87,7 +91,7 @@ extension FinanceStore {
     }
 
     /// Monta as faturas do cartão: `past` fechadas, a aberta e `future` futuras.
-    func cardSchedule(_ card: StoredAccount, past: Int = 3, future: Int = 6) -> CardSchedule {
+    func cardSchedule(_ card: StoredAccount, past: Int = 3, future: Int = 12) -> CardSchedule {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
         let dueDay = card.billDueDate.map { calendar.component(.day, from: $0) } ?? 10
@@ -103,9 +107,10 @@ extension FinanceStore {
             calendar.date(byAdding: .month, value: value, to: base) ?? base
         }
 
-        // Fatura aberta: a primeira cujo fechamento é hoje ou depois.
+        // Fatura aberta: a primeira que ainda não fechou. No dia do fechamento
+        // ela já fechou (compras desse dia vão para a próxima).
         var openMonth = calendar.dateInterval(of: .month, for: today)?.start ?? today
-        if make(openMonth, day: closeDay) < today { openMonth = month(openMonth, plus: 1) }
+        if make(openMonth, day: closeDay) <= today { openMonth = month(openMonth, plus: 1) }
 
         func closeDate(_ k: Int) -> Date { make(month(openMonth, plus: k), day: closeDay) }
         func dueDate(_ k: Int) -> Date {
@@ -130,27 +135,54 @@ extension FinanceStore {
             return (parts[0], parts[1])
         }
 
-        /// Mês do vencimento da fatura em que o lançamento cai.
-        /// - Compra à vista ou 1ª parcela: a data é a da compra → vale o
-        ///   fechamento (entra na fatura que fecha logo depois).
-        /// - 2ª parcela em diante: a data já é a do lançamento na fatura,
-        ///   no mês do vencimento (regra descrita na documentação do Pluggy).
-        func dueMonth(of item: StoredTransaction) -> Date {
-            if let parts = installmentParts(item), parts.number >= 2 { return monthStart(item.date) }
-            let base = monthStart(item.date)
+        // Faturas vencidas que o banco mandou: id → mês do vencimento.
+        var billMonthById: [String: Date] = [:]
+        for bill in bills where bill.accountId == card.id { billMonthById[bill.id] = monthStart(bill.dueDate) }
+
+        /// "2026-11" → 1º de novembro de 2026.
+        func forecastMonth(_ text: String?) -> Date? {
+            guard let parts = text?.split(separator: "-").compactMap({ Int($0) }), parts.count == 2 else { return nil }
+            return calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: 1))
+        }
+
+        /// Pela data: até a véspera do fechamento entra nesta fatura; do dia do
+        /// fechamento em diante, na próxima (regra do Nubank e da maioria dos bancos).
+        func dueMonthByDate(_ date: Date) -> Date {
+            let base = monthStart(date)
             var close = make(base, day: closeDay)
-            if endOfDay(close) < item.date { close = make(month(base, plus: 1), day: closeDay) }
+            if date >= close { close = make(month(base, plus: 1), day: closeDay) }
             return month(monthStart(close), plus: dueDay > closeDay ? 0 : 1)
         }
 
-        // Compras e estornos do cartão (pagamentos da fatura ficam de fora).
-        let items = transactions.filter { $0.accountId == card.id && category(for: $0).kind != .transfer }
-        for item in items {
-            if let position = positionByDueMonth[dueMonth(of: item)] { cycles[position].transactions.append(item) }
+        /// Em que fatura o lançamento cai, em ordem de confiança:
+        /// 1. a fatura vencida em que o banco já o lançou;
+        /// 2. a fatura que o banco prevê (vale para a aberta e as futuras);
+        /// 3. a conta pela data e o dia de fechamento.
+        func placement(of item: StoredTransaction) -> (month: Date, byBank: Bool) {
+            if let id = item.billId, let due = billMonthById[id] { return (due, true) }
+            if let forecast = forecastMonth(item.billMonth) { return (forecast, true) }
+            return (dueMonthByDate(item.date), false)
         }
 
-        // Parcelas que o banco ainda não mandou: a partir da mais alta vista,
-        // uma por fatura seguinte.
+        // Compras e estornos do cartão. Pagamentos da fatura ficam de fora:
+        // eles quitam faturas, não fazem parte delas.
+        let items = transactions.filter { item in
+            guard item.accountId == card.id else { return false }
+            if item.automaticGroup == .cardPayment { return false }
+            return !(item.amount > 0 && item.description.localizedCaseInsensitiveContains("pagamento recebido"))
+        }
+        var monthById: [String: Date] = [:]
+        var placedByBank = 0, placedByDate = 0
+        for item in items {
+            let place = placement(of: item)
+            monthById[item.id] = place.month
+            guard let position = positionByDueMonth[place.month] else { continue }
+            cycles[position].transactions.append(item)
+            if place.byBank { placedByBank += 1 } else { placedByDate += 1 }
+        }
+
+        // Bancos que mandam uma parcela por mês: a partir da mais alta vista,
+        // prevê uma por fatura seguinte. (Quem manda todas de uma vez não gera previsão.)
         var latest: [String: (number: Int, total: Int, item: StoredTransaction)] = [:]
         for item in items where item.amount < 0 {
             guard let parts = installmentParts(item) else { continue }
@@ -159,7 +191,7 @@ extension FinanceStore {
             latest[key] = (parts.number, parts.total, item)
         }
         for entry in latest.values where entry.number < entry.total {
-            let firstMonth = dueMonth(of: entry.item)
+            guard let firstMonth = monthById[entry.item.id] else { continue }
             for step in 1...(entry.total - entry.number) {
                 guard let position = positionByDueMonth[month(firstMonth, plus: step)] else { continue }
                 cycles[position].projected.append(ProjectedInstallment(
@@ -171,13 +203,17 @@ extension FinanceStore {
         for position in cycles.indices {
             cycles[position].transactions.sort { $0.date > $1.date }
         }
-        return CardSchedule(card: card, closeDay: closeDay, dueDay: dueDay,
-                            closeDayIsEstimate: userClose == nil && bankClose == nil, cycles: cycles)
+        var schedule = CardSchedule(card: card, closeDay: closeDay, dueDay: dueDay,
+                                    closeDayIsEstimate: userClose == nil && bankClose == nil, cycles: cycles)
+        schedule.placedByBank = placedByBank
+        schedule.placedByDate = placedByDate
+        return schedule
     }
 
-    /// Sem informação do banco: fecha 7 dias antes do vencimento.
+    /// Sem informação do banco: fecha 6 dias antes do vencimento
+    /// (ex.: vence dia 7 → fecha dia 1; compras até o dia 31 entram).
     static func estimatedCloseDay(dueDay: Int) -> Int {
-        let day = dueDay - 7
+        let day = dueDay - 6
         return day >= 1 ? day : day + 30
     }
 
@@ -198,6 +234,10 @@ extension FinanceStore {
         var totalUsed: Decimal { abs(account.balance) }
         var limit: Decimal? { account.creditLimit }
         var available: Decimal? { account.availableCreditLimit }
+        /// Total do banco − soma das faturas montadas no app. Perto de zero = conferido.
+        var unmatched: Decimal {
+            totalUsed - openBill - futureBills - (schedule.closedUnpaid?.total ?? 0)
+        }
         var nextClose: Date? { schedule.open?.close }
         var nextDue: Date? { schedule.closedUnpaid?.due ?? schedule.open?.due }
 

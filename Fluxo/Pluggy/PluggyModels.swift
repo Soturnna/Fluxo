@@ -165,12 +165,17 @@ struct PluggyTransaction: Decodable, Identifiable {
     let installmentNumber: Int?
     let totalInstallments: Int?
     let merchantName: String?
+    /// Fatura (já vencida) em que o banco lançou a compra.
+    let billId: String?
+    /// Mês da fatura em que o banco prevê cobrar ("2026-11"). Vem também para
+    /// compras da fatura aberta e parcelas futuras (só em conexões Open Finance).
+    let billForecastMonth: String?
 
     private enum CodingKeys: String, CodingKey {
         case id, accountId, date, description, amount, currencyCode, type, category, status
         case creditCardMetadata, merchant
     }
-    private enum CardKeys: String, CodingKey { case installmentNumber, totalInstallments }
+    private enum CardKeys: String, CodingKey { case installmentNumber, totalInstallments, billId, billForecastDate }
     private enum MerchantKeys: String, CodingKey { case name, businessName }
 
     init(from decoder: Decoder) throws {
@@ -188,9 +193,15 @@ struct PluggyTransaction: Decodable, Identifiable {
         if let card = try? c.nestedContainer(keyedBy: CardKeys.self, forKey: .creditCardMetadata) {
             installmentNumber = try? card.decodeIfPresent(Int.self, forKey: .installmentNumber)
             totalInstallments = try? card.decodeIfPresent(Int.self, forKey: .totalInstallments)
+            let bill = (try? card.decodeIfPresent(String.self, forKey: .billId)) ?? nil
+            billId = bill.flatMap { $0.isEmpty || $0.count > 64 ? nil : $0 }
+            let forecast = (try? card.decodeIfPresent(String.self, forKey: .billForecastDate)) ?? nil
+            billForecastMonth = forecast.flatMap(Self.yearMonth)
         } else {
             installmentNumber = nil
             totalInstallments = nil
+            billId = nil
+            billForecastMonth = nil
         }
 
         // Nome do estabelecimento (empresa). O CNPJ fica de fora.
@@ -201,6 +212,16 @@ struct PluggyTransaction: Decodable, Identifiable {
         } else {
             merchantName = nil
         }
+    }
+
+    /// Aceita só "AAAA-MM" (o resto é descartado).
+    private static func yearMonth(_ text: String) -> String? {
+        let prefix = String(text.prefix(7))
+        let parts = prefix.split(separator: "-")
+        guard prefix.count == 7, parts.count == 2,
+              let year = Int(parts[0]), let month = Int(parts[1]),
+              (2000...2100).contains(year), (1...12).contains(month) else { return nil }
+        return prefix
     }
 }
 
