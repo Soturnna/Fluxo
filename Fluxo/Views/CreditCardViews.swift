@@ -163,6 +163,7 @@ struct CreditCardView: View {
     @State private var selected: StoredTransaction?
     @State private var importing: ImportRequest?
     @State private var pickingFile = false
+    @State private var pickedFile: ImportRequest?
     @State private var importError: String?
 
     struct ImportRequest: Identifiable {
@@ -206,19 +207,20 @@ struct CreditCardView: View {
                 .environmentObject(store)
                 .environmentObject(lock)
         }
-        .fileImporter(isPresented: $pickingFile, allowedContentTypes: BillFileParser.contentTypes) { outcome in
-            guard let card = store.creditCards.first else { return }
-            switch outcome {
-            case .success(let url):
+        .sheet(isPresented: $pickingFile, onDismiss: {
+            // Abre a conferência só depois que o seletor fechou (duas folhas ao mesmo tempo falham).
+            if let picked = pickedFile { importing = picked; pickedFile = nil }
+        }) {
+            DocumentPicker { url in
+                guard let card = store.creditCards.first else { return }
                 do {
-                    importing = ImportRequest(card: card, file: try BillFileParser.read(url))
+                    pickedFile = ImportRequest(card: card, file: try BillFileParser.read(url, deleteAfter: true))
                     importError = nil
                 } catch {
                     importError = (error as? LocalizedError)?.errorDescription ?? BillImportError.unreadable.errorDescription
                 }
-            case .failure:
-                importError = BillImportError.unreadable.errorDescription
             }
+            .ignoresSafeArea()
         }
     }
 

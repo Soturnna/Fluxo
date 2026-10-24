@@ -89,12 +89,9 @@ struct AgentView: View {
         .photosPicker(isPresented: $pickingReceipt, selection: $receiptPhoto, matching: .images)
         .photosPicker(isPresented: $pickingBill, selection: $billPhotos, maxSelectionCount: 10,
                       selectionBehavior: .ordered, matching: .images)
-        .fileImporter(isPresented: $pickingBillFile, allowedContentTypes: BillFileParser.contentTypes) { outcome in
-            guard case .success(let url) = outcome else {
-                agent.noteLocal("Não consegui abrir o arquivo.")
-                return
-            }
-            checkBillFile(url)
+        .sheet(isPresented: $pickingBillFile) {
+            DocumentPicker { url in checkBillFile(url) }
+                .ignoresSafeArea()
         }
         .onChange(of: billPhotos) { _, items in
             guard !items.isEmpty else { return }
@@ -284,7 +281,7 @@ struct AgentView: View {
     private func checkBillFile(_ url: URL) {
         let name = url.lastPathComponent
         do {
-            let file = try BillFileParser.read(url)
+            let file = try BillFileParser.read(url, deleteAfter: true)
             guard let card = store.creditCards.first else {
                 agent.noteLocal("Nenhum cartão de crédito conectado.")
                 return

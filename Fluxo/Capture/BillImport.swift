@@ -47,9 +47,13 @@ enum BillFileParser {
     }
 
     /// Lê um arquivo escolhido no app Arquivos (com acesso temporário e limite de tamanho).
-    static func read(_ url: URL) throws -> BillFile {
+    /// - Parameter deleteAfter: apaga o arquivo depois de ler (cópia entregue pelo seletor).
+    static func read(_ url: URL, deleteAfter: Bool = false) throws -> BillFile {
         let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        defer {
+            if scoped { url.stopAccessingSecurityScopedResource() }
+            if deleteAfter { try? FileManager.default.removeItem(at: url) }
+        }
         var data = Data()
         var readError: Error?
         // Coordena a leitura: arquivos do iCloud são baixados antes de abrir.

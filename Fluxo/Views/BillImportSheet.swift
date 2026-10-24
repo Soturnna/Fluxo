@@ -40,8 +40,9 @@ struct BillImportSheet: View {
                     ToolbarItem(placement: .confirmationAction) { Button("Aplicar") { apply() }.bold() }
                 }
             }
-            .fileImporter(isPresented: $picking, allowedContentTypes: BillFileParser.contentTypes) { outcome in
-                if case .success(let url) = outcome { load(url) }
+            .sheet(isPresented: $picking) {
+                DocumentPicker { url in load(url) }
+                    .ignoresSafeArea()
             }
             .onAppear {
                 if file == nil, let initialFile {
@@ -196,7 +197,7 @@ struct BillImportSheet: View {
     private func load(_ url: URL) {
         error = nil
         do {
-            let parsed = try BillFileParser.read(url)
+            let parsed = try BillFileParser.read(url, deleteAfter: true)
             file = parsed
             targetIndex = suggestedIndex(for: parsed)
             compute()
