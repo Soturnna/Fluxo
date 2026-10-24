@@ -1,0 +1,200 @@
+    t =   176.96s Requesting snapshot of accessibility hierarchy for app with pid 19708
+    t =   177.14s Requesting snapshot of accessibility hierarchy for app with pid 19708
+    t =   177.20s Added attachment named 'resultado (árvore)'
+    t =   177.20s Tear Down
+Test Case '-[FluxoUITests.RealAppBillUITests testAgentPasteCopiedInFilesApp]' passed (177.621 seconds).
+Test Case '-[FluxoUITests.RealAppBillUITests testAgentPicker]' started.
+    t =     0.01s Start Test at 2026-10-24 20:44:47.881
+    t =     0.08s Set Up
+    t =     0.08s     Open com.soturnna.fluxo
+    t =     0.08s         Launch com.soturnna.fluxo
+    t =     0.08s             Terminate com.soturnna.fluxo:19708
+2026-10-24 20:44:49.110 xcodebuild[5500:22436] [MT] IDELaunchParametersSnapshot: The operation couldn’t be completed. (DebuggerLLDB.DebuggerVersionStore.StoreError error 0.)
+2026-10-24 20:44:49.110 xcodebuild[5500:22436] [MT] IDELaunchParametersSnapshot: no debugger version
+    t =     2.17s             Setting up automation session
+    t =     3.73s             Wait for com.soturnna.fluxo to idle
+    t =     5.44s     Waiting 20.0s for "Teste de fatura" StaticText to exist
+    t =     6.45s         Checking `Expect predicate `existsNoRetry == 1` for object "Teste de fatura" StaticText`
+    t =     6.45s             Checking existence of `"Teste de fatura" StaticText`
+    t =     6.56s     Terminate com.soturnna.fluxo:29081
+    t =     7.64s     Open com.soturnna.fluxo
+    t =     7.64s         Launch com.soturnna.fluxo
+2026-10-24 20:44:55.518 xcodebuild[5500:22436] [MT] IDELaunchParametersSnapshot: The operation couldn’t be completed. (DebuggerLLDB.DebuggerVersionStore.StoreError error 0.)
+2026-10-24 20:44:55.518 xcodebuild[5500:22436] [MT] IDELaunchParametersSnapshot: no debugger version
+    t =     8.05s             Setting up automation session
+    t =     9.20s             Wait for com.soturnna.fluxo to idle
+    t =    11.07s Waiting 30.0s for "Abrir o agente" Button to exist
+    t =    12.14s     Checking `Expect predicate `existsNoRetry == 1` for object "Abrir o agente" Button`
+    t =    12.14s         Checking existence of `"Abrir o agente" Button`
+    t =    12.31s Added attachment named 'início'
+    t =    12.31s Requesting snapshot of accessibility hierarchy for app with pid 29562
+    t =    12.40s Requesting snapshot of accessibility hierarchy for app with pid 29562
+    t =    12.43s Added attachment named 'início (árvore)'
+    t =    12.43s Tap "Abrir o agente" Button
+    t =    12.43s     Wait for com.soturnna.fluxo to idle
+    t =    12.44s     Find the "Abrir o agente" Button
+    t =    12.46s     Check for interrupting elements affecting "sparkles" Button
+    t =    12.48s     Synthesize event
+    t =    12.78s     Wait for com.soturnna.fluxo to idle
+    t =    12.95s Waiting 10.0s for "Enviar prints" Button to exist
+    t =    14.01s     Checking `Expect predicate `existsNoRetry == 1` for object "Enviar prints" Button`
+    t =    14.01s         Checking existence of `"Enviar prints" Button`
+    t =    14.52s Tap "Enviar prints" Button
+    t =    14.52s     Wait for com.soturnna.fluxo to idle
+    t =    14.53s     Find the "Enviar prints" Button
+    t =    14.59s     Check for interrupting elements affecting "Enviar prints" Button
+    t =    14.66s     Synthesize event
+    t =    14.95s     Wait for com.soturnna.fluxo to idle
+    t =    17.50s Added attachment named 'menu da foto'
+    t =    17.50s Requesting snapshot of accessibility hierarchy for app with pid 29562
+    t =    17.79s Requesting snapshot of accessibility hierarchy for app with pid 29562
+    t =    17.87s Added attachment named 'menu da foto (árvore)'
+    t =    17.87s Tap "Conferir fatura com arquivo (CSV ou OFX)" Button
+    t =    17.87s     Wait for com.soturnna.fluxo to idle
+    t =    17.87s     Find the "Conferir fatura com arquivo (CSV ou OFX)" Button
+    t =    17.94s     Check for interrupting elements affecting "doc.badge.arrow.up" Button
+    t =    17.98s     Synthesize event
+    t =    18.44s     Wait for com.soturnna.fluxo to idle
+    t =    20.05s Waiting 10.0s for "bill.pick" Button to exist
+    t =    21.08s     Checking `Expect predicate `existsNoRetry == 1` for object "bill.pick" Button`
+    t =    21.08s         Checking existence of `"bill.pick" Button`
+    t =    21.45s Added attachment named 'folha da fatura'
+    t =    21.46s Requesting snapshot of accessibility hierarchy for app with pid 29562
+    t =    21.75s Requesting snapshot of accessibility hierarchy for app with pid 29562
+    t =    21.85s Added attachment named 'folha da fatura (árvore)'
+    t =    21.85s Tap "bill.pick" Button
+    t =    21.85s     Wait for com.soturnna.fluxo to idle
+    t =    21.85s     Find the "bill.pick" Button
+    t =    21.92s     Check for interrupting elements affecting "bill.pick" Button
+    t =    21.99s     Synthesize event
+    t =    22.29s     Wait for com.soturnna.fluxo to idle
+    t =    25.71s Added attachment named 'seletor aberto'
+    t =    25.72s Requesting snapshot of accessibility hierarchy for app with pid 29562
+    t =    27.54s Requesting snapshot of accessibility hierarchy for app with pid 29562
+    t =    27.86s Added attachment named 'seletor aberto (árvore)'
+    t =    27.86s Waiting 5.0s for Any (First Match) to exist
+    t =    28.91s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    28.91s         Checking existence of `Any (First Match)`
+    t =    29.29s Waiting 10.0s for Any (First Match) to exist
+    t =    30.32s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    30.32s         Checking existence of `Any (First Match)`
+    t =    30.57s Tap Any (First Match)
+    t =    30.57s     Wait for com.soturnna.fluxo to idle
+    t =    30.57s     Find the Any (First Match)
+    t =    30.83s     Check for interrupting elements affecting "Teste_2026-11-08.ofx, ofx" Cell
+    t =    30.99s     Synthesize event
+    t =    31.33s     Wait for com.soturnna.fluxo to idle
+    t =    34.46s Added attachment named 'depois do toque no arquivo'
+    t =    34.46s Requesting snapshot of accessibility hierarchy for app with pid 29562
+    t =    34.64s Requesting snapshot of accessibility hierarchy for app with pid 29562
+    t =    34.69s Added attachment named 'depois do toque no arquivo (árvore)'
+    t =    34.69s Waiting 15.0s for StaticText (First Match) to exist
+    t =    35.74s     Checking `Expect predicate `existsNoRetry == 1` for object StaticText (First Match)`
+    t =    35.74s         Checking existence of `StaticText (First Match)`
+    t =    35.98s Added attachment named 'resultado'
+    t =    35.98s Requesting snapshot of accessibility hierarchy for app with pid 29562
+    t =    36.20s Requesting snapshot of accessibility hierarchy for app with pid 29562
+    t =    36.27s Added attachment named 'resultado (árvore)'
+    t =    36.27s Tear Down
+Test Case '-[FluxoUITests.RealAppBillUITests testAgentPicker]' passed (36.538 seconds).
+Test Case '-[FluxoUITests.RealAppBillUITests testZLegacyImporterInvestigation]' started.
+    t =     0.00s Start Test at 2026-10-24 20:45:24.413
+    t =     0.03s Set Up
+    t =     0.03s     Open com.soturnna.fluxo
+    t =     0.03s         Launch com.soturnna.fluxo
+    t =     0.03s             Terminate com.soturnna.fluxo:29562
+2026-10-24 20:45:25.545 xcodebuild[5500:22436] [MT] IDELaunchParametersSnapshot: The operation couldn’t be completed. (DebuggerLLDB.DebuggerVersionStore.StoreError error 0.)
+2026-10-24 20:45:25.545 xcodebuild[5500:22436] [MT] IDELaunchParametersSnapshot: no debugger version
+    t =     2.10s             Setting up automation session
+    t =     3.25s             Wait for com.soturnna.fluxo to idle
+    t =     4.92s     Waiting 20.0s for "Teste de fatura" StaticText to exist
+    t =     5.93s         Checking `Expect predicate `existsNoRetry == 1` for object "Teste de fatura" StaticText`
+    t =     5.93s             Checking existence of `"Teste de fatura" StaticText`
+    t =     6.00s     Terminate com.soturnna.fluxo:30689
+    t =     7.04s     Open com.soturnna.fluxo
+    t =     7.04s         Launch com.soturnna.fluxo
+2026-10-24 20:45:31.456 xcodebuild[5500:22436] [MT] IDELaunchParametersSnapshot: The operation couldn’t be completed. (DebuggerLLDB.DebuggerVersionStore.StoreError error 0.)
+2026-10-24 20:45:31.457 xcodebuild[5500:22436] [MT] IDELaunchParametersSnapshot: no debugger version
+    t =     7.84s             Setting up automation session
+    t =     8.62s             Wait for com.soturnna.fluxo to idle
+    t =    10.29s Waiting 30.0s for "Abrir o agente" Button to exist
+    t =    11.31s     Checking `Expect predicate `existsNoRetry == 1` for object "Abrir o agente" Button`
+    t =    11.31s         Checking existence of `"Abrir o agente" Button`
+    t =    11.47s Added attachment named 'início'
+    t =    11.47s Requesting snapshot of accessibility hierarchy for app with pid 31249
+    t =    11.56s Requesting snapshot of accessibility hierarchy for app with pid 31249
+    t =    11.59s Added attachment named 'início (árvore)'
+    t =    11.59s Tap "Abrir o agente" Button
+    t =    11.59s     Wait for com.soturnna.fluxo to idle
+    t =    11.59s     Find the "Abrir o agente" Button
+    t =    11.63s     Check for interrupting elements affecting "sparkles" Button
+    t =    11.67s     Synthesize event
+    t =    11.97s     Wait for com.soturnna.fluxo to idle
+    t =    12.05s Waiting 10.0s for "Enviar prints" Button to exist
+    t =    13.07s     Checking `Expect predicate `existsNoRetry == 1` for object "Enviar prints" Button`
+    t =    13.07s         Checking existence of `"Enviar prints" Button`
+    t =    13.21s Tap "Enviar prints" Button
+    t =    13.21s     Wait for com.soturnna.fluxo to idle
+    t =    13.21s     Find the "Enviar prints" Button
+    t =    13.33s     Check for interrupting elements affecting "Enviar prints" Button
+    t =    13.42s     Synthesize event
+    t =    13.74s     Wait for com.soturnna.fluxo to idle
+    t =    16.27s Added attachment named 'menu da foto'
+    t =    16.27s Requesting snapshot of accessibility hierarchy for app with pid 31249
+    t =    16.52s Requesting snapshot of accessibility hierarchy for app with pid 31249
+    t =    16.59s Added attachment named 'menu da foto (árvore)'
+    t =    16.59s Tap "Teste: seletor antigo" Button
+    t =    16.59s     Wait for com.soturnna.fluxo to idle
+    t =    16.59s     Find the "Teste: seletor antigo" Button
+    t =    16.65s     Check for interrupting elements affecting "Teste: seletor antigo" Button
+    t =    16.69s     Synthesize event
+    t =    17.04s     Wait for com.soturnna.fluxo to idle
+    t =    21.60s Added attachment named 'seletor aberto'
+    t =    21.60s Requesting snapshot of accessibility hierarchy for app with pid 31249
+    t =    22.59s Requesting snapshot of accessibility hierarchy for app with pid 31249
+    t =    22.72s Added attachment named 'seletor aberto (árvore)'
+    t =    22.72s Waiting 5.0s for Any (First Match) to exist
+    t =    23.77s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    23.77s         Checking existence of `Any (First Match)`
+    t =    23.97s Waiting 10.0s for Any (First Match) to exist
+    t =    24.97s     Checking `Expect predicate `existsNoRetry == 1` for object Any (First Match)`
+    t =    24.97s         Checking existence of `Any (First Match)`
+    t =    25.14s Tap Any (First Match)
+    t =    25.14s     Wait for com.soturnna.fluxo to idle
+    t =    25.15s     Find the Any (First Match)
+    t =    25.33s     Check for interrupting elements affecting "Teste_2026-11-08.ofx, ofx" Cell
+    t =    25.46s     Synthesize event
+    t =    25.77s     Wait for com.soturnna.fluxo to idle
+    t =    29.02s Added attachment named 'depois do toque no arquivo'
+    t =    29.02s Requesting snapshot of accessibility hierarchy for app with pid 31249
+    t =    29.18s Requesting snapshot of accessibility hierarchy for app with pid 31249
+    t =    29.24s Added attachment named 'depois do toque no arquivo (árvore)'
+    t =    29.24s Waiting 10.0s for StaticText (First Match) to exist
+    t =    30.26s     Checking `Expect predicate `existsNoRetry == 1` for object StaticText (First Match)`
+    t =    30.26s         Checking existence of `StaticText (First Match)`
+    t =    30.48s Added attachment named 'resultado'
+    t =    30.48s Requesting snapshot of accessibility hierarchy for app with pid 31249
+    t =    30.64s Requesting snapshot of accessibility hierarchy for app with pid 31249
+    t =    30.70s Added attachment named 'resultado (árvore)'
+INVESTIGACAO seletor antigo (build 27) no app real: FUNCIONOU
+    t =    30.70s Tear Down
+Test Case '-[FluxoUITests.RealAppBillUITests testZLegacyImporterInvestigation]' passed (30.942 seconds).
+Test Suite 'RealAppBillUITests' passed at 2026-10-24 20:45:55.355.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 270.377 (270.382) seconds
+Test Suite 'FluxoUITests.xctest' failed at 2026-10-24 20:45:55.356.
+	 Executed 9 tests, with 1 failure (0 unexpected) in 381.964 (381.974) seconds
+Test Suite 'All tests' failed at 2026-10-24 20:45:55.356.
+	 Executed 9 tests, with 1 failure (0 unexpected) in 381.964 (381.975) seconds
+2026-10-24 20:46:24.821 xcodebuild[5500:22436] [MT] IDETestOperationsObserverDebug: 469.635 elapsed -- Testing started completed.
+2026-10-24 20:46:24.828 xcodebuild[5500:22436] [MT] IDETestOperationsObserverDebug: 0.000 sec, +0.000 sec -- start
+2026-10-24 20:46:24.828 xcodebuild[5500:22436] [MT] IDETestOperationsObserverDebug: 469.635 sec, +469.635 sec -- end
+
+Test session results, code coverage, and logs:
+	/Users/runner/work/Fluxo/Fluxo/TestResults.xcresult
+
+Failing tests:
+	BillIntakeUITests.testPickerSwiftUI()
+
+** TEST FAILED **
+
+Testing started

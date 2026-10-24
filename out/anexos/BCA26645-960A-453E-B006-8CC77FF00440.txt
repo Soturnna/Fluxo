@@ -1,0 +1,277 @@
+Optional(Attributes: Application, 0x114da8c80, pid: 29562, label: 'Fluxo'
+Element subtree:
+ →Application, 0x114da8c80, pid: 29562, label: 'Fluxo'
+    Window (Main), 0x114da9180, {{0.0, 0.0}, {402.0, 874.0}}
+      Other, 0x114da9680, {{0.0, 0.0}, {402.0, 874.0}}
+        Other, 0x114dea580, {{0.0, 0.0}, {402.0, 874.0}}
+          Other, 0x114dea440, {{0.0, 0.0}, {402.0, 874.0}}
+            Other, 0x114bb9b80, {{0.0, 0.0}, {402.0, 874.0}}
+              Other, 0x114bb9cc0, {{0.0, 0.0}, {402.0, 874.0}}
+                Other, 0x114bba300, {{0.0, 0.0}, {402.0, 874.0}}
+                  Other, 0x114bb9f40, {{0.0, 0.0}, {402.0, 874.0}}
+                    Other, 0x114bba080, {{0.0, 0.0}, {402.0, 874.0}}
+                      Other, 0x114bba6c0, {{0.0, 0.0}, {402.0, 874.0}}
+                        ScrollView, 0x114bba1c0, {{0.0, 0.0}, {402.0, 874.0}}
+                          Other, 0x114de0000, {{0.0, 62.0}, {402.0, 632.3}}
+                            StaticText, 0x114de0140, {{20.0, 70.7}, {119.7, 14.3}}, label: 'OUTUBRO DE 2026'
+                            StaticText, 0x114de0280, {{20.0, 87.0}, {121.3, 26.3}}, label: 'Olá, Marcos'
+                            Button, 0x114dd6f80, {{282.0, 70.0}, {44.0, 44.0}}, identifier: 'eye', label: 'Ocultar valores'
+                            Button, 0x114dd7200, {{338.0, 70.0}, {44.0, 44.0}}, identifier: 'slider.horizontal.3', label: 'Ajustes'
+                            StaticText, 0x114dd70c0, {{16.0, 126.0}, {370.0, 130.3}}, label: 'Saldo em conta, R$ —, Nenhum banco conectado ainda'
+                              StaticText, 0x114dd75c0, {{36.0, 146.0}, {106.3, 18.0}}, label: 'Saldo em conta'
+                              StaticText, 0x114dd7480, {{36.0, 172.0}, {86.3, 40.7}}, label: 'R$ —'
+                              StaticText, 0x114dd7700, {{36.0, 220.7}, {196.0, 15.7}}, label: 'Nenhum banco conectado ainda'
+                            Button, 0x114dd7340, {{16.0, 268.3}, {370.0, 63.7}}, label: 'Agente Fluxo, Pergunte, organize e preveja gastos.'
+                              Image, 0x114dd4500, {{30.0, 283.3}, {34.0, 34.0}}, identifier: 'sparkles', label: 'Brilho'
+                              StaticText, 0x114dd4280, {{76.0, 282.3}, {93.0, 18.0}}, label: 'Agente Fluxo'
+                              StaticText, 0x114dd43c0, {{76.0, 302.3}, {220.7, 15.7}}, label: 'Pergunte, organize e preveja gastos.'
+                              Image, 0x114dd4140, {{364.7, 294.3}, {6.7, 11.7}}, identifier: 'chevron.right', label: 'Avançar'
+                            StaticText, 0x114dd4640, {{116.7, 430.0}, {168.7, 20.3}}, label: 'Conecte seus bancos'
+                            StaticText, 0x114dd4780, {{51.2, 460.3}, {299.7, 38.0}}, label: 'Cadastre as credenciais do Meu Pluggy em Ajustes para ver saldos e transações aqui.'
+                            Button, 0x114dd4000, {{38.0, 514.3}, {326.0, 48.0}}, label: 'Ir para Ajustes'
+                Other, 0x114ddc000, {{0.0, 0.0}, {402.0, 874.0}}
+                  Other, 0x114ddc140, {{0.0, 0.0}, {402.0, 874.0}}
+              Button, 0x114ddc280, {{21.0, 781.0}, {72.7, 50.0}}, label: 'Início', Selected
+                Image, 0x114ddc3c0, {{47.0, 789.0}, {20.3, 18.0}}, identifier: 'house', label: 'Casa'
+                StaticText, 0x114ddc500, {{42.4, 811.2}, {29.7, 13.3}}, label: 'Início'
+              Button, 0x114ddc640, {{93.7, 781.0}, {72.3, 50.0}}, label: 'Transações'
+                Image, 0x114ddc780, {{121.0, 791.7}, {17.3, 12.7}}, identifier: 'list.bullet', label: 'Lista'
+                StaticText, 0x114ddc8c0, {{98.9, 808.5}, {61.7, 13.3}}, label: 'Transações'
+              Button, 0x114ddca00, {{166.0, 781.0}, {72.7, 50.0}}, label: 'Orçamentos'
+                Image, 0x114ddcb40, {{193.7, 789.3}, {17.3, 17.3}}, identifier: 'chart.pie', label: 'Gráfico De Pizza'
+                StaticText, 0x114ddcc80, {{169.4, 810.8}, {65.7, 13.3}}, label: 'Orçamentos'
+              Button, 0x114ddcdc0, {{238.7, 781.0}, {72.3, 50.0}}, label: 'Investir'
+                Image, 0x114ddcf00, {{265.7, 790.0}, {18.3, 16.0}}, identifier: 'chart.line.uptrend.xyaxis', label: 'Gráfico De Linha'
+                StaticText, 0x114ddd040, {{254.8, 810.2}, {40.0, 13.3}}, label: 'Investir'
+              Button, 0x114ddd180, {{326.0, 776.0}, {60.0, 60.0}}, identifier: 'sparkles', label: 'Abrir o agente'
+      Other, 0x114ddd2c0, {{0.0, 0.0}, {402.0, 874.0}}
+        Other, 0x114ddd400, {{0.0, 0.0}, {402.0, 874.0}}
+          Other, 0x114ddd540, {{0.0, 0.0}, {402.0, 874.0}}
+            Other, 0x114ddd680, {{0.0, 0.0}, {402.0, 874.0}}
+              NavigationBar, 0x114ddd7c0, {{0.0, 62.0}, {402.0, 54.0}}, identifier: '_TtGC7SwiftUI29PresentationHosting'
+                Other, 0x114ddd900, {{20.0, 66.0}, {36.0, 36.0}}, identifier: 'chevron.down', label: 'Fechar o agente'
+                  Other, 0x114ddda40, {{20.0, 66.0}, {36.0, 36.0}}
+                    Button, 0x114dddb80, {{24.0, 66.0}, {28.0, 36.0}}, identifier: 'chevron.down', label: 'Fechar o agente'
+                Other, 0x114dddcc0, {{72.0, 66.7}, {258.0, 34.7}}
+                  Other, 0x114ddde00, {{72.0, 66.7}, {258.0, 34.7}}
+                    StaticText, 0x114dddf40, {{149.3, 66.7}, {103.3, 20.3}}, label: 'Agente Fluxo'
+                    StaticText, 0x114dde080, {{72.0, 88.0}, {258.0, 13.3}}, label: 'Não move dinheiro · você confirma cada mudança'
+                Other, 0x114dde1c0, {{346.0, 66.0}, {36.0, 36.0}}, identifier: 'square.and.pencil', label: 'Nova conversa'
+                  Other, 0x114dde300, {{346.0, 66.0}, {36.0, 36.0}}
+                    Button, 0x114dde440, {{348.7, 66.0}, {30.7, 36.0}}, identifier: 'square.and.pencil', label: 'Nova conversa', Disabled
+              Other, 0x114dde580, {{0.0, 0.0}, {402.0, 874.0}}
+                Other, 0x114dde6c0, {{0.0, 0.0}, {402.0, 874.0}}
+                  Other, 0x114dde800, {{0.0, 0.0}, {402.0, 874.0}}
+                    Other, 0x114dde940, {{0.0, 0.0}, {402.0, 874.0}}
+                      ScrollView, 0x114ddea80, {{0.0, 0.0}, {402.0, 874.0}}
+                        Other, 0x114ddebc0, {{0.0, 0.0}, {402.0, 874.0}}
+                          Other, 0x114dded00, {{0.0, 0.0}, {402.0, 170.8}}
+                        Other, 0x114ddee40, {{0.0, 0.0}, {402.0, 874.0}}
+                        Other, 0x114ddef80, {{0.0, 116.0}, {402.0, 168.0}}
+                          Other, 0x114ddf0c0, {{32.0, 148.0}, {340.0, 103.7}}
+                            Other, 0x114ddf200, {{32.0, 163.0}, {44.0, 44.0}}
+                            StaticText, 0x114ddf340, {{88.0, 148.0}, {223.3, 20.3}}, label: 'Pergunte sobre seu dinheiro'
+                            StaticText, 0x114ddf480, {{88.0, 170.3}, {262.0, 51.7}}, label: 'Também posso prever gastos, trocar categorias, anotar transações e criar orçamentos. Você confirma cada mudança.'
+                            Image, 0x114ddf5c0, {{33.3, 237.7}, {7.0, 12.7}}, identifier: 'key', label: 'Senhas'
+                            StaticText, 0x114ddf700, {{45.7, 236.0}, {326.3, 15.7}}, label: 'Cadastre a chave do Gemini em Ajustes para começar'
+                        Other, 0x114ddf840, {{369.0, 116.0}, {30.0, 621.7}}, label: 'Barra de rolagem vertical, 1 página', value: 0%
+                          Other, 0x114ddf980, {{396.0, 572.7}, {3.0, 162.0}}
+                        Other, 0x114ddfac0, {{369.0, 116.0}, {30.0, 621.7}}, label: 'Barra de rolagem vertical, 1 página', value: 0%
+                          Other, 0x114ddfc00, {{396.0, 572.7}, {3.0, 162.0}}
+                      Button, 0x114ddfd40, {{16.0, 753.7}, {46.0, 46.0}}, label: 'Enviar prints'
+                        Button, 0x114ddfe80, {{16.0, 753.7}, {46.0, 46.0}}
+                          Image, 0x114db0000, {{28.7, 767.0}, {26.0, 19.3}}, identifier: 'photo.badge.plus', label: 'photo.badge.plus'
+                      TextField, 0x114db0140, {{86.0, 765.7}, {230.0, 22.0}}, placeholderValue: 'Pergunte ou peça algo', Disabled
+                        Other, 0x114db0280, {{86.0, 773.7}, {230.0, 11.0}}, label: 'Barra de rolagem horizontal, 1 página', value: 0%
+                          Other, 0x114db03c0, {{89.0, 781.7}, {224.0, 3.0}}
+                      Button, 0x114db0500, {{340.0, 753.7}, {46.0, 46.0}}, identifier: 'arrow.up', label: 'Enviar', Disabled
+                      StaticText, 0x114db0640, {{17.3, 805.7}, {367.3, 26.3}}, label: 'Nomes e documentos são filtrados antes do envio. Prints são lidos só no iPhone.'
+              Other, 0x114db0780, {{0.0, 0.0}, {402.0, 874.0}}
+                Other, 0x114db08c0, {{0.0, 0.0}, {402.0, 874.0}}
+      Other, 0x114db0a00, {{0.0, 0.0}, {402.0, 874.0}}
+        Other, 0x114db0b40, {{-402.0, -874.0}, {1206.0, 2622.0}}
+        Other, 0x114db0c80, {{16.0, 62.0}, {370.0, 738.2}}
+          Image, 0x114db0dc0, {{-122.1, -76.1}, {646.1, 1014.3}}
+          Other, 0x114db0f00, {{16.0, 62.0}, {370.0, 738.2}}
+            Other, 0x114db1040, {{16.0, 62.0}, {370.0, 738.2}}
+              Other, 0x114db1180, {{-354.0, -676.2}, {1110.0, 2214.5}}
+              Other, 0x114db12c0, {{16.0, 62.0}, {370.0, 738.2}}
+                Other, 0x114db1400, {{16.0, 62.0}, {370.0, 738.2}}
+                  Other, 0x114db1540, {{16.0, 62.0}, {370.0, 738.2}}
+                    NavigationBar, 0x114db1680, {{16.0, 76.7}, {370.0, 49.7}}, identifier: 'Fatura do cartão'
+                      Other, 0x114db17c0, {{34.4, 80.4}, {84.4, 33.1}}, label: 'Cancelar'
+                        Other, 0x114db1900, {{34.4, 80.4}, {84.4, 33.1}}
+                          Button, 0x114db1a40, {{34.4, 80.4}, {84.4, 33.1}}, label: 'Cancelar'
+                      StaticText, 0x114db1b80, {{140.9, 87.5}, {120.0, 19.0}}, label: 'Fatura do cartão'
+                    Other, 0x114db1cc0, {{16.0, 62.0}, {370.0, 738.2}}
+                      Other, 0x114db1e00, {{16.0, 62.0}, {370.0, 738.2}}
+                        Other, 0x114db1f40, {{16.0, 62.0}, {370.0, 738.2}}
+                          Other, 0x114db2080, {{16.0, 62.0}, {370.0, 738.2}}
+                            CollectionView, 0x114db21c0, {{16.0, 62.0}, {370.0, 738.2}}
+                              Other, 0x114db2300, {{1.3, -1349.9}, {399.5, 1706.7}}
+                              Other, 0x114db2440, {{16.0, 62.0}, {370.0, 738.2}}
+                              Other, 0x114db2580, {{16.0, 62.0}, {370.0, 738.2}}
+                              Cell, 0x114db26c0, {{30.7, 126.4}, {340.5, 37.1}}
+                                Other, 0x114db2800, {{30.7, 126.4}, {340.5, 37.1}}
+                                Other, 0x114db2940, {{30.7, 126.4}, {340.5, 37.1}}
+                                  Other, 0x114db2a80, {{30.7, 126.4}, {340.5, 37.1}}
+                                    Other, 0x114db2bc0, {{30.7, 126.4}, {340.5, 37.1}}
+                                      StaticText, 0x114db2d00, {{30.7, 126.4}, {340.5, 37.1}}, label: 'Colar o arquivo (recomendado)'
+                              Cell, 0x114db2e40, {{30.7, 163.6}, {340.5, 92.0}}
+                                Other, 0x114db2f80, {{30.7, 163.6}, {340.5, 92.0}}
+                                  Other, 0x114db30c0, {{30.7, 163.6}, {340.5, 92.0}}
+                                Other, 0x114db3200, {{30.7, 163.6}, {340.5, 92.0}}
+                                  Other, 0x114db3340, {{30.7, 163.6}, {340.5, 92.0}}
+                                    Other, 0x114db3480, {{30.7, 163.6}, {340.5, 92.0}}
+                                      StaticText, 0x114db35c0, {{45.5, 181.0}, {304.7, 35.0}}, label: '1. No app Arquivos, toque e segure o arquivo da fatura (.ofx ou .csv) e escolha Copiar.'
+                                      StaticText, 0x114db3700, {{45.5, 221.5}, {194.8, 16.6}}, label: '2. Volte aqui e toque em Colar.'
+                              Cell, 0x114db3840, {{30.7, 255.6}, {340.5, 59.2}}
+                                Other, 0x114db3980, {{30.7, 255.6}, {340.5, 59.2}}
+                                  Other, 0x114db3ac0, {{30.7, 255.6}, {340.5, 59.2}}
+                                Other, 0x114db3c00, {{30.7, 255.6}, {340.5, 59.2}}
+                                  Other, 0x114db3d40, {{30.7, 255.6}, {340.5, 59.2}}
+                                    Other, 0x114db3e80, {{30.7, 255.6}, {340.5, 59.2}}
+                                      Button, 0x114e2c000, {{45.5, 269.4}, {78.5, 31.6}}, identifier: 'bill.paste', label: 'Colar'
+                              Other, 0x114e2c140, {{45.5, 254.7}, {311.1, 0.9}}
+                              Cell, 0x114e2c280, {{30.7, 314.8}, {340.5, 42.0}}
+                                Other, 0x114e2c3c0, {{30.7, 314.8}, {340.5, 42.0}}
+                                Other, 0x114e2c500, {{30.7, 314.8}, {340.5, 42.0}}
+                                  Other, 0x114e2c640, {{30.7, 314.8}, {340.5, 42.0}}
+                                    Other, 0x114e2c780, {{30.7, 314.8}, {340.5, 42.0}}
+                                      StaticText, 0x114e2c8c0, {{30.7, 314.8}, {340.5, 42.0}}, label: 'No app do Nubank também dá: exporte a fatura, toque em Copiar no menu de compartilhar e cole aqui.'
+                              Other, 0x114e2ca00, {{1.3, 356.8}, {399.5, 1582.5}}
+                              Cell, 0x114e2cb40, {{30.7, 373.1}, {340.5, 47.9}}
+                                Other, 0x114e2cc80, {{30.7, 373.1}, {340.5, 47.9}}
+                                  Other, 0x114e2cdc0, {{30.7, 373.1}, {340.5, 47.9}}
+                                Other, 0x114e2cf00, {{30.7, 373.1}, {340.5, 47.9}}
+                                  Other, 0x114e2d040, {{30.7, 373.1}, {340.5, 47.9}}
+                                    Other, 0x114e2d180, {{30.7, 373.1}, {340.5, 47.9}}
+                                      Button, 0x114e2d2c0, {{30.7, 373.1}, {340.5, 47.9}}, identifier: 'bill.pick', label: 'Escolher no app Arquivos'
+                                        Image, 0x114e2d400, {{45.5, 388.1}, {22.4, 18.1}}, identifier: 'folder', label: 'Mover'
+                                        StaticText, 0x114e2d540, {{45.5, 387.7}, {214.8, 18.7}}, label: 'Escolher no app Arquivos'
+                              Cell, 0x114e2d680, {{30.7, 421.0}, {340.5, 42.0}}
+                                Other, 0x114e2d7c0, {{30.7, 421.0}, {340.5, 42.0}}
+                                Other, 0x114e2d900, {{30.7, 421.0}, {340.5, 42.0}}
+                                  Other, 0x114e2da40, {{30.7, 421.0}, {340.5, 42.0}}
+                                    Other, 0x114e2db80, {{30.7, 421.0}, {340.5, 42.0}}
+                                      StaticText, 0x114e2dcc0, {{30.7, 421.0}, {340.5, 42.0}}, label: 'O arquivo é lido só neste iPhone e descartado em seguida. Nada vai para a internet nem para a IA.'
+                              Other, 0x114e2de00, {{355.6, 126.4}, {27.6, 616.7}}, label: 'Barra de rolagem vertical, 1 página', value: 0%
+                                Other, 0x114e2df40, {{380.5, 435.1}, {2.8, 305.3}}
+                              Other, 0x114e2e080, {{355.6, 126.4}, {27.6, 616.7}}, label: 'Barra de rolagem vertical, 1 página', value: 0%
+                                Other, 0x114e2e1c0, {{380.5, 435.1}, {2.8, 305.3}}
+                    Other, 0x114e2e300, {{16.0, 62.0}, {370.0, 738.2}}
+                      Other, 0x114e2e440, {{16.0, 62.0}, {370.0, 738.2}}
+      Other, 0x114e2e580, {{0.0, 0.0}, {402.0, 874.0}}
+        Other, 0x114e2e6c0, {{-402.0, -874.0}, {1206.0, 2622.0}}
+        Other, 0x114e2e800, {{0.0, 0.0}, {402.0, 874.0}}
+          Other, 0x114e2e940, {{0.0, 0.0}, {402.0, 874.0}}
+            Other, 0x114e2ea80, {{0.0, 0.0}, {402.0, 874.0}}
+              Other, 0x114e2ebc0, {{0.0, 0.0}, {402.0, 874.0}}
+                Other, 0x114e2ed00, {{0.0, 0.0}, {402.0, 874.0}}
+                  Other, 0x114e2ee40, {{0.0, 0.0}, {402.0, 874.0}}
+                    Other, 0x114e2ef80, {{302.0, 26.0}, {1.0, 54.0}}, label: 'Cancelar'
+                  Other, 0x114e2f0c0, {{0.0, 0.0}, {402.0, 874.0}}
+                    Other, 0x114e2f200, {{0.0, 0.0}, {402.0, 874.0}}
+                      Other, 0x114e2f340, {{0.0, 0.0}, {402.0, 874.0}}
+                        Other, 0x114e2f480, {{0.0, 0.0}, {402.0, 874.0}}
+                          Other, 0x114e2f5c0, {{0.0, 0.0}, {402.0, 874.0}}
+                            Other, 0x114e2f700, {{0.0, 0.0}, {402.0, 874.0}}
+                              Other, 0x114e2f840, {{0.0, 72.0}, {402.0, 802.0}}
+                                Image, 0x114e2f980, {{-150.0, -78.0}, {702.0, 1102.0}}
+                                Other, 0x114e2fac0, {{0.0, 72.0}, {402.0, 802.0}}
+                                  Other, 0x114e2fc00, {{0.0, 72.0}, {402.0, 802.0}}
+                                    Other, 0x114e2fd40, {{0.0, 72.0}, {402.0, 802.0}}
+                                      Other, 0x114e2fe80, {{0.0, 72.0}, {402.0, 802.0}}
+                                        Other, 0x114e30000, {{0.0, 72.0}, {402.0, 802.0}}
+                                          Other, 0x114e30140, {{0.0, 72.0}, {402.0, 802.0}}
+                                          Other, 0x114e30280, {{0.0, 72.0}, {402.0, 802.0}}
+                                            Other, 0x114e303c0, {{0.0, 72.0}, {402.0, 802.0}}
+                                              Other, 0x114e30500, {{0.0, 72.0}, {402.0, 802.0}}
+                                                Other, 0x114e30640, {{0.0, 72.0}, {402.0, 802.0}}, identifier: 'Browse View (Picker)'
+                                                  Other, 0x114e30780, {{0.0, 72.0}, {402.0, 802.0}}
+                                                    Other, 0x114e308c0, {{0.0, 72.0}, {402.0, 802.0}}
+                                                      Other, 0x114e30a00, {{0.0, 72.0}, {402.0, 802.0}}
+                                                        Other, 0x114e30b40, {{0.0, 72.0}, {402.0, 802.0}}
+                                                        Other, 0x114e30c80, {{0.0, 72.0}, {402.0, 802.0}}, identifier: 'DOC.browsingRoot Source: com.apple.FileProvider.LocalStorage, Title: Fluxo'
+                                                          NavigationBar, 0x114e30dc0, {{0.0, 88.0}, {402.0, 114.0}}, identifier: 'FullDocumentManagerViewControllerNavigationBar'
+                                                            Button, 0x114e30f00, {{16.0, 88.0}, {44.0, 44.0}}, identifier: 'BackButton', label: 'Browse'
+                                                            Button, 0x114e31040, {{166.7, 99.7}, {42.7, 20.7}}, label: 'Fluxo, Actions Menu'
+                                                            Button, 0x114e31180, {{291.3, 92.0}, {36.7, 36.0}}, label: 'Cancelar'
+                                                            Button, 0x114e312c0, {{344.0, 92.0}, {38.0, 36.0}}, identifier: 'OverflowBarButtonItem', label: 'More'
+                                                            SearchField, 0x114e31400, {{16.0, 143.0}, {370.0, 44.0}}, label: 'Search', placeholderValue: 'Search'
+                                                              Image, 0x114e31540, {{28.0, 155.0}, {20.7, 19.3}}, identifier: 'magnifyingglass', label: 'Search'
+                                                          Other, 0x114e31680, {{0.0, 72.0}, {402.0, 802.0}}
+                                                            Other, 0x114e317c0, {{0.0, 72.0}, {402.0, 802.0}}
+                                                              Other, 0x114e31900, {{0.0, 72.0}, {402.0, 802.0}}
+                                                                Other, 0x114e31a40, {{0.0, 72.0}, {402.0, 802.0}}
+                                                                  ScrollView, 0x114e31b80, {{0.0, 72.0}, {402.0, 802.0}}
+                                                                    Other, 0x114e31cc0, {{0.0, 72.0}, {402.0, 802.0}}
+                                                                      Other, 0x114e31e00, {{0.0, 72.0}, {402.0, 179.8}}
+                                                                      Other, 0x114e31f40, {{0.0, 726.2}, {402.0, 147.8}}
+                                                                    Other, 0x114e32080, {{0.0, 72.0}, {402.0, 802.0}}
+                                                                      Other, 0x114e321c0, {{0.0, 72.0}, {402.0, 179.8}}
+                                                                        Image, 0x114e32300, {{-120.0, -103.0}, {642.0, 350.0}}, identifier: 'AdditionalDimmingOverlay'
+                                                                        Other, 0x114e32440, {{0.0, 72.0}, {402.0, 115.0}}
+                                                                        Other, 0x114e32580, {{0.0, 72.0}, {402.0, 179.8}}
+                                                                          Other, 0x114e326c0, {{0.0, 72.0}, {402.0, 179.8}}
+                                                                        Other, 0x114e32800, {{0.0, 72.0}, {402.0, 179.8}}
+                                                                          Other, 0x114e32940, {{0.0, 72.0}, {402.0, 179.8}}
+                                                                        Other, 0x114e32a80, {{0.0, 72.0}, {402.0, 179.8}}
+                                                                          Other, 0x114e32bc0, {{0.0, 72.0}, {402.0, 179.8}}
+                                                                          Other, 0x114e32d00, {{0.0, 72.0}, {402.0, 179.8}}
+                                                                      Other, 0x114e32e40, {{0.0, 726.2}, {402.0, 147.8}}
+                                                                        Image, 0x114e32f80, {{-120.0, 731.0}, {642.0, 286.0}}, identifier: 'AdditionalDimmingOverlay'
+                                                                        Other, 0x114e330c0, {{0.0, 726.2}, {402.0, 147.8}}
+                                                                          Other, 0x114e33200, {{0.0, 726.2}, {402.0, 147.8}}
+                                                                        Other, 0x114e33340, {{0.0, 726.2}, {402.0, 147.8}}
+                                                                          Other, 0x114e33480, {{0.0, 726.2}, {402.0, 147.8}}
+                                                                          Other, 0x114e335c0, {{0.0, 726.2}, {402.0, 147.8}}
+                                                                    Other, 0x114e33700, {{369.0, 202.0}, {30.0, 589.0}}, label: 'Vertical scroll bar, 1 page', value: 0%
+                                                                      Other, 0x114e33840, {{396.0, 781.0}, {3.0, 7.0}}
+                                                                    Other, 0x114e33980, {{56.0, 758.0}, {290.0, 30.0}}, label: 'Horizontal scroll bar, 1 page', value: 0%
+                                                                      Other, 0x114e33ac0, {{392.0, 785.0}, {7.0, 3.0}}
+                                                                    Other, 0x114e33c00, {{369.0, 202.0}, {30.0, 589.0}}, label: 'Vertical scroll bar, 1 page', value: 0%
+                                                                      Other, 0x114e33d40, {{396.0, 781.0}, {3.0, 7.0}}
+                                                                    Other, 0x114e33e80, {{56.0, 758.0}, {290.0, 30.0}}, label: 'Horizontal scroll bar, 1 page', value: 0%
+                                                                      Other, 0x114e38000, {{392.0, 785.0}, {7.0, 3.0}}
+                                                          Other, 0x114e38140, {{0.0, 72.0}, {402.0, 802.0}}
+                                                            Other, 0x114e38280, {{0.0, 72.0}, {402.0, 802.0}}
+                                                  Other, 0x114e383c0, {{0.0, 72.0}, {402.0, 802.0}}
+                                                    Other, 0x114e38500, {{0.0, 72.0}, {402.0, 802.0}}
+                                            Other, 0x114e38640, {{0.0, 791.0}, {402.0, 83.0}}
+                                              Other, 0x114e38780, {{0.0, 72.0}, {402.0, 802.0}}
+                                                TabBar, 0x114e388c0, {{0.0, 791.0}, {402.0, 83.0}}, identifier: 'DOC.browsingModeTabBar', label: 'Tab Bar'
+                                                  Other, 0x114e38a00, {{64.0, 791.0}, {274.0, 62.0}}
+                                                    Other, 0x114e38b40, {{64.0, 791.0}, {94.0, 54.0}}
+                                                    Other, 0x114e38c80, {{64.0, 791.0}, {274.0, 62.0}}
+                                                      Button, 0x114e38dc0, {{68.0, 795.0}, {94.0, 54.0}}, label: 'Recents'
+                                                        Image, 0x114e38f00, {{101.0, 801.3}, {27.3, 27.3}}, identifier: 'clock.fill', label: 'clock'
+                                                      Button, 0x114e39040, {{154.0, 795.0}, {94.0, 54.0}}, label: 'Shared'
+                                                        Image, 0x114e39180, {{185.0, 800.3}, {35.0, 27.0}}, identifier: 'folder.fill.badge.person.crop', label: 'Shared Folder'
+                                                      Button, 0x114e392c0, {{240.0, 795.0}, {94.0, 54.0}}, label: 'Browse', Selected
+                                                        Image, 0x114e39400, {{271.0, 802.3}, {32.0, 25.0}}, identifier: 'folder.fill', label: 'move'
+                                                    Other, 0x114e39540, {{240.0, 795.0}, {94.0, 54.0}}
+                                                      Other, 0x114e39680, {{240.0, 795.0}, {94.0, 54.0}}
+                                                        Other, 0x114e397c0, {{240.0, 795.0}, {94.0, 54.0}}
+                                                        Other, 0x114e39900, {{240.0, 795.0}, {94.0, 54.0}}
+                                                          Other, 0x114e39a40, {{240.0, 795.0}, {94.0, 54.0}}
+                                                            Other, 0x114e39b80, {{240.0, 795.0}, {94.0, 54.0}}
+                                                              Other, 0x114e39cc0, {{240.0, 795.0}, {94.0, 54.0}}
+                                                            Other, 0x114e39e00, {{240.0, 795.0}, {94.0, 54.0}}
+                                                          Other, 0x114e39f40, {{240.0, 795.0}, {94.0, 54.0}}
+                                              Other, 0x114e3a080, {{0.0, 791.0}, {402.0, 83.0}}
+                                                Other, 0x114e3a1c0, {{0.0, 791.0}, {402.0, 83.0}}
+                                                  Other, 0x114e3a300, {{0.0, 791.0}, {402.0, 83.0}}
+                                                    Other, 0x114e3a440, {{0.0, 791.0}, {402.0, 83.0}}
+                                                      Other, 0x114e3a580, {{0.0, 791.0}, {402.0, 83.0}}
+                                                        Other, 0x114e3a6c0, {{0.0, 791.0}, {402.0, 83.0}}
+                                                    Other, 0x114e3a800, {{0.0, 791.0}, {402.0, 83.0}}
+                                                      Other, 0x114e3a940, {{0.0, 791.0}, {402.0, 83.0}}
+Path to element:
+ →Application, 0x114da8c80, pid: 29562, label: 'Fluxo'
+Query chain:
+ →Find: Target Application 'com.soturnna.fluxo'
+  Output: {
+    Application, 0x114e3aa80, pid: 29562, label: 'Fluxo'
+  }
+)

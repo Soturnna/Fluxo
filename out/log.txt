@@ -1,0 +1,37 @@
+Test Case '-[FluxoTests.BillParserTests testCSVNubank]' started.
+Test Case '-[FluxoTests.BillParserTests testCSVNubank]' passed (0.009 seconds).
+Test Case '-[FluxoTests.BillParserTests testOFXNubank]' started.
+Test Case '-[FluxoTests.BillParserTests testOFXNubank]' passed (0.002 seconds).
+Test Case '-[FluxoTests.BillParserTests testPasteCSVAndPlainText]' started.
+Test Case '-[FluxoTests.BillParserTests testPasteCSVAndPlainText]' passed (0.013 seconds).
+Test Case '-[FluxoTests.BillParserTests testPasteWithDeclaredOFXType]' started.
+Test Case '-[FluxoTests.BillParserTests testPasteWithDeclaredOFXType]' passed (0.004 seconds).
+Test Case '-[FluxoTests.BillParserTests testPasteWithDynamicType]' started.
+Test Case '-[FluxoTests.BillParserTests testPasteWithDynamicType]' passed (0.003 seconds).
+Test Case '-[FluxoTests.BillParserTests testPreferredTypeSkipsLinks]' started.
+Test Case '-[FluxoTests.BillParserTests testPreferredTypeSkipsLinks]' passed (0.001 seconds).
+Test Case '-[FluxoTests.BillParserTests testReadFileAndDeleteCopy]' started.
+Test Case '-[FluxoTests.BillParserTests testReadFileAndDeleteCopy]' passed (0.019 seconds).
+Test Case '-[FluxoUITests.BillIntakeUITests testPasteCSV]' started.
+Test Case '-[FluxoUITests.BillIntakeUITests testPasteCSV]' passed (15.339 seconds).
+Test Case '-[FluxoUITests.BillIntakeUITests testPasteOFXDeclaredType]' started.
+Test Case '-[FluxoUITests.BillIntakeUITests testPasteOFXDeclaredType]' passed (10.496 seconds).
+Test Case '-[FluxoUITests.BillIntakeUITests testPickerSwiftUI]' started.
+/Users/runner/work/Fluxo/Fluxo/FluxoUITests/BillIntakeUITests.swift:83: error: -[FluxoUITests.BillIntakeUITests testPickerSwiftUI] : XCTAssertTrue failed - arquivo não apareceu no seletor
+Test Case '-[FluxoUITests.BillIntakeUITests testPickerSwiftUI]' failed (49.570 seconds).
+Test Case '-[FluxoUITests.BillIntakeUITests testPickerUIKit]' started.
+Test Case '-[FluxoUITests.BillIntakeUITests testPickerUIKit]' passed (20.541 seconds).
+Test Case '-[FluxoUITests.BillIntakeUITests testZPickerInSheetInvestigation]' started.
+INVESTIGACAO seletor em folha (builds 28-29): arquivo acessivel=true resultado=OK linhas=3 soma=68 banco=150 fonte=Teste_2026-11-08.ofx
+Test Case '-[FluxoUITests.BillIntakeUITests testZPickerInSheetInvestigation]' passed (15.641 seconds).
+Test Case '-[FluxoUITests.RealAppBillUITests testAgentPaste]' started.
+Test Case '-[FluxoUITests.RealAppBillUITests testAgentPaste]' passed (25.276 seconds).
+Test Case '-[FluxoUITests.RealAppBillUITests testAgentPasteCopiedInFilesApp]' started.
+INVESTIGACAO tipos na area de transferencia: ["com.apple.DocumentManager.FINode.File", "com.soturnna.fluxo.ofx"]
+Test Case '-[FluxoUITests.RealAppBillUITests testAgentPasteCopiedInFilesApp]' passed (177.621 seconds).
+Test Case '-[FluxoUITests.RealAppBillUITests testAgentPicker]' started.
+Test Case '-[FluxoUITests.RealAppBillUITests testAgentPicker]' passed (36.538 seconds).
+Test Case '-[FluxoUITests.RealAppBillUITests testZLegacyImporterInvestigation]' started.
+INVESTIGACAO seletor antigo (build 27) no app real: FUNCIONOU
+Test Case '-[FluxoUITests.RealAppBillUITests testZLegacyImporterInvestigation]' passed (30.942 seconds).
+** TEST FAILED **

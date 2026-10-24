@@ -1,0 +1,5 @@
+Query chain:
+ →Find: Target Application 'com.soturnna.fluxo'
+  ↪︎Find: Descendants matching type Any
+    ↪︎Find: Elements matching predicate 'label CONTAINS "Teste_2026-11-08"'
+      ↪︎Find: First Match

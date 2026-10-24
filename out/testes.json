@@ -1,0 +1,218 @@
+{
+  "devices" : [
+    {
+      "architecture" : "arm64",
+      "deviceId" : "77AA4492-C787-4EEE-A772-05D4B3E9ECCD",
+      "deviceName" : "iPhone 17 Pro",
+      "modelName" : "iPhone 17 Pro",
+      "osBuildNumber" : "23F77",
+      "osVersion" : "26.5",
+      "platform" : "iOS Simulator"
+    }
+  ],
+  "testNodes" : [
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "children" : [
+                {
+                  "duration" : "0.0087s",
+                  "durationInSeconds" : 0.008681058883666992,
+                  "name" : "testCSVNubank()",
+                  "nodeIdentifier" : "BillParserTests/testCSVNubank()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoTests/BillParserTests/testCSVNubank",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0.0024s",
+                  "durationInSeconds" : 0.0024139881134033203,
+                  "name" : "testOFXNubank()",
+                  "nodeIdentifier" : "BillParserTests/testOFXNubank()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoTests/BillParserTests/testOFXNubank",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0.013s",
+                  "durationInSeconds" : 0.012841105461120605,
+                  "name" : "testPasteCSVAndPlainText()",
+                  "nodeIdentifier" : "BillParserTests/testPasteCSVAndPlainText()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoTests/BillParserTests/testPasteCSVAndPlainText",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0.0038s",
+                  "durationInSeconds" : 0.0038040876388549805,
+                  "name" : "testPasteWithDeclaredOFXType()",
+                  "nodeIdentifier" : "BillParserTests/testPasteWithDeclaredOFXType()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoTests/BillParserTests/testPasteWithDeclaredOFXType",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0.003s",
+                  "durationInSeconds" : 0.003036975860595703,
+                  "name" : "testPasteWithDynamicType()",
+                  "nodeIdentifier" : "BillParserTests/testPasteWithDynamicType()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoTests/BillParserTests/testPasteWithDynamicType",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0.0009s",
+                  "durationInSeconds" : 0.0009009838104248047,
+                  "name" : "testPreferredTypeSkipsLinks()",
+                  "nodeIdentifier" : "BillParserTests/testPreferredTypeSkipsLinks()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoTests/BillParserTests/testPreferredTypeSkipsLinks",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0.019s",
+                  "durationInSeconds" : 0.01888406276702881,
+                  "name" : "testReadFileAndDeleteCopy()",
+                  "nodeIdentifier" : "BillParserTests/testReadFileAndDeleteCopy()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoTests/BillParserTests/testReadFileAndDeleteCopy",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "BillParserTests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoTests/BillParserTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            }
+          ],
+          "name" : "FluxoTests",
+          "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoTests",
+          "nodeType" : "Unit test bundle",
+          "result" : "Passed"
+        },
+        {
+          "children" : [
+            {
+              "children" : [
+                {
+                  "duration" : "15s",
+                  "durationInSeconds" : 15.339134931564331,
+                  "name" : "testPasteCSV()",
+                  "nodeIdentifier" : "BillIntakeUITests/testPasteCSV()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoUITests/BillIntakeUITests/testPasteCSV",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "10s",
+                  "durationInSeconds" : 10.496446013450623,
+                  "name" : "testPasteOFXDeclaredType()",
+                  "nodeIdentifier" : "BillIntakeUITests/testPasteOFXDeclaredType()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoUITests/BillIntakeUITests/testPasteOFXDeclaredType",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "children" : [
+                    {
+                      "name" : "BillIntakeUITests.swift:83: XCTAssertTrue failed - arquivo não apareceu no seletor",
+                      "nodeType" : "Failure Message"
+                    }
+                  ],
+                  "duration" : "49s",
+                  "durationInSeconds" : 49.569897055625916,
+                  "name" : "testPickerSwiftUI()",
+                  "nodeIdentifier" : "BillIntakeUITests/testPickerSwiftUI()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoUITests/BillIntakeUITests/testPickerSwiftUI",
+                  "nodeType" : "Test Case",
+                  "result" : "Failed"
+                },
+                {
+                  "duration" : "20s",
+                  "durationInSeconds" : 20.541478037834167,
+                  "name" : "testPickerUIKit()",
+                  "nodeIdentifier" : "BillIntakeUITests/testPickerUIKit()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoUITests/BillIntakeUITests/testPickerUIKit",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "15s",
+                  "durationInSeconds" : 15.640550017356873,
+                  "name" : "testZPickerInSheetInvestigation()",
+                  "nodeIdentifier" : "BillIntakeUITests/testZPickerInSheetInvestigation()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoUITests/BillIntakeUITests/testZPickerInSheetInvestigation",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "BillIntakeUITests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoUITests/BillIntakeUITests",
+              "nodeType" : "Test Suite",
+              "result" : "Failed"
+            },
+            {
+              "children" : [
+                {
+                  "duration" : "25s",
+                  "durationInSeconds" : 25.275665044784546,
+                  "name" : "testAgentPaste()",
+                  "nodeIdentifier" : "RealAppBillUITests/testAgentPaste()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoUITests/RealAppBillUITests/testAgentPaste",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "2m 57s",
+                  "durationInSeconds" : 177.62134301662445,
+                  "name" : "testAgentPasteCopiedInFilesApp()",
+                  "nodeIdentifier" : "RealAppBillUITests/testAgentPasteCopiedInFilesApp()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoUITests/RealAppBillUITests/testAgentPasteCopiedInFilesApp",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "36s",
+                  "durationInSeconds" : 36.53777801990509,
+                  "name" : "testAgentPicker()",
+                  "nodeIdentifier" : "RealAppBillUITests/testAgentPicker()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoUITests/RealAppBillUITests/testAgentPicker",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "30s",
+                  "durationInSeconds" : 30.941957116127014,
+                  "name" : "testZLegacyImporterInvestigation()",
+                  "nodeIdentifier" : "RealAppBillUITests/testZLegacyImporterInvestigation()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoUITests/RealAppBillUITests/testZLegacyImporterInvestigation",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "RealAppBillUITests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoUITests/RealAppBillUITests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            }
+          ],
+          "name" : "FluxoUITests",
+          "nodeIdentifierURL" : "test://com.apple.xcode/Fluxo/FluxoUITests",
+          "nodeType" : "UI test bundle",
+          "result" : "Failed"
+        }
+      ],
+      "name" : "Fluxo",
+      "nodeType" : "Test Plan",
+      "result" : "Failed"
+    }
+  ],
+  "testPlanConfigurations" : [
+    {
+      "configurationId" : "1",
+      "configurationName" : "Test Scheme Action"
+    }
+  ]
+}

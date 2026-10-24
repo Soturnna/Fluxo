@@ -1,0 +1,116 @@
+Attributes: Application, 0x11434da40, pid: 19918, label: 'Files'
+Element subtree:
+ →Application, 0x11434da40, pid: 19918, label: 'Files'
+    Window (Main), 0x11434e300, {{0.0, 0.0}, {402.0, 874.0}}
+      Other, 0x11434c640, {{0.0, 0.0}, {402.0, 874.0}}
+        Other, 0x11434c500, {{0.0, 0.0}, {402.0, 874.0}}
+          Other, 0x11434d180, {{0.0, 0.0}, {402.0, 874.0}}
+            Other, 0x11434cf00, {{0.0, 0.0}, {402.0, 874.0}}
+            Other, 0x11434d900, {{0.0, 0.0}, {402.0, 874.0}}
+              Other, 0x11434ea80, {{0.0, 0.0}, {402.0, 874.0}}
+                Other, 0x11434cdc0, {{0.0, 0.0}, {402.0, 874.0}}
+                  Other, 0x11434c8c0, {{0.0, 0.0}, {402.0, 874.0}}, identifier: 'Browse View'
+                    Other, 0x11434ed00, {{0.0, 0.0}, {402.0, 874.0}}
+                      Other, 0x11434f700, {{0.0, 0.0}, {402.0, 874.0}}
+                        Other, 0x11434c140, {{0.0, 0.0}, {402.0, 874.0}}
+                          Other, 0x11434f200, {{0.0, 0.0}, {402.0, 874.0}}
+                          Other, 0x11434d7c0, {{0.0, 0.0}, {402.0, 874.0}}, identifier: 'DOC.browsingRoot Source: com.apple.FileProvider.LocalStorage, Title: Fluxo'
+                            NavigationBar, 0x11434f840, {{0.0, 62.0}, {402.0, 114.0}}, identifier: 'FullDocumentManagerViewControllerNavigationBar'
+                              Button, 0x11434f5c0, {{16.0, 62.0}, {44.0, 44.0}}, identifier: 'BackButton', label: 'On My iPhone'
+                              Button, 0x11434ef80, {{166.7, 73.7}, {42.7, 20.7}}, label: 'Fluxo, Actions Menu'
+                              Button, 0x11434f480, {{346.0, 66.0}, {36.0, 36.0}}, identifier: 'OverflowBarButtonItem', label: 'More'
+                              SearchField, 0x11434f980, {{16.0, 117.0}, {370.0, 44.0}}, label: 'Search', placeholderValue: 'Search'
+                                Button, 0x11434e800, {{352.7, 128.0}, {17.3, 22.0}}, identifier: 'Dictate', label: 'Dictate'
+                                Image, 0x114da9400, {{28.0, 129.0}, {20.7, 19.3}}, identifier: 'magnifyingglass', label: 'Search'
+                                Button, 0x114dab480, {{352.7, 128.0}, {17.3, 22.0}}, identifier: 'Dictate', label: 'Dictate'
+                            Other, 0x114da92c0, {{0.0, 0.0}, {402.0, 874.0}}
+                              Other, 0x114daa6c0, {{0.0, 0.0}, {402.0, 874.0}}
+                                Other, 0x114dab340, {{0.0, 0.0}, {402.0, 874.0}}
+                                  Other, 0x114daaa80, {{0.0, 0.0}, {402.0, 874.0}}
+                                    ScrollView, 0x114dabe80, {{0.0, 0.0}, {402.0, 874.0}}
+                                      Other, 0x114dab0c0, {{0.0, 0.0}, {402.0, 874.0}}
+                                        Other, 0x11467c640, {{0.0, 0.0}, {402.0, 225.8}}
+                                        Other, 0x11467c280, {{0.0, 726.2}, {402.0, 147.8}}
+                                      Other, 0x11467c000, {{0.0, 0.0}, {402.0, 874.0}}
+                                        Other, 0x11467ca00, {{0.0, 0.0}, {402.0, 225.8}}
+                                          Image, 0x11467c3c0, {{-120.0, -221.0}, {642.0, 442.0}}, identifier: 'AdditionalDimmingOverlay'
+                                          Other, 0x11467c140, {{0.0, 0.0}, {402.0, 161.0}}
+                                          Other, 0x11467cb40, {{0.0, 0.0}, {402.0, 225.8}}
+                                            Other, 0x11467c500, {{0.0, 0.0}, {402.0, 225.8}}
+                                          Other, 0x11467c780, {{0.0, 0.0}, {402.0, 225.8}}
+                                            Other, 0x11467c8c0, {{0.0, 0.0}, {402.0, 225.8}}
+                                          Other, 0x106191b80, {{0.0, 0.0}, {402.0, 225.8}}
+                                            Other, 0x1142e0000, {{0.0, 0.0}, {402.0, 225.8}}
+                                            Other, 0x1142e0140, {{0.0, 0.0}, {402.0, 225.8}}
+                                        Other, 0x1142e0280, {{0.0, 726.2}, {402.0, 147.8}}
+                                          Image, 0x1142e03c0, {{-120.0, 731.0}, {642.0, 286.0}}, identifier: 'AdditionalDimmingOverlay'
+                                          Other, 0x1142e0500, {{0.0, 726.2}, {402.0, 147.8}}
+                                            Other, 0x1142e0640, {{0.0, 726.2}, {402.0, 147.8}}
+                                          Other, 0x1142e0780, {{0.0, 726.2}, {402.0, 147.8}}
+                                            Other, 0x1142e08c0, {{0.0, 726.2}, {402.0, 147.8}}
+                                            Other, 0x1142e0a00, {{0.0, 726.2}, {402.0, 147.8}}
+                                      CollectionView, 0x1142e0b40, {{0.0, 0.0}, {402.0, 874.0}}, identifier: 'File View', value: Icon Mode
+                                        Cell, 0x1142e0c80, {{10.0, 186.0}, {122.0, 189.7}}, identifier: 'Teste_2026-11-08.ofx, ofx', label: 'Teste_2026-11-08.ofx, ofx, 8:41 PM, 523 bytes'
+                                          Other, 0x1142e0dc0, {{10.0, 186.0}, {122.0, 189.7}}
+                                          Other, 0x1142e0f00, {{10.0, 186.0}, {122.0, 189.7}}
+                                            Other, 0x1142e1040, {{29.0, 190.0}, {84.0, 84.0}}
+                                              Image, 0x1142e1180, {{29.0, 190.0}, {84.0, 84.0}}
+                                            Other, 0x1142e12c0, {{13.0, 279.0}, {116.0, 75.7}}
+                                              StaticText, 0x1142e1400, {{13.0, 279.0}, {116.0, 40.0}}, label: 'Teste_2026-11-08.ofx'
+                                              StaticText, 0x1142e1540, {{13.0, 322.0}, {116.0, 14.3}}, label: '8:41 PM'
+                                              StaticText, 0x1142e1680, {{13.0, 340.3}, {116.0, 14.3}}, label: '523 bytes'
+                                        Other, 0x1142e17c0, {{0.0, 753.0}, {402.0, 38.0}}
+                                          Other, 0x1142e1900, {{0.0, 753.0}, {402.0, 38.0}}, identifier: 'DOCItemCollectionViewFooterViewIdentifier'
+                                            StaticText, 0x1142e1a40, {{179.3, 753.0}, {43.7, 18.0}}, label: '1 item'
+                                        Other, 0x1142e1b80, {{369.0, 176.0}, {30.0, 615.0}}, label: 'Vertical scroll bar, 1 page', value: 0%
+                                          Other, 0x1142e1cc0, {{396.0, 530.3}, {3.0, 257.7}}
+                                        Other, 0x1142e1e00, {{369.0, 176.0}, {30.0, 615.0}}, label: 'Vertical scroll bar, 1 page', value: 0%
+                                          Other, 0x1142e1f40, {{396.0, 530.3}, {3.0, 257.7}}
+                                      Other, 0x1142e2080, {{369.0, 176.0}, {30.0, 615.0}}, label: 'Vertical scroll bar, 1 page', value: 0%
+                                        Other, 0x1142e21c0, {{396.0, 781.0}, {3.0, 7.0}}
+                                      Other, 0x1142e2300, {{62.0, 758.0}, {278.0, 30.0}}, label: 'Horizontal scroll bar, 1 page', value: 0%
+                                        Other, 0x1142e2440, {{336.0, 785.0}, {7.0, 3.0}}
+                                      Other, 0x1142e2580, {{369.0, 176.0}, {30.0, 615.0}}, label: 'Vertical scroll bar, 1 page', value: 0%
+                                        Other, 0x1142e26c0, {{396.0, 781.0}, {3.0, 7.0}}
+                                      Other, 0x1142e2800, {{62.0, 758.0}, {278.0, 30.0}}, label: 'Horizontal scroll bar, 1 page', value: 0%
+                                        Other, 0x1142e2940, {{336.0, 785.0}, {7.0, 3.0}}
+                            Other, 0x1142e2a80, {{0.0, 0.0}, {402.0, 874.0}}
+                              Other, 0x1142e2bc0, {{0.0, 0.0}, {402.0, 874.0}}
+                    Other, 0x1142e2d00, {{0.0, 0.0}, {402.0, 874.0}}
+                      Other, 0x1142e2e40, {{0.0, 0.0}, {402.0, 874.0}}
+              Other, 0x1142e2f80, {{0.0, 791.0}, {402.0, 83.0}}
+                Other, 0x1142e30c0, {{0.0, 0.0}, {402.0, 874.0}}
+                  TabBar, 0x1142e3200, {{0.0, 791.0}, {402.0, 83.0}}, identifier: 'DOC.browsingModeTabBar', label: 'Tab Bar'
+                    Other, 0x1142e3340, {{64.0, 791.0}, {274.0, 62.0}}
+                      Other, 0x1142e3480, {{64.0, 791.0}, {94.0, 54.0}}
+                      Other, 0x1142e35c0, {{64.0, 791.0}, {274.0, 62.0}}
+                        Button, 0x1142e3700, {{68.0, 795.0}, {94.0, 54.0}}, label: 'Recents'
+                          Image, 0x1142e3840, {{101.0, 801.3}, {27.3, 27.3}}, identifier: 'clock.fill', label: 'clock'
+                        Button, 0x1142e3980, {{154.0, 795.0}, {94.0, 54.0}}, label: 'Shared'
+                          Image, 0x1142e3ac0, {{185.0, 800.3}, {35.0, 27.0}}, identifier: 'folder.fill.badge.person.crop', label: 'Shared Folder'
+                        Button, 0x1142e3c00, {{240.0, 795.0}, {94.0, 54.0}}, label: 'Browse', Selected
+                          Image, 0x1142e3d40, {{271.0, 802.3}, {32.0, 25.0}}, identifier: 'folder.fill', label: 'move'
+                      Other, 0x1142e3e80, {{240.0, 795.0}, {94.0, 54.0}}
+                        Other, 0x1063c0000, {{240.0, 795.0}, {94.0, 54.0}}
+                          Other, 0x1063c0140, {{240.0, 795.0}, {94.0, 54.0}}
+                          Other, 0x1063c0280, {{240.0, 795.0}, {94.0, 54.0}}
+                            Other, 0x1063c03c0, {{240.0, 795.0}, {94.0, 54.0}}
+                              Other, 0x1063c0500, {{240.0, 795.0}, {94.0, 54.0}}
+                                Other, 0x1063c0640, {{240.0, 795.0}, {94.0, 54.0}}
+                              Other, 0x1063c0780, {{240.0, 795.0}, {94.0, 54.0}}
+                            Other, 0x1063c08c0, {{240.0, 795.0}, {94.0, 54.0}}
+                Other, 0x1063c0a00, {{0.0, 791.0}, {402.0, 83.0}}
+                  Other, 0x1063c0b40, {{0.0, 791.0}, {402.0, 83.0}}
+                    Other, 0x1063c0c80, {{0.0, 791.0}, {402.0, 83.0}}
+                      Other, 0x1063c0dc0, {{0.0, 791.0}, {402.0, 83.0}}
+                        Other, 0x1063c0f00, {{0.0, 791.0}, {402.0, 83.0}}
+                          Other, 0x1063c1040, {{0.0, 791.0}, {402.0, 83.0}}
+                      Other, 0x1063c1180, {{0.0, 791.0}, {402.0, 83.0}}
+                        Other, 0x1063c12c0, {{0.0, 791.0}, {402.0, 83.0}}
+Path to element:
+ →Application, 0x11434da40, pid: 19918, label: 'Files'
+Query chain:
+ →Find: Application 'com.apple.DocumentsApp'
+  Output: {
+    Application, 0x1063c1400, pid: 19918, label: 'Files'
+  }
