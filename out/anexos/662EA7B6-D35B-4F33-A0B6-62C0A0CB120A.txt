@@ -1,0 +1,133 @@
+Optional(Attributes: Application, 0x114581400, pid: 30384, label: 'Fluxo'
+Element subtree:
+ →Application, 0x114581400, pid: 30384, label: 'Fluxo'
+    Window (Main), 0x114581540, {{0.0, 0.0}, {402.0, 874.0}}
+      Other, 0x114581680, {{0.0, 0.0}, {402.0, 874.0}}
+      Other, 0x1145817c0, {{0.0, 0.0}, {402.0, 874.0}}
+        Other, 0x114581900, {{0.0, 0.0}, {402.0, 874.0}}
+          Other, 0x114581a40, {{0.0, 0.0}, {402.0, 874.0}}
+            Other, 0x114581b80, {{0.0, 0.0}, {402.0, 874.0}}
+              Other, 0x114581cc0, {{0.0, 0.0}, {402.0, 874.0}}
+                Other, 0x114581e00, {{0.0, 0.0}, {402.0, 874.0}}
+                  Other, 0x114581f40, {{0.0, 0.0}, {402.0, 874.0}}
+                    Other, 0x114582080, {{0.0, 0.0}, {402.0, 874.0}}
+                      Other, 0x114582f80, {{0.0, 0.0}, {402.0, 874.0}}
+                        ScrollView, 0x1145830c0, {{0.0, 0.0}, {402.0, 874.0}}
+                          Other, 0x114583200, {{0.0, 62.0}, {402.0, 632.3}}
+                            StaticText, 0x114583340, {{20.0, 70.7}, {119.7, 14.3}}, label: 'OUTUBRO DE 2026'
+                            StaticText, 0x114583480, {{20.0, 87.0}, {121.3, 26.3}}, label: 'Olá, Marcos'
+                            Button, 0x1145835c0, {{282.0, 70.0}, {44.0, 44.0}}, identifier: 'eye', label: 'Ocultar valores'
+                            Button, 0x114583700, {{338.0, 70.0}, {44.0, 44.0}}, identifier: 'slider.horizontal.3', label: 'Ajustes'
+                            StaticText, 0x114583840, {{16.0, 126.0}, {370.0, 130.3}}, label: 'Saldo em conta, R$ —, Nenhum banco conectado ainda'
+                              StaticText, 0x114583980, {{36.0, 146.0}, {106.3, 18.0}}, label: 'Saldo em conta'
+                              StaticText, 0x114583ac0, {{36.0, 172.0}, {86.3, 40.7}}, label: 'R$ —'
+                              StaticText, 0x114583c00, {{36.0, 220.7}, {196.0, 15.7}}, label: 'Nenhum banco conectado ainda'
+                            Button, 0x114583d40, {{16.0, 268.3}, {370.0, 63.7}}, label: 'Agente Fluxo, Pergunte, organize e preveja gastos.'
+                              Image, 0x114583e80, {{30.0, 283.3}, {34.0, 34.0}}, identifier: 'sparkles', label: 'Brilho'
+                              StaticText, 0x1145770c0, {{76.0, 282.3}, {93.0, 18.0}}, label: 'Agente Fluxo'
+                              StaticText, 0x114577200, {{76.0, 302.3}, {220.7, 15.7}}, label: 'Pergunte, organize e preveja gastos.'
+                              Image, 0x114577340, {{364.7, 294.3}, {6.7, 11.7}}, identifier: 'chevron.right', label: 'Avançar'
+                            StaticText, 0x114577480, {{116.7, 430.0}, {168.7, 20.3}}, label: 'Conecte seus bancos'
+                            StaticText, 0x1145775c0, {{51.2, 460.3}, {299.7, 38.0}}, label: 'Cadastre as credenciais do Meu Pluggy em Ajustes para ver saldos e transações aqui.'
+                            Button, 0x114577700, {{38.0, 514.3}, {326.0, 48.0}}, label: 'Ir para Ajustes'
+                Other, 0x114577840, {{0.0, 0.0}, {402.0, 874.0}}
+                  Other, 0x1136e0000, {{0.0, 0.0}, {402.0, 874.0}}
+              Button, 0x1136e0140, {{21.0, 781.0}, {72.7, 50.0}}, label: 'Início', Selected
+                Image, 0x1136e0280, {{47.0, 789.0}, {20.3, 18.0}}, identifier: 'house', label: 'Casa'
+                StaticText, 0x1136e03c0, {{42.4, 811.2}, {29.7, 13.3}}, label: 'Início'
+              Button, 0x1136e0500, {{93.7, 781.0}, {72.3, 50.0}}, label: 'Transações'
+                Image, 0x1136e0640, {{121.0, 791.7}, {17.3, 12.7}}, identifier: 'list.bullet', label: 'Lista'
+                StaticText, 0x1136e0780, {{98.9, 808.5}, {61.7, 13.3}}, label: 'Transações'
+              Button, 0x1136e08c0, {{166.0, 781.0}, {72.7, 50.0}}, label: 'Orçamentos'
+                Image, 0x1136e0a00, {{193.7, 789.3}, {17.3, 17.3}}, identifier: 'chart.pie', label: 'Gráfico De Pizza'
+                StaticText, 0x1136e0b40, {{169.4, 810.8}, {65.7, 13.3}}, label: 'Orçamentos'
+              Button, 0x1136e0c80, {{238.7, 781.0}, {72.3, 50.0}}, label: 'Investir'
+                Image, 0x1136e0dc0, {{265.7, 790.0}, {18.3, 16.0}}, identifier: 'chart.line.uptrend.xyaxis', label: 'Gráfico De Linha'
+                StaticText, 0x1136e0f00, {{254.8, 810.2}, {40.0, 13.3}}, label: 'Investir'
+              Button, 0x1136e1040, {{326.0, 776.0}, {60.0, 60.0}}, identifier: 'sparkles', label: 'Abrir o agente'
+      Other, 0x1136e1180, {{0.0, 0.0}, {402.0, 874.0}}
+        Other, 0x1136e12c0, {{0.0, 0.0}, {402.0, 874.0}}
+          Other, 0x1136e1400, {{0.0, 0.0}, {402.0, 874.0}}
+            Other, 0x1136e1540, {{0.0, 0.0}, {402.0, 874.0}}
+              NavigationBar, 0x1136e1680, {{0.0, 62.0}, {402.0, 54.0}}, identifier: '_UIContextMenuActionsOnlyView'
+                Other, 0x1136e17c0, {{20.0, 66.0}, {36.0, 36.0}}, identifier: 'chevron.down', label: 'Fechar o agente'
+                  Other, 0x1136e1900, {{20.0, 66.0}, {36.0, 36.0}}
+                    Button, 0x1136e1a40, {{24.0, 66.0}, {28.0, 36.0}}, identifier: 'chevron.down', label: 'Fechar o agente'
+                Other, 0x1136e1b80, {{72.0, 66.7}, {258.0, 34.7}}
+                  Other, 0x1136e1cc0, {{72.0, 66.7}, {258.0, 34.7}}
+                    StaticText, 0x1136e1e00, {{149.3, 66.7}, {103.3, 20.3}}, label: 'Agente Fluxo'
+                    StaticText, 0x1136e1f40, {{72.0, 88.0}, {258.0, 13.3}}, label: 'Não move dinheiro · você confirma cada mudança'
+                Other, 0x1136e2080, {{346.0, 66.0}, {36.0, 36.0}}, identifier: 'square.and.pencil', label: 'Nova conversa'
+                  Other, 0x1136e21c0, {{346.0, 66.0}, {36.0, 36.0}}
+                    Button, 0x1136e2300, {{348.7, 66.0}, {30.7, 36.0}}, identifier: 'square.and.pencil', label: 'Nova conversa', Disabled
+              Other, 0x1136e2440, {{0.0, 0.0}, {402.0, 874.0}}
+                Other, 0x1136e2580, {{0.0, 0.0}, {402.0, 874.0}}
+                  Other, 0x1136e26c0, {{0.0, 0.0}, {402.0, 874.0}}
+                    Other, 0x1136e2800, {{0.0, 0.0}, {402.0, 874.0}}
+                      ScrollView, 0x1136e2940, {{0.0, 0.0}, {402.0, 874.0}}
+                        Other, 0x1136e2a80, {{0.0, 0.0}, {402.0, 874.0}}
+                          Other, 0x1136e2bc0, {{0.0, 0.0}, {402.0, 170.8}}
+                        Other, 0x1136e2d00, {{0.0, 0.0}, {402.0, 874.0}}
+                        Other, 0x1136e2e40, {{0.0, 116.0}, {402.0, 168.0}}
+                          Other, 0x1136e2f80, {{32.0, 148.0}, {340.0, 103.7}}
+                            Other, 0x1136e30c0, {{32.0, 163.0}, {44.0, 44.0}}
+                            StaticText, 0x1136e3200, {{88.0, 148.0}, {223.3, 20.3}}, label: 'Pergunte sobre seu dinheiro'
+                            StaticText, 0x1136e3340, {{88.0, 170.3}, {262.0, 51.7}}, label: 'Também posso prever gastos, trocar categorias, anotar transações e criar orçamentos. Você confirma cada mudança.'
+                            Image, 0x1136e3480, {{33.3, 237.7}, {7.0, 12.7}}, identifier: 'key', label: 'Senhas'
+                            StaticText, 0x1136e35c0, {{45.7, 236.0}, {326.3, 15.7}}, label: 'Cadastre a chave do Gemini em Ajustes para começar'
+                        Other, 0x1136e3700, {{369.0, 116.0}, {30.0, 621.7}}, label: 'Barra de rolagem vertical, 1 página', value: 0%
+                          Other, 0x1136e3840, {{396.0, 572.7}, {3.0, 162.0}}
+                        Other, 0x1136e3980, {{369.0, 116.0}, {30.0, 621.7}}, label: 'Barra de rolagem vertical, 1 página', value: 0%
+                          Other, 0x1136e3ac0, {{396.0, 572.7}, {3.0, 162.0}}
+                      Button, 0x1136e3c00, {{16.0, 753.7}, {46.0, 46.0}}, label: 'Enviar prints'
+                        Button, 0x1136e3d40, {{16.0, 753.7}, {46.0, 46.0}}
+                          Image, 0x1136e3e80, {{28.7, 767.0}, {26.0, 19.3}}, identifier: 'photo.badge.plus', label: 'photo.badge.plus'
+                      TextField, 0x114578000, {{86.0, 765.7}, {230.0, 22.0}}, placeholderValue: 'Pergunte ou peça algo', Disabled
+                        Other, 0x114578140, {{86.0, 773.7}, {230.0, 11.0}}, label: 'Barra de rolagem horizontal, 1 página', value: 0%
+                          Other, 0x114578280, {{89.0, 781.7}, {224.0, 3.0}}
+                      Button, 0x1145783c0, {{340.0, 753.7}, {46.0, 46.0}}, identifier: 'arrow.up', label: 'Enviar', Disabled
+                      StaticText, 0x114578500, {{17.3, 805.7}, {367.3, 26.3}}, label: 'Nomes e documentos são filtrados antes do envio. Prints são lidos só no iPhone.'
+              Other, 0x114578640, {{0.0, 0.0}, {402.0, 874.0}}
+                Other, 0x114578780, {{0.0, 0.0}, {402.0, 874.0}}
+      Other, 0x1145788c0, {{0.0, 0.0}, {402.0, 874.0}}
+        Other, 0x114578a00, {{0.0, 0.0}, {402.0, 874.0}}
+          Other, 0x114578b40, {{16.0, 531.7}, {250.0, 268.0}}
+            Other, 0x114578c80, {{16.0, 531.7}, {250.0, 268.0}}
+              Other, 0x114578dc0, {{16.0, 531.7}, {250.0, 268.0}}
+                Other, 0x114578f00, {{16.0, 531.7}, {250.0, 268.0}}
+                CollectionView, 0x114579040, {{16.0, 531.7}, {250.0, 874.0}}
+                  Cell, 0x114579180, {{16.0, 541.7}, {250.0, 82.0}}
+                    Button, 0x1145792c0, {{16.0, 541.7}, {250.0, 82.0}}, identifier: 'doc.badge.arrow.up', label: 'Conferir fatura com arquivo (CSV ou OFX)'
+                      Image, 0x114579400, {{44.3, 573.0}, {20.7, 22.7}}, identifier: 'document.badge.arrow.up', label: 'document.badge.arrow.up'
+                  Cell, 0x114579540, {{16.0, 623.7}, {250.0, 42.0}}
+                    Button, 0x114579680, {{16.0, 623.7}, {250.0, 42.0}}, label: 'Teste: seletor antigo'
+                  Cell, 0x1145797c0, {{16.0, 665.7}, {250.0, 62.0}}
+                    Button, 0x114579900, {{16.0, 665.7}, {250.0, 62.0}}, identifier: 'creditcard', label: 'Conferir fatura do cartão (prints)'
+                      Image, 0x114579a40, {{44.3, 688.7}, {23.7, 16.3}}, identifier: 'creditcard', label: 'cartão'
+                  Cell, 0x114579b80, {{16.0, 727.7}, {250.0, 62.0}}
+                    Button, 0x114579cc0, {{16.0, 727.7}, {250.0, 62.0}}, identifier: 'doc.text.viewfinder', label: 'Registrar Pix ou compra (print)'
+                      Image, 0x114579e00, {{46.0, 749.7}, {20.3, 18.3}}, identifier: 'document.viewfinder', label: 'document.viewfinder'
+                  Other, 0x114579f40, {{233.0, 561.7}, {30.0, 208.0}}, label: 'Barra de rolagem vertical, 1 página', value: 0%
+                    Other, 0x11457a080, {{260.0, 564.7}, {3.0, 202.0}}
+                  Other, 0x11457a1c0, {{62.0, 736.7}, {204.0, 30.0}}, label: 'Barra de rolagem horizontal, 1 página', value: 0%
+                    Other, 0x11457a300, {{65.0, 763.7}, {198.0, 3.0}}
+                  Other, 0x11457a440, {{233.0, 561.7}, {30.0, 208.0}}, label: 'Barra de rolagem vertical, 1 página', value: 0%
+                    Other, 0x11457a580, {{260.0, 564.7}, {3.0, 202.0}}
+                  Other, 0x11457a6c0, {{62.0, 736.7}, {204.0, 30.0}}, label: 'Barra de rolagem horizontal, 1 página', value: 0%
+                    Other, 0x11457a800, {{65.0, 763.7}, {198.0, 3.0}}
+              Other, 0x11457a940, {{16.0, 531.7}, {250.0, 268.0}}
+                Other, 0x11457aa80, {{16.0, 531.7}, {250.0, 268.0}}
+                  Other, 0x11457abc0, {{16.0, 531.7}, {250.0, 268.0}}
+                    Other, 0x11457ad00, {{16.0, 531.7}, {250.0, 268.0}}
+                      Other, 0x11457ae40, {{16.0, 531.7}, {250.0, 268.0}}
+                        Other, 0x11457af80, {{16.0, 531.7}, {250.0, 44.0}}
+                    Other, 0x11457b0c0, {{16.0, 531.7}, {250.0, 268.0}}
+                      Other, 0x11457b200, {{16.0, 531.7}, {250.0, 44.0}}
+Path to element:
+ →Application, 0x114581400, pid: 30384, label: 'Fluxo'
+Query chain:
+ →Find: Target Application 'com.soturnna.fluxo'
+  Output: {
+    Application, 0x11457b340, pid: 30384, label: 'Fluxo'
+  }
+)

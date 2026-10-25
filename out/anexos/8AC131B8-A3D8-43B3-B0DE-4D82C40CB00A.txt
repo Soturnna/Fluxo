@@ -1,0 +1,54 @@
+Optional(Attributes: Application, 0x114226d00, pid: 18685, label: 'Fluxo'
+Element subtree:
+ →Application, 0x114226d00, pid: 18685, label: 'Fluxo'
+    Window (Main), 0x1142257c0, {{0.0, 0.0}, {402.0, 874.0}}
+      Other, 0x114226940, {{0.0, 0.0}, {402.0, 874.0}}
+        Other, 0x114225f40, {{0.0, 0.0}, {402.0, 874.0}}
+          Other, 0x1139f4c80, {{0.0, 0.0}, {402.0, 874.0}}
+            Other, 0x113c87700, {{0.0, 0.0}, {402.0, 874.0}}
+              Other, 0x113c87840, {{0.0, 0.0}, {402.0, 874.0}}
+                Other, 0x113c87980, {{0.0, 0.0}, {402.0, 874.0}}
+                  Other, 0x113c87ac0, {{0.0, 0.0}, {402.0, 874.0}}
+                    Other, 0x113c87c00, {{0.0, 0.0}, {402.0, 874.0}}
+                      Other, 0x113c87d40, {{0.0, 0.0}, {402.0, 874.0}}
+                        ScrollView, 0x113c87e80, {{0.0, 0.0}, {402.0, 874.0}}
+                          Other, 0x114229180, {{0.0, 62.0}, {402.0, 632.3}}
+                            StaticText, 0x113c2d680, {{20.0, 70.7}, {119.7, 14.3}}, label: 'OUTUBRO DE 2026'
+                            StaticText, 0x113c2ee40, {{20.0, 87.0}, {121.3, 26.3}}, label: 'Olá, Marcos'
+                            Button, 0x113c2d400, {{282.0, 70.0}, {44.0, 44.0}}, identifier: 'eye', label: 'Ocultar valores'
+                            Button, 0x113c2ebc0, {{338.0, 70.0}, {44.0, 44.0}}, identifier: 'slider.horizontal.3', label: 'Ajustes'
+                            StaticText, 0x113c2e1c0, {{16.0, 126.0}, {370.0, 130.3}}, label: 'Saldo em conta, R$ —, Nenhum banco conectado ainda'
+                              StaticText, 0x113c2e300, {{36.0, 146.0}, {106.3, 18.0}}, label: 'Saldo em conta'
+                              StaticText, 0x113c2de00, {{36.0, 172.0}, {86.3, 40.7}}, label: 'R$ —'
+                              StaticText, 0x113c2df40, {{36.0, 220.7}, {196.0, 15.7}}, label: 'Nenhum banco conectado ainda'
+                            Button, 0x113c2e940, {{16.0, 268.3}, {370.0, 63.7}}, label: 'Agente Fluxo, Pergunte, organize e preveja gastos.'
+                              Image, 0x113c2e580, {{30.0, 283.3}, {34.0, 34.0}}, identifier: 'sparkles', label: 'Brilho'
+                              StaticText, 0x113c2e080, {{76.0, 282.3}, {93.0, 18.0}}, label: 'Agente Fluxo'
+                              StaticText, 0x113c2e800, {{76.0, 302.3}, {220.7, 15.7}}, label: 'Pergunte, organize e preveja gastos.'
+                              Image, 0x113c2e440, {{364.7, 294.3}, {6.7, 11.7}}, identifier: 'chevron.right', label: 'Avançar'
+                            StaticText, 0x113c2ea80, {{116.7, 430.0}, {168.7, 20.3}}, label: 'Conecte seus bancos'
+                            StaticText, 0x113c2e6c0, {{51.2, 460.3}, {299.7, 38.0}}, label: 'Cadastre as credenciais do Meu Pluggy em Ajustes para ver saldos e transações aqui.'
+                            Button, 0x113c2ed00, {{38.0, 514.3}, {326.0, 48.0}}, label: 'Ir para Ajustes'
+                Other, 0x113c2d7c0, {{0.0, 0.0}, {402.0, 874.0}}
+                  Other, 0x113c2d540, {{0.0, 0.0}, {402.0, 874.0}}
+              Button, 0x113c2da40, {{21.0, 781.0}, {72.7, 50.0}}, label: 'Início', Selected
+                Image, 0x113c2dcc0, {{47.0, 789.0}, {20.3, 18.0}}, identifier: 'house', label: 'Casa'
+                StaticText, 0x113c2d180, {{42.4, 811.2}, {29.7, 13.3}}, label: 'Início'
+              Button, 0x113c2d900, {{93.7, 781.0}, {72.3, 50.0}}, label: 'Transações'
+                Image, 0x113c2d040, {{121.0, 791.7}, {17.3, 12.7}}, identifier: 'list.bullet', label: 'Lista'
+                StaticText, 0x113c2cb40, {{98.9, 808.5}, {61.7, 13.3}}, label: 'Transações'
+              Button, 0x113c2c640, {{166.0, 781.0}, {72.7, 50.0}}, label: 'Orçamentos'
+                Image, 0x113c2f340, {{193.7, 789.3}, {17.3, 17.3}}, identifier: 'chart.pie', label: 'Gráfico De Pizza'
+                StaticText, 0x113c2f480, {{169.4, 810.8}, {65.7, 13.3}}, label: 'Orçamentos'
+              Button, 0x113c2f5c0, {{238.7, 781.0}, {72.3, 50.0}}, label: 'Investir'
+                Image, 0x113c2db80, {{265.7, 790.0}, {18.3, 16.0}}, identifier: 'chart.line.uptrend.xyaxis', label: 'Gráfico De Linha'
+                StaticText, 0x113c2fd40, {{254.8, 810.2}, {40.0, 13.3}}, label: 'Investir'
+              Button, 0x113c2cf00, {{326.0, 776.0}, {60.0, 60.0}}, identifier: 'sparkles', label: 'Abrir o agente'
+Path to element:
+ →Application, 0x114226d00, pid: 18685, label: 'Fluxo'
+Query chain:
+ →Find: Target Application 'com.soturnna.fluxo'
+  Output: {
+    Application, 0x113c2fc00, pid: 18685, label: 'Fluxo'
+  }
+)

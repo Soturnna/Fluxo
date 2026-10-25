@@ -1,0 +1,95 @@
+Optional(Attributes: Application, 0x1145826c0, pid: 30384, label: 'Fluxo'
+Element subtree:
+ →Application, 0x1145826c0, pid: 30384, label: 'Fluxo'
+    Window (Main), 0x1145997c0, {{0.0, 0.0}, {402.0, 874.0}}
+      Other, 0x114599900, {{0.0, 0.0}, {402.0, 874.0}}
+        Other, 0x114599a40, {{0.0, 0.0}, {402.0, 874.0}}
+          Other, 0x114599b80, {{0.0, 0.0}, {402.0, 874.0}}
+            Other, 0x114599cc0, {{0.0, 0.0}, {402.0, 874.0}}
+              Other, 0x114599e00, {{0.0, 0.0}, {402.0, 874.0}}
+                Other, 0x114599f40, {{0.0, 0.0}, {402.0, 874.0}}
+                  Other, 0x11459a080, {{0.0, 0.0}, {402.0, 874.0}}
+                    Other, 0x11459a1c0, {{0.0, 0.0}, {402.0, 874.0}}
+                      Other, 0x11459a300, {{0.0, 0.0}, {402.0, 874.0}}
+                        ScrollView, 0x11459a440, {{0.0, 0.0}, {402.0, 874.0}}
+                          Other, 0x11459a580, {{0.0, 62.0}, {402.0, 632.3}}
+                            StaticText, 0x11459a800, {{20.0, 70.7}, {119.7, 14.3}}, label: 'OUTUBRO DE 2026'
+                            StaticText, 0x11459a940, {{20.0, 87.0}, {121.3, 26.3}}, label: 'Olá, Marcos'
+                            Button, 0x11459aa80, {{282.0, 70.0}, {44.0, 44.0}}, identifier: 'eye', label: 'Ocultar valores'
+                            Button, 0x11459ad00, {{338.0, 70.0}, {44.0, 44.0}}, identifier: 'slider.horizontal.3', label: 'Ajustes'
+                            StaticText, 0x11459ae40, {{16.0, 126.0}, {370.0, 130.3}}, label: 'Saldo em conta, R$ —, Nenhum banco conectado ainda'
+                              StaticText, 0x11459af80, {{36.0, 146.0}, {106.3, 18.0}}, label: 'Saldo em conta'
+                              StaticText, 0x11459b0c0, {{36.0, 172.0}, {86.3, 40.7}}, label: 'R$ —'
+                              StaticText, 0x11459b200, {{36.0, 220.7}, {196.0, 15.7}}, label: 'Nenhum banco conectado ainda'
+                            Button, 0x11459b480, {{16.0, 268.3}, {370.0, 63.7}}, label: 'Agente Fluxo, Pergunte, organize e preveja gastos.'
+                              Image, 0x11459b5c0, {{30.0, 283.3}, {34.0, 34.0}}, identifier: 'sparkles', label: 'Brilho'
+                              StaticText, 0x11459b700, {{76.0, 282.3}, {93.0, 18.0}}, label: 'Agente Fluxo'
+                              StaticText, 0x11459b840, {{76.0, 302.3}, {220.7, 15.7}}, label: 'Pergunte, organize e preveja gastos.'
+                              Image, 0x11459b980, {{364.7, 294.3}, {6.7, 11.7}}, identifier: 'chevron.right', label: 'Avançar'
+                            StaticText, 0x11459bac0, {{116.7, 430.0}, {168.7, 20.3}}, label: 'Conecte seus bancos'
+                            StaticText, 0x11459bc00, {{51.2, 460.3}, {299.7, 38.0}}, label: 'Cadastre as credenciais do Meu Pluggy em Ajustes para ver saldos e transações aqui.'
+                            Button, 0x11459be80, {{38.0, 514.3}, {326.0, 48.0}}, label: 'Ir para Ajustes'
+                Other, 0x11459bd40, {{0.0, 0.0}, {402.0, 874.0}}
+                  Other, 0x11459b340, {{0.0, 0.0}, {402.0, 874.0}}
+              Button, 0x11459abc0, {{21.0, 781.0}, {72.7, 50.0}}, label: 'Início', Selected
+                Image, 0x11459a6c0, {{47.0, 789.0}, {20.3, 18.0}}, identifier: 'house', label: 'Casa'
+                StaticText, 0x114594000, {{42.4, 811.2}, {29.7, 13.3}}, label: 'Início'
+              Button, 0x114594140, {{93.7, 781.0}, {72.3, 50.0}}, label: 'Transações'
+                Image, 0x114594280, {{121.0, 791.7}, {17.3, 12.7}}, identifier: 'list.bullet', label: 'Lista'
+                StaticText, 0x1145943c0, {{98.9, 808.5}, {61.7, 13.3}}, label: 'Transações'
+              Button, 0x114594500, {{166.0, 781.0}, {72.7, 50.0}}, label: 'Orçamentos'
+                Image, 0x114594640, {{193.7, 789.3}, {17.3, 17.3}}, identifier: 'chart.pie', label: 'Gráfico De Pizza'
+                StaticText, 0x114594780, {{169.4, 810.8}, {65.7, 13.3}}, label: 'Orçamentos'
+              Button, 0x1145948c0, {{238.7, 781.0}, {72.3, 50.0}}, label: 'Investir'
+                Image, 0x114594a00, {{265.7, 790.0}, {18.3, 16.0}}, identifier: 'chart.line.uptrend.xyaxis', label: 'Gráfico De Linha'
+                StaticText, 0x114594b40, {{254.8, 810.2}, {40.0, 13.3}}, label: 'Investir'
+              Button, 0x114594c80, {{326.0, 776.0}, {60.0, 60.0}}, identifier: 'sparkles', label: 'Abrir o agente'
+      Other, 0x114594dc0, {{0.0, 0.0}, {402.0, 874.0}}
+        Other, 0x114594f00, {{0.0, 0.0}, {402.0, 874.0}}
+          Other, 0x114595040, {{0.0, 0.0}, {402.0, 874.0}}
+            Other, 0x114595180, {{0.0, 0.0}, {402.0, 874.0}}
+              NavigationBar, 0x1145952c0, {{0.0, 62.0}, {402.0, 54.0}}, identifier: '_TtGC7SwiftUI32NavigationStackHosting'
+                Other, 0x114595400, {{20.0, 66.0}, {36.0, 36.0}}, identifier: 'chevron.down', label: 'Fechar o agente'
+                  Other, 0x114595540, {{20.0, 66.0}, {36.0, 36.0}}
+                    Button, 0x114595680, {{24.0, 66.0}, {28.0, 36.0}}, identifier: 'chevron.down', label: 'Fechar o agente'
+                Other, 0x1145957c0, {{72.0, 66.7}, {258.0, 34.7}}
+                  Other, 0x114595900, {{72.0, 66.7}, {258.0, 34.7}}
+                    StaticText, 0x114595a40, {{149.3, 66.7}, {103.3, 20.3}}, label: 'Agente Fluxo'
+                    StaticText, 0x114595b80, {{72.0, 88.0}, {258.0, 13.3}}, label: 'Não move dinheiro · você confirma cada mudança'
+                Other, 0x114595cc0, {{346.0, 66.0}, {36.0, 36.0}}, identifier: 'square.and.pencil', label: 'Nova conversa'
+                  Other, 0x114595e00, {{346.0, 66.0}, {36.0, 36.0}}
+                    Button, 0x114595f40, {{348.7, 66.0}, {30.7, 36.0}}, identifier: 'square.and.pencil', label: 'Nova conversa'
+              Other, 0x114596080, {{0.0, 0.0}, {402.0, 874.0}}
+                Other, 0x1145961c0, {{0.0, 0.0}, {402.0, 874.0}}
+                  Other, 0x114596300, {{0.0, 0.0}, {402.0, 874.0}}
+                    Other, 0x114596440, {{0.0, 0.0}, {402.0, 874.0}}
+                      ScrollView, 0x114596580, {{0.0, 0.0}, {402.0, 874.0}}
+                        Other, 0x1145966c0, {{0.0, 0.0}, {402.0, 874.0}}
+                          Other, 0x114596800, {{0.0, 0.0}, {402.0, 170.8}}
+                        Other, 0x114596940, {{0.0, 0.0}, {402.0, 874.0}}
+                        Other, 0x114596a80, {{0.0, 116.0}, {402.0, 47.0}}
+                          Other, 0x114596bc0, {{21.3, 132.0}, {235.3, 14.3}}
+                            Image, 0x114596d00, {{21.3, 133.3}, {11.7, 11.7}}, identifier: 'magnifyingglass', label: 'Buscar'
+                            StaticText, 0x114596e40, {{21.3, 132.0}, {235.3, 14.3}}, label: 'Nenhum cartão de crédito conectado.'
+                        Other, 0x114596f80, {{369.0, 116.0}, {30.0, 621.7}}, label: 'Barra de rolagem vertical, 1 página', value: 0%
+                          Other, 0x1145970c0, {{396.0, 572.7}, {3.0, 162.0}}
+                        Other, 0x114597200, {{369.0, 116.0}, {30.0, 621.7}}, label: 'Barra de rolagem vertical, 1 página', value: 0%
+                          Other, 0x114597340, {{396.0, 572.7}, {3.0, 162.0}}
+                      Button, 0x114597480, {{16.0, 753.7}, {46.0, 46.0}}, label: 'Enviar prints'
+                        Button, 0x1145975c0, {{16.0, 753.7}, {46.0, 46.0}}
+                          Image, 0x114597700, {{28.7, 767.0}, {26.0, 19.3}}, identifier: 'photo.badge.plus', label: 'photo.badge.plus'
+                      TextField, 0x114597840, {{86.0, 765.7}, {230.0, 22.0}}, placeholderValue: 'Pergunte ou peça algo', Disabled
+                        Other, 0x114597980, {{86.0, 773.7}, {230.0, 11.0}}, label: 'Barra de rolagem horizontal, 1 página', value: 0%
+                          Other, 0x114597ac0, {{89.0, 781.7}, {224.0, 3.0}}
+                      Button, 0x114597c00, {{340.0, 753.7}, {46.0, 46.0}}, identifier: 'arrow.up', label: 'Enviar', Disabled
+                      StaticText, 0x114597d40, {{17.3, 805.7}, {367.3, 26.3}}, label: 'Nomes e documentos são filtrados antes do envio. Prints são lidos só no iPhone.'
+              Other, 0x114597e80, {{0.0, 0.0}, {402.0, 874.0}}
+                Other, 0x1145dc000, {{0.0, 0.0}, {402.0, 874.0}}
+Path to element:
+ →Application, 0x1145826c0, pid: 30384, label: 'Fluxo'
+Query chain:
+ →Find: Target Application 'com.soturnna.fluxo'
+  Output: {
+    Application, 0x1145dc140, pid: 30384, label: 'Fluxo'
+  }
+)
