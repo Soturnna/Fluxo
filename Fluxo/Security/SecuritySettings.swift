@@ -18,6 +18,8 @@ enum SettingsKey {
     static let notifyWeekly = "notify.weekly"
     static let notifyConnection = "notify.connection"
     static let notifyShowValues = "notify.showValues"
+    /// Widgets com valores em reais (desligado de fábrica; ligar pede Face ID).
+    static let widgetShowValues = "widget.showValues"
     static let profileName = "profile.name"
     static let hasLaunchedBefore = "app.hasLaunchedBefore"
 }
@@ -57,6 +59,7 @@ enum SettingsDefaults {
             SettingsKey.notifyWeekly: true,
             SettingsKey.notifyConnection: true,
             SettingsKey.notifyShowValues: true,        // escolha sua: valores visíveis
+            SettingsKey.widgetShowValues: false,       // widgets começam com R$ ••••
             SettingsKey.profileName: "Marcos"
         ])
     }
@@ -78,6 +81,7 @@ enum DataWiper {
     /// Apaga o cofre local, as credenciais e as preferências.
     static func wipeEverything() {
         NotificationCleanup.removeAll()
+        WidgetShared.removeAll()
         ProvisionalInbox.removeAll()
         Vault.destroy()
         KeychainStore.deleteAll()

@@ -77,3 +77,59 @@ struct UITestHarnessView: View {
     }
 }
 #endif
+
+#if DEBUG
+/// Galeria SÓ PARA TESTE: desenha as telas dos widgets (as mesmas do widget de verdade)
+/// nos tamanhos do iPhone, com dados FICTÍCIOS, para conferir o layout por print.
+struct UITestWidgetGallery: View {
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                gallery(title: "Valores visíveis", data: WidgetSamples.data(showValues: true))
+                gallery(title: "Valores ocultos", data: WidgetSamples.data(showValues: false))
+                lockScreen(WidgetSamples.data(showValues: false))
+                gallery(title: "Sem dados", data: WidgetData(info: .empty, values: nil, now: .now))
+            }
+            .padding(12)
+        }
+        .background(Color(red: 0.2, green: 0.26, blue: 0.23))
+    }
+
+    @ViewBuilder
+    private func gallery(title: String, data: WidgetData) -> some View {
+        Text(title).font(.headline).foregroundStyle(.white).accessibilityIdentifier("gallery.\(title)")
+        HStack(spacing: 14) {
+            frame(ResumoWidgetView(data: data), ResumoWidgetView.background, width: 170)
+            frame(RegistrarWidgetView(data: data), RegistrarWidgetView.background, width: 170)
+        }
+        frame(MesWidgetView(data: data), MesWidgetView.background, width: 354)
+        frame(ProximosWidgetView(data: data), ProximosWidgetView.background, width: 354)
+        frame(CartaoWidgetView(data: data), CartaoWidgetView.background, width: 170)
+    }
+
+    private func frame<V: View>(_ view: V, _ background: Color, width: CGFloat) -> some View {
+        view
+            .padding(16)
+            .frame(width: width, height: 170)
+            .background(background)
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func lockScreen(_ data: WidgetData) -> some View {
+        Text("Tela bloqueada").font(.headline).foregroundStyle(.white)
+        VStack(spacing: 12) {
+            FaturaInlineView(data: data).font(.subheadline.weight(.semibold))
+            HStack(spacing: 12) {
+                FaturaRectView(data: data).frame(width: 172, height: 76)
+                DiasCircularView(data: data).frame(width: 76, height: 76)
+                OrcamentoCircularView(data: data).frame(width: 76, height: 76)
+            }
+        }
+        .foregroundStyle(.white)
+        .padding(16)
+        .frame(maxWidth: .infinity)
+        .background(Color(red: 0.13, green: 0.19, blue: 0.16), in: RoundedRectangle(cornerRadius: 22))
+    }
+}
+#endif

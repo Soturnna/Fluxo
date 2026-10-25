@@ -47,6 +47,12 @@ targets:
           - fetch
         BGTaskSchedulerPermittedIdentifiers:
           - com.soturnna.fluxo.refresh
+        # Toque num widget abre a tela certa (fluxo://cartao etc.). Só navega:
+        # o app continua pedindo Face ID e nenhum dado entra por esse caminho.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.soturnna.fluxo.widgets
+            CFBundleURLSchemes:
+              - fluxo
         # Faturas exportadas pelo banco: "Compartilhar → Fluxo" no Nubank ou no Arquivos.
         # O iOS entrega uma CÓPIA (não abre no lugar); o app lê e apaga a cópia.
         LSSupportsOpeningDocumentsInPlace: false
@@ -94,6 +100,8 @@ targets:
     sources:
       - path: FluxoWidget
       - path: Fluxo/Shared/WidgetShared.swift
+      - path: Fluxo/Shared/WidgetViews.swift
+      - path: Fluxo/Shared/WidgetSamples.swift
     info:
       path: FluxoWidget/Info.plist
       properties:

@@ -14,6 +14,8 @@ struct HomeView: View {
     @State private var selected: StoredTransaction?
     @State private var planned: PlannedEditorTarget?
     @State private var registering = false
+    @State private var path: [HomeRoute] = []
+    @ObservedObject private var deepLinks = DeepLinkRouter.shared
 
     let openAgent: () -> Void
     let openSettings: () -> Void
@@ -27,7 +29,7 @@ struct HomeView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             content
                 .toolbar(.hidden, for: .navigationBar)
                 .navigationDestination(for: HomeRoute.self) { route in
@@ -36,6 +38,19 @@ struct HomeView: View {
                     case .cashFlow: CashFlowView()
                     }
                 }
+        }
+        // Toque num widget: abre a tela dele.
+        .onChange(of: deepLinks.pending, initial: true) { _, link in
+            guard let link else { return }
+            deepLinks.pending = nil
+            switch link {
+            case .home: path = []
+            case .card: path = [.card]
+            case .cashFlow: path = [.cashFlow]
+            case .register:
+                path = []
+                registering = true
+            }
         }
     }
 

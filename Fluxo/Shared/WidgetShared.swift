@@ -1,17 +1,25 @@
 import Foundation
 
-/// Pasta compartilhada entre o app e o widget (App Group).
+/// Pasta compartilhada entre o app e os widgets (App Group) e os dados que vão nela.
 ///
 /// Instalado pelo iloader, o app ganha outro identificador (com.soturnna.fluxo.<EQUIPE>)
 /// e o grupo criado é "group.<esse identificador>". Por isso o nome do grupo é
 /// descoberto na hora, a partir do identificador do próprio app.
 ///
-/// ETAPA 1 (teste técnico): só um horário e um texto, nenhum dado financeiro.
+/// SEGURANÇA — dois arquivos, duas proteções:
+/// - `widget-publico.json`: nada em reais nem nomes (dias até vencer, % do orçamento,
+///   formato do gráfico). Legível depois do primeiro desbloqueio, para a tela bloqueada.
+/// - `widget-valores.json`: os valores em reais e os nomes. Só existe se você ligar
+///   "Mostrar valores nos widgets" e fica FECHADO enquanto o iPhone está travado
+///   (proteção completa): com o iPhone travado o widget não consegue lê-lo.
 enum WidgetShared {
     static let baseBundleID = "com.soturnna.fluxo"
-    private static let fileName = "widget.json"
+    private static let publicFile = "widget-publico.json"
+    private static let valuesFile = "widget-valores.json"
+    private static let legacyFiles = ["widget.json"]
 
-    /// Identificador do app principal. Dentro do widget (.appex), tira o último pedaço (".widget").
+    // MARK: Grupo
+
     static var mainBundleID: String {
         mainBundleID(from: Bundle.main.bundleIdentifier ?? baseBundleID,
                      isExtension: Bundle.main.bundleURL.pathExtension == "appex")
@@ -41,29 +49,103 @@ enum WidgetShared {
         return nil
     }
 
-    struct Snapshot: Codable, Equatable {
+    // MARK: Dados
+
+    /// Parte SEM valores em reais e sem nomes.
+    struct PublicData: Codable, Equatable {
+        enum EventKind: String, Codable { case income, recurring, planned, cardBill }
+        struct Event: Codable, Equatable {
+            var date: Date
+            var kind: EventKind
+            var isIncome: Bool
+        }
+
         var updatedAt: Date
-        var note: String
+        var hasBank: Bool
+        var hasCard: Bool
+        var showValues: Bool
+        var billDue: Date?
+        var cardOverLimit: Bool
+        /// Limite usado (0…1+); nil = banco não informou o limite.
+        var cardUsedFraction: Double?
+        var monthName: String
+        /// Gasto ÷ orçamento do mês; nil = sem orçamento.
+        var budgetFraction: Double?
+        var daysLeftInMonth: Int
+        /// Gastando mais rápido que o mês anda.
+        var paceAlert: Bool
+        var tightestDay: Date?
+        var goesNegative: Bool
+        /// Formato do saldo previsto (0…1), sem valores.
+        var sparkline: [Double]
+        var pendingCount: Int
+        var nextEvents: [Event]
+
+        static let empty = PublicData(updatedAt: .distantPast, hasBank: false, hasCard: false, showValues: false,
+                                      billDue: nil, cardOverLimit: false, cardUsedFraction: nil, monthName: "",
+                                      budgetFraction: nil, daysLeftInMonth: 0, paceAlert: false, tightestDay: nil,
+                                      goesNegative: false, sparkline: [], pendingCount: 0, nextEvents: [])
     }
 
-    /// Grava o resumo do widget. Devolve o grupo usado, ou nil se não houver pasta compartilhada.
+    /// Parte COM valores em reais e nomes (só com "Mostrar valores" ligado).
+    struct Values: Codable, Equatable {
+        struct Event: Codable, Equatable {
+            var title: String
+            var amount: Decimal
+        }
+        var balance: Decimal?
+        var bill: Decimal?
+        var spent: Decimal
+        var budget: Decimal?
+        var accountSpent: Decimal
+        var cardSpent: Decimal
+        var lowestBalance: Decimal?
+        /// Na mesma ordem de `PublicData.nextEvents`.
+        var events: [Event]
+    }
+
+    // MARK: Gravar e ler
+
+    /// Grava os dados do widget. Sem `values`, apaga o arquivo de valores.
+    /// Devolve o grupo usado, ou nil se não houver pasta compartilhada.
     @discardableResult
-    static func write(_ snapshot: Snapshot) -> String? {
+    static func write(_ data: PublicData, values: Values?) -> String? {
         guard let found = container() else { return nil }
+        let encoder = JSONEncoder()
         do {
-            let data = try JSONEncoder().encode(snapshot)
-            // Legível depois do primeiro desbloqueio (o widget também desenha com o iPhone travado).
-            try data.write(to: found.url.appendingPathComponent(fileName),
-                           options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+            try encoder.encode(data).write(to: found.url.appendingPathComponent(publicFile),
+                                           options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+            let valuesURL = found.url.appendingPathComponent(valuesFile)
+            if let values {
+                try encoder.encode(values).write(to: valuesURL, options: [.atomic, .completeFileProtection])
+            } else {
+                try? FileManager.default.removeItem(at: valuesURL)
+            }
+            for legacy in legacyFiles { try? FileManager.default.removeItem(at: found.url.appendingPathComponent(legacy)) }
             return found.group
         } catch {
             return nil
         }
     }
 
-    static func read() -> Snapshot? {
+    static func readPublic() -> PublicData? {
         guard let found = container(),
-              let data = try? Data(contentsOf: found.url.appendingPathComponent(fileName)) else { return nil }
-        return try? JSONDecoder().decode(Snapshot.self, from: data)
+              let data = try? Data(contentsOf: found.url.appendingPathComponent(publicFile)) else { return nil }
+        return try? JSONDecoder().decode(PublicData.self, from: data)
+    }
+
+    /// Nil com o iPhone travado (arquivo fechado) ou com valores desligados.
+    static func readValues() -> Values? {
+        guard let found = container(),
+              let data = try? Data(contentsOf: found.url.appendingPathComponent(valuesFile)) else { return nil }
+        return try? JSONDecoder().decode(Values.self, from: data)
+    }
+
+    /// Apaga tudo (Apagar todos os dados).
+    static func removeAll() {
+        guard let found = container() else { return }
+        for name in [publicFile, valuesFile] + legacyFiles {
+            try? FileManager.default.removeItem(at: found.url.appendingPathComponent(name))
+        }
     }
 }

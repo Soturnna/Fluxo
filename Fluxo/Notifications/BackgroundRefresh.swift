@@ -42,15 +42,17 @@ enum BackgroundRefresh {
         schedule()   // já deixa a próxima pedida
 
         let work = Task { @MainActor () -> Bool in
-            guard UIApplication.shared.isProtectedDataAvailable,
-                  UserDefaults.standard.bool(forKey: SettingsKey.notifyEnabled)
-            else { return false }
+            let notify = UserDefaults.standard.bool(forKey: SettingsKey.notifyEnabled)
+            // Widgets em uso: o app já gravou o resumo pelo menos uma vez.
+            let widgets = WidgetShared.readPublic() != nil
+            guard UIApplication.shared.isProtectedDataAvailable, notify || widgets else { return false }
             // Um armazenamento próprio, que some ao terminar: nada fica na memória.
             let store = FinanceStore()
             guard store.isConfigured else { return false }
             await store.sync()
             guard !Task.isCancelled else { return false }
-            await NotificationPlanner.evaluate(store)
+            if widgets { WidgetBridge.refresh(store) }
+            if notify { await NotificationPlanner.evaluate(store) }
             return true
         }
         // O iOS avisa quando o tempo acabou: a sincronização é cancelada e

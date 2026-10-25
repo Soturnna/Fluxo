@@ -20,6 +20,7 @@ struct RootView: View {
     @StateObject private var audit = AuditLog()
     @EnvironmentObject private var lock: AppLock
     @ObservedObject private var router = NotificationRouter.shared
+    @ObservedObject private var deepLinks = DeepLinkRouter.shared
     @ObservedObject private var incoming = IncomingBill.shared
     @State private var sharedBill: SharedBill?
     @State private var sharedBillError: String?
@@ -72,18 +73,27 @@ struct RootView: View {
         // e quando seus dados mudam (orçamentos, gastos previstos...).
         .task {
             ProvisionalInbox.drain(into: finance)   // compras do Apple Pay que chegaram
-            WidgetBridge.refreshTest()              // widget (etapa 1: só o horário)
+            WidgetBridge.refresh(finance)           // resumo dos widgets
             await NotificationPlanner.evaluate(finance)
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             ProvisionalInbox.drain(into: finance)
-            WidgetBridge.refreshTest()
+            WidgetBridge.refresh(finance)
         }
         .onChange(of: finance.lastSyncAt) { _, _ in
+            WidgetBridge.refresh(finance)
             Task { await NotificationPlanner.evaluate(finance) }
         }
         .onChange(of: finance.userData) { _, _ in
+            WidgetBridge.refresh(finance)
             Task { await NotificationPlanner.evaluate(finance) }
+        }
+        // Toque num widget: volta para o Início (o Início abre a tela certa).
+        .onChange(of: deepLinks.pending, initial: true) { _, link in
+            guard link != nil else { return }
+            showAgent = false
+            showSettings = false
+            tab = .home
         }
         // Toque numa notificação: vai para a aba dela.
         .onChange(of: router.requested, initial: true) { _, route in

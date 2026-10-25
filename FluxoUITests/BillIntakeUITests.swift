@@ -98,3 +98,22 @@ final class BillIntakeUITests: XCTestCase {
         print("INVESTIGACAO seletor em folha (builds 28-29): arquivo acessivel=\(visible) resultado=\(result)")
     }
 }
+
+/// Galeria dos widgets (as mesmas telas do widget, com dados fictícios): prints para conferir.
+final class WidgetGalleryUITests: XCTestCase {
+    func testWidgetGallery() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-UITestWidgets"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Saldo agora"].firstMatch.waitForExistence(timeout: 20))
+        XCTAssertTrue(app.staticTexts["R$ ••••"].firstMatch.exists, "estado com valores ocultos")
+        for index in 0..<4 {
+            let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+            shot.name = "galeria \(index)"
+            shot.lifetime = .keepAlways
+            add(shot)
+            app.swipeUp()
+            sleep(1)
+        }
+    }
+}

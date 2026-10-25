@@ -20,6 +20,8 @@ struct FluxoApp: App {
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("-UITestHarness") {
                 UITestHarnessView()   // só em testes automáticos (Debug); não existe na .ipa
+            } else if ProcessInfo.processInfo.arguments.contains("-UITestWidgets") {
+                UITestWidgetGallery()
             } else {
                 AppRoot()
                     .environmentObject(lock)
@@ -60,7 +62,13 @@ struct AppRoot: View {
             }
         }
         // Fatura compartilhada com o Fluxo: fica na fila até o app ser desbloqueado.
-        .onOpenURL { url in IncomingBill.shared.receive(url) }
+        .onOpenURL { url in
+            if let link = DeepLink(url: url) {
+                DeepLinkRouter.shared.pending = link     // toque num widget
+            } else {
+                IncomingBill.shared.receive(url)         // fatura compartilhada
+            }
+        }
         .onChange(of: scenePhase, initial: true) { _, phase in
             if phase != .active { Self.dismissKeyboard() }
             lock.handleScenePhase(phase)

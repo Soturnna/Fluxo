@@ -7,6 +7,7 @@ import SwiftUI
 /// desbloqueado na mão não consegue desativar a segurança do Fluxo.
 struct SettingsView: View {
     @EnvironmentObject private var lock: AppLock
+    @EnvironmentObject private var finance: FinanceStore
     @Environment(\.dismiss) private var dismiss
 
     @AppStorage(SettingsKey.requireAuth) private var requireAuth = true
@@ -16,6 +17,7 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.anonymizeNames) private var anonymizeNames = true
     @AppStorage(SettingsKey.agentModel) private var agentModel = AgentModelChoice.automatic.rawValue
     @AppStorage(SettingsKey.notifyEnabled) private var notificationsOn = false
+    @AppStorage(SettingsKey.widgetShowValues) private var widgetShowValues = false
 
     @State private var pluggyConfigured = false
     @State private var geminiConfigured = false
@@ -58,6 +60,7 @@ struct SettingsView: View {
                     Task { @MainActor in
                         guard await lock.authenticate(reason: "Apagar todos os dados do Fluxo") else { return }
                         DataWiper.wipeEverything()
+                        WidgetBridge.clear()
                         lock.endSession()
                     }
                 }
@@ -70,27 +73,49 @@ struct SettingsView: View {
 
     // MARK: Seções
 
-    /// Diagnóstico do teste técnico do widget (etapa 1).
+    /// Widgets: valores ocultos de fábrica; mostrar pede Face ID.
     private var widgetSection: some View {
         Section {
-            let group = WidgetShared.container()?.group
-            Label {
+            Toggle(isOn: revealing($widgetShowValues, reason: "Mostrar valores nos widgets")) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(group == nil ? "Pasta compartilhada indisponível" : "Pasta compartilhada encontrada")
-                    Text(group ?? "O instalador não liberou o App Group para o Fluxo.")
+                    Text("Mostrar valores nos widgets")
+                    Text("Para ligar, o app pede \(lock.biometryName). Desligado, aparece R$ ••••.")
                         .font(.caption)
                         .foregroundStyle(Theme.inkSecondary)
                 }
-            } icon: {
-                Image(systemName: group == nil ? "xmark.circle" : "checkmark.circle")
-                    .foregroundStyle(group == nil ? Theme.danger : Theme.positive)
             }
-            Button("Atualizar o widget agora") { WidgetBridge.refreshTest() }
+            LabeledContent("Na tela bloqueada", value: "Sempre ocultos")
+            LabeledContent("Atualização", value: "Ao abrir o app e a cada busca no banco")
+            if WidgetShared.container() == nil {
+                Label("Os widgets não estão recebendo dados: o instalador não liberou a pasta compartilhada.",
+                      systemImage: "exclamationmark.triangle")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.danger)
+            }
         } header: {
-            Text("Widget (teste)")
+            Text("Widgets")
         } footer: {
-            Text("Teste técnico: o widget \"Fluxo (teste)\" mostra só o horário em que o app foi aberto. Nenhum dado financeiro.")
+            Text("O widget guarda só os números que ele mostra, numa pasta que fica fechada enquanto o iPhone está travado. Nada de transações, nomes de lojas ou chaves.")
         }
+        .onChange(of: widgetShowValues) { _, _ in WidgetBridge.refresh(finance) }
+    }
+
+    /// Ligar algo que expõe mais (valores no widget) pede Face ID; desligar é livre.
+    private func revealing(_ setting: Binding<Bool>, reason: String) -> Binding<Bool> {
+        Binding(
+            get: { setting.wrappedValue },
+            set: { newValue in
+                if !newValue {
+                    setting.wrappedValue = false
+                } else {
+                    Task { @MainActor in
+                        if await lock.authenticate(reason: reason) {
+                            setting.wrappedValue = true
+                        }
+                    }
+                }
+            }
+        )
     }
 
     private var securitySection: some View {
