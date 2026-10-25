@@ -18,6 +18,8 @@ targets:
     platform: iOS
     sources:
       - path: Fluxo
+    dependencies:
+      - target: FluxoWidget
     scheme:
       testTargets:
         - FluxoTests
@@ -81,6 +83,32 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGNING_ALLOWED: "NO"
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGN_IDENTITY: ""
+
+  # Widget (extensão WidgetKit, dentro do app em PlugIns/). Etapa 1: teste técnico.
+  FluxoWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: FluxoWidget
+      - path: Fluxo/Shared/WidgetShared.swift
+    info:
+      path: FluxoWidget/Info.plist
+      properties:
+        CFBundleDisplayName: Fluxo
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.soturnna.fluxo.widget
+        PRODUCT_NAME: FluxoWidget
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: NO
+        SKIP_INSTALL: YES
         CODE_SIGNING_ALLOWED: "NO"
         CODE_SIGNING_REQUIRED: "NO"
         CODE_SIGN_IDENTITY: ""

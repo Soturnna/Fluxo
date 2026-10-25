@@ -30,6 +30,7 @@ struct SettingsView: View {
                 agentSection
                 credentialsSection
                 dataSection
+                widgetSection
                 Section {
                 } footer: {
                     Text(versionLabel)
@@ -68,6 +69,29 @@ struct SettingsView: View {
     }
 
     // MARK: Seções
+
+    /// Diagnóstico do teste técnico do widget (etapa 1).
+    private var widgetSection: some View {
+        Section {
+            let group = WidgetShared.container()?.group
+            Label {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(group == nil ? "Pasta compartilhada indisponível" : "Pasta compartilhada encontrada")
+                    Text(group ?? "O instalador não liberou o App Group para o Fluxo.")
+                        .font(.caption)
+                        .foregroundStyle(Theme.inkSecondary)
+                }
+            } icon: {
+                Image(systemName: group == nil ? "xmark.circle" : "checkmark.circle")
+                    .foregroundStyle(group == nil ? Theme.danger : Theme.positive)
+            }
+            Button("Atualizar o widget agora") { WidgetBridge.refreshTest() }
+        } header: {
+            Text("Widget (teste)")
+        } footer: {
+            Text("Teste técnico: o widget \"Fluxo (teste)\" mostra só o horário em que o app foi aberto. Nenhum dado financeiro.")
+        }
+    }
 
     private var securitySection: some View {
         Section {

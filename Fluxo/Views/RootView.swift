@@ -72,10 +72,12 @@ struct RootView: View {
         // e quando seus dados mudam (orçamentos, gastos previstos...).
         .task {
             ProvisionalInbox.drain(into: finance)   // compras do Apple Pay que chegaram
+            WidgetBridge.refreshTest()              // widget (etapa 1: só o horário)
             await NotificationPlanner.evaluate(finance)
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             ProvisionalInbox.drain(into: finance)
+            WidgetBridge.refreshTest()
         }
         .onChange(of: finance.lastSyncAt) { _, _ in
             Task { await NotificationPlanner.evaluate(finance) }

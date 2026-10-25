@@ -82,6 +82,8 @@ jobs:
           # (Antes, um .app vazio passava como sucesso.)
           grep -q "BUILD SUCCEEDED" build.log
           test -f build/Build/Products/Release-iphoneos/Fluxo.app/Fluxo
+          # O widget precisa estar dentro do app (PlugIns/), com o executável.
+          test -f build/Build/Products/Release-iphoneos/Fluxo.app/PlugIns/FluxoWidget.appex/FluxoWidget
 
       - name: Empacotar o .ipa
         run: |
