@@ -259,21 +259,37 @@ extension FinanceStore {
     struct CardSummary {
         let account: StoredAccount
         let schedule: CardSchedule
+        /// Total da fatura aberta segundo o ARQUIVO do banco (OFX importado), se houver.
+        /// É o número que o próprio banco mostra; vale por cima de qualquer conta.
+        var bankOpenTotal: Decimal? = nil
+
+        private var closedUnpaidTotal: Decimal { schedule.closedUnpaid?.total ?? 0 }
         /// Soma das compras da fatura aberta que o banco detalha.
         var itemizedOpenBill: Decimal { schedule.open?.total ?? 0 }
+        /// Soma das próximas faturas montadas mês a mês (parcelas já compradas).
+        var listedFutureBills: Decimal { schedule.futureTotal }
         /// Total comprometido − próximas − fechada a pagar: a fatura aberta pela conta do banco.
-        var anchoredOpenBill: Decimal { totalUsed - futureBills - (schedule.closedUnpaid?.total ?? 0) }
-        /// Fatura aberta. Usa a conta do banco: juros, encargos e saldo anterior entram
-        /// mesmo quando o banco não os detalha como compra. Sem total do banco (ou se a
-        /// conta der negativa), vale a soma das compras.
+        var anchoredOpenBill: Decimal { totalUsed - listedFutureBills - closedUnpaidTotal }
+
+        /// Fatura aberta, em ordem de confiança:
+        /// 1. o total do arquivo do banco (importado);
+        /// 2. a conta do banco (total − próximas), que inclui juros e saldo não detalhados;
+        /// 3. a soma das compras (sem total do banco, ou se a conta der negativa).
         var openBill: Decimal {
-            totalUsed > 0 && anchoredOpenBill >= 0 ? anchoredOpenBill : itemizedOpenBill
+            if let bankOpenTotal { return bankOpenTotal }
+            return totalUsed > 0 && anchoredOpenBill >= 0 ? anchoredOpenBill : itemizedOpenBill
+        }
+        /// Próximas faturas. Com o total do arquivo, é o resto do total do banco
+        /// (como o Nubank mostra); sem ele, a soma mês a mês.
+        var futureBills: Decimal {
+            guard bankOpenTotal != nil, totalUsed > 0 else { return listedFutureBills }
+            return max(totalUsed - openBill - closedUnpaidTotal, 0)
         }
         /// Parte da fatura aberta que não aparece como compra (juros, saldo anterior…).
         /// Negativa = as compras passam do que o banco cobra: alguma está no mês errado.
-        var unitemized: Decimal { totalUsed > 0 ? anchoredOpenBill - itemizedOpenBill : 0 }
-        /// Soma das próximas faturas (parcelas já compradas).
-        var futureBills: Decimal { schedule.futureTotal }
+        var unitemized: Decimal { (bankOpenTotal != nil || totalUsed > 0) ? openBill - itemizedOpenBill : 0 }
+        /// Próximas segundo o banco − soma mês a mês. Negativa = algum mês tem lançamento a mais.
+        var futureNotListed: Decimal { futureBills - listedFutureBills }
         /// Tudo o que está comprometido no cartão, segundo o banco.
         var totalUsed: Decimal { abs(account.balance) }
         var limit: Decimal? { account.creditLimit }
@@ -303,7 +319,35 @@ extension FinanceStore {
     }
 
     func cardSummary(_ card: StoredAccount) -> CardSummary {
-        CardSummary(account: card, schedule: cardSchedule(card))
+        let schedule = cardSchedule(card)
+        let bankTotal = schedule.open.flatMap { bankBillTotal(cardId: card.id, dueMonth: $0.due) }
+        return CardSummary(account: card, schedule: schedule, bankOpenTotal: bankTotal)
+    }
+
+    // MARK: Total da fatura vindo do arquivo do banco
+
+    private static func billTotalKey(cardId: String, dueMonth: Date) -> String {
+        let parts = Calendar.current.dateComponents([.year, .month], from: dueMonth)
+        return String(format: "%@|%04d-%02d", cardId, parts.year ?? 0, parts.month ?? 0)
+    }
+
+    func bankBillTotal(cardId: String, dueMonth: Date) -> Decimal? {
+        userData.cardBillTotals[Self.billTotalKey(cardId: cardId, dueMonth: dueMonth)]
+    }
+
+    /// Guarda o total da fatura informado no arquivo do banco (OFX). Só o valor.
+    func saveBankBillTotal(_ total: Decimal, cardId: String, dueMonth: Date) {
+        guard total >= 0, total < 10_000_000 else { return }
+        var data = userData
+        data.cardBillTotals[Self.billTotalKey(cardId: cardId, dueMonth: dueMonth)] = total
+        // Só os últimos 12 meses: o resto é descartado.
+        if data.cardBillTotals.count > 12 {
+            let oldest = data.cardBillTotals.keys.sorted(by: { $0.suffix(7) < $1.suffix(7) })
+            for key in oldest.prefix(data.cardBillTotals.count - 12) {
+                data.cardBillTotals[key] = nil
+            }
+        }
+        saveUserData(data)
     }
 
     /// Faturas fechadas informadas pelo banco, da mais recente para a mais antiga.

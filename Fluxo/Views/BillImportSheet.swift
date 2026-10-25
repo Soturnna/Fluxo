@@ -218,6 +218,9 @@ struct BillImportSheet: View {
             }
         }
         store.applyCardBillShifts(shifts)
+        if let bankTotal = file?.bankTotal {
+            store.saveBankBillTotal(bankTotal, cardId: card.id, dueMonth: result.target.due)
+        }
         dismiss()
     }
 }

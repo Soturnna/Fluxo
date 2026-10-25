@@ -11,7 +11,8 @@ struct PendingAction: Identifiable {
         case createCategory(name: String, kind: CategoryKind)
         case provisional(ProvisionalEntry)
         /// Correções de fatura do cartão: id da compra → deslocamento em meses.
-        case billCorrections([String: Int])
+        /// Correções de fatura + total da fatura no arquivo do banco (quando houver).
+        case billCorrections([String: Int], bankTotal: Decimal?, cardId: String, dueMonth: Date)
     }
 
     enum Status: Equatable {
@@ -703,7 +704,7 @@ enum AgentTools {
         if !result.missing.isEmpty { details.append("\(result.missing.count) ainda não chegaram pelo Open Finance") }
         details.append("Compras desta fatura no app depois: \(brl(after))")
         if let bankTotal = file.bankTotal {
-            details.append("Total da fatura no banco: \(brl(bankTotal))")
+            details.append("Total da fatura no banco: \(brl(bankTotal))" + (target.index == 0 ? " (vira a fatura atual no app)" : ""))
             if abs(notItemized) >= 1 {
                 details.append("\(brl(abs(notItemized))) \(notItemized > 0 ? "da fatura não aparece como compra (juros, encargos ou saldo anterior)" : "a mais nas compras do que no total")")
             }
@@ -724,7 +725,8 @@ enum AgentTools {
         var fullSummary = summary
         if let bankTotal = file.bankTotal { fullSummary["total_da_fatura_no_banco"] = money(bankTotal) }
         return .success(BillCheck(
-            action: PendingAction(kind: .billCorrections(shifts), title: "Corrigir fatura do cartão", details: details),
+            action: PendingAction(kind: .billCorrections(shifts, bankTotal: file.bankTotal, cardId: card.id, dueMonth: target.due),
+                                  title: "Corrigir fatura do cartão", details: details),
             summary: fullSummary, monthName: monthName))
     }
 
@@ -758,8 +760,9 @@ enum AgentTools {
             return store.createCategory(name: name, icon: "ellipsis", kind: kind) == nil ? .failed("Nome já usado.") : .done
         case .provisional(let entry):
             return store.saveProvisional(entry) ? .done : .failed("Dados inválidos.")
-        case .billCorrections(let shifts):
+        case .billCorrections(let shifts, let bankTotal, let cardId, let dueMonth):
             store.applyCardBillShifts(shifts)
+            if let bankTotal { store.saveBankBillTotal(bankTotal, cardId: cardId, dueMonth: dueMonth) }
             return .done
         }
     }

@@ -153,6 +153,8 @@ struct UserData: Codable, Equatable {
     var cardBillShift: [String: Int] = [:]
     /// Dia de vencimento ajustado por você: id do cartão → dia.
     var cardDueDays: [String: Int] = [:]
+    /// Total da fatura lido do arquivo do banco: "idCartão|AAAA-MM" (vencimento) → valor.
+    var cardBillTotals: [String: Decimal] = [:]
     static let billExcluded = 99
     /// Suas respostas do questionário de perfil de investidor.
     var investorProfile: InvestorProfile?
@@ -179,6 +181,7 @@ struct UserData: Codable, Equatable {
         cardCloseDays = (try? c.decodeIfPresent([String: Int].self, forKey: .cardCloseDays)) ?? [:]
         cardBillShift = (try? c.decodeIfPresent([String: Int].self, forKey: .cardBillShift)) ?? [:]
         cardDueDays = (try? c.decodeIfPresent([String: Int].self, forKey: .cardDueDays)) ?? [:]
+        cardBillTotals = (try? c.decodeIfPresent([String: Decimal].self, forKey: .cardBillTotals)) ?? [:]
         investorProfile = try? c.decodeIfPresent(InvestorProfile.self, forKey: .investorProfile)
     }
 

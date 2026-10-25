@@ -246,7 +246,7 @@ struct CreditCardView: View {
             .font(.caption)
             .foregroundStyle(Theme.inkSecondary)
             .padding(.horizontal, 4)
-        upcomingChart(summary.schedule)
+        upcomingChart(summary.schedule, notListed: summary.futureNotListed)
 
         Picker("Faturas", selection: $tab) {
             ForEach(BillTab.allCases) { Text($0.rawValue).tag($0) }
@@ -418,7 +418,7 @@ struct CreditCardView: View {
         .card(padding: 14)
     }
 
-    private func upcomingChart(_ schedule: FinanceStore.CardSchedule) -> some View {
+    private func upcomingChart(_ schedule: FinanceStore.CardSchedule, notListed: Decimal = 0) -> some View {
         let upcoming = Array(schedule.upcoming.prefix(6))
         let hasAny = upcoming.contains { $0.total > 0 }
         return VStack(alignment: .leading, spacing: 12) {
@@ -453,6 +453,17 @@ struct CreditCardView: View {
                 Text("Nenhuma parcela pela frente.")
                     .font(.footnote)
                     .foregroundStyle(Theme.inkSecondary)
+            }
+            // Com o total do arquivo do banco, as próximas vêm do banco; se a soma
+            // mês a mês não bater, avisa onde está a diferença.
+            if abs(notListed) >= 1 {
+                let value = lock.valuesHidden ? "R$ ••••" : AgentTools.brl(abs(notListed))
+                Label(notListed < 0
+                      ? "Os meses acima somam \(value) a mais que o banco. Algum lançamento está no mês errado: veja em Transações › Cartão com \"Mostrar o que o banco informou\"."
+                      : "\(value) das próximas faturas ainda não aparecem mês a mês.",
+                      systemImage: "info.circle")
+                    .font(.caption)
+                    .foregroundStyle(notListed < 0 ? Theme.warning : Theme.inkSecondary)
             }
         }
         .card(padding: 16)
